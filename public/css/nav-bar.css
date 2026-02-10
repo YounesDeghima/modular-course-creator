@@ -1,0 +1,87 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    background-color: #f8f9fa;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 10px;
+    border-radius: 0px 0px 10px 10px;
+    background-color: #ffffff;
+}
+
+a {
+    padding: 20px 10px;
+    text-decoration: none;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side {
+    position: relative;
+}
+
+.right-side p:not(.popup p) {
+    padding: 20px 10px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side .popup {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    justify-content: center;
+    flex-direction: column;
+    visibility: hidden;
+}
+
+.popup p {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #ffffff;
+    border-radius: 5px;
+    max-width: 300px;
+    overflow: auto;
+}
+
+#delete-user,
+#edit-user {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: #ffffff;
+    font-size: 20px;
+    background-color: #333;
+    border-radius: 5px;
+}
+
+form {
+    display: flex;
+    justify-content: center;
+}

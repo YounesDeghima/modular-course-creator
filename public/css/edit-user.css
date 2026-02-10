@@ -1,0 +1,238 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    
+    flex-direction: column;
+
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 10px;
+    border-radius: 0px 0px 10px 10px;
+    background-color: aquamarine;
+    height: 70px;
+    position: fixed;
+}
+
+
+a {
+    padding: 20px 10px;
+    text-decoration: none;
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    height: 30px;
+
+}
+
+.right-side {
+    position: relative;
+}
+
+.right-side p:not(.popup p) {
+    padding: 20px 10px;
+
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.right-side .popup {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    justify-content: center;
+    flex-direction: column;
+    visibility: hidden;
+}
+
+.popup p {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+form {
+    display: flex;
+    justify-content: center;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px 20px;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.user-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 500px;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eef0f2;
+}
+
+.info-row {
+    display: flex;
+    align-items: center; 
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid #f1f3f5;
+    gap: 30px;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.label {
+    font-weight: 700;
+    color: #adb5bd;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    white-space: nowrap; 
+    flex-shrink: 0;
+}
+
+/* Reset input styling to look like plain text */
+.value-input {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    color: #212529;
+    font-weight: 500;
+    text-align: right;
+    width: 100%;
+    outline: none; /* Removes the blue glow on click */
+    padding: 0;
+    margin: 0;
+}
+
+
+.value-input:hover, .value-input:focus {
+    color: #4A90E2;
+    cursor: edit;
+}
+
+
+input[type="submit"] {
+    margin-top: 25px;
+    width: 100%;
+    padding: 12px;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 03s;
+}
+
+input[type="submit"]:hover {
+    background-color: #111;
+}
+
+
+.value-input[type="date"] {
+    text-align: right;
+    cursor: pointer;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 10px;
+    border-radius: 0px 0px 10px 10px;
+    background-color: #ffffff;
+}
+
+a {
+    padding: 20px 10px;
+    text-decoration: none;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side {
+    position: relative;
+}
+
+.right-side p:not(.popup p) {
+    padding: 20px 10px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side .popup {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    justify-content: center;
+    flex-direction: column;
+    visibility: hidden;
+}
+
+.popup p {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #ffffff;
+    border-radius: 5px;
+    max-width: 300px;
+    overflow: auto;
+}

@@ -1,0 +1,233 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    flex-direction: column;
+    background-color: #f8f9fa;
+
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 10px;
+    border-radius: 0px 0px 10px 10px;
+    background-color: aquamarine;
+    height: 70px;
+
+
+}
+
+
+a {
+    padding: 20px 10px;
+    text-decoration: none;
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    height: 30px;
+
+}
+
+.right-side {
+    position: relative;
+}
+
+.right-side p:not(.popup p) {
+    padding: 20px 10px;
+
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.right-side .popup {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    justify-content: center;
+    flex-direction: column;
+    visibility: hidden;
+    
+}
+
+.popup p {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    max-width: 300px;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+#delete-user {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: black;
+    font-size: 20px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 50px;
+    width: 100%;
+}
+
+form {
+    display: flex;
+    justify-content: center;
+}
+
+/* Container styling to center the table and add padding */
+.users {
+    margin: 40px auto;
+    max-width: 90%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#users_table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#users_table td {
+    padding: 15px 20px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    max-width: 450px;
+    overflow: auto;
+}
+
+
+#users_table tr:hover {
+    background-color: #f8f9fa;
+    transition: background-color 0.3s ease;
+    
+}
+
+
+#users_table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+
+#users_table th {
+    background-color: #4A90E2;
+    color: white;
+    padding: 15px 20px;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+#users_table th {
+    background-color: #333;
+    color: #ffffff;
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #111;
+    
+}
+
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 10px;
+    border-radius: 0px 0px 10px 10px;
+    
+    background-color: #ffffff;
+}
+
+a {
+    padding: 20px 10px;
+    text-decoration: none;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side {
+    position: relative;
+}
+
+.right-side p:not(.popup p) {
+    padding: 20px 10px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #f1f3f5;
+    border-radius: 5px;
+}
+
+.right-side .popup {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    justify-content: center;
+    flex-direction: column;
+    visibility: hidden;
+}
+
+.popup p {
+    padding: 5px 5px;
+    margin-bottom: 2px;
+    color: #212529;
+    font-size: 20px;
+    background-color: #ffffff;
+    border-radius: 5px;
+}

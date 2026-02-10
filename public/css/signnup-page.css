@@ -1,0 +1,160 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: aqua;
+    border-radius: 20px;
+
+}
+
+.credentials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-width: 400px;
+
+    padding: 20px 15px;
+    border-radius: 20px;
+
+}
+
+.credentials .name {
+    display: flex;
+    flex-direction: column;
+
+
+}
+
+.credentials .sensitive-info {
+    display: flex;
+    flex-direction: column;
+}
+
+
+input:not([type="submit"]) {
+    width: 250px;
+    height: 30px;
+    margin-bottom: 5px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    font-size: 15px;
+}
+
+#birthdate {
+    text-align: center;
+
+}
+
+input[type="submit"],
+button {
+    width: 100px;
+    height: 50px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.login {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+button a {
+    text-decoration: none;
+    color: black;
+}
+
+.sign-up {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eef0f2;
+}
+
+.credentials {
+    background-color: transparent;
+    color: #212529;
+}
+
+.credentials .name,
+.credentials .sensitive-info {
+    color: #212529;
+}
+
+input:not([type="submit"]) {
+    background-color: #f1f3f5;
+    color: #212529;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    font-size: 15px;
+    padding-left: 10px;
+}
+
+input:not([type="submit"]):focus {
+    border-color: #4A90E2;
+    background-color: #ffffff;
+}
+
+#birthdate {
+    color: #212529;
+}
+
+input[type="submit"],
+button {
+    background-color: #333;
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+input[type="submit"]:hover,
+button:hover {
+    background-color: #111;
+}
+
+.login,
+.sign-up {
+    color: #212529;
+}
+
+button a {
+    text-decoration: none;
+    color: white;
+}
