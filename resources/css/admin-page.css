@@ -13,82 +13,6 @@ body {
 
 }
 
-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-
-}
-
-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    flex-direction: row;
-    padding: 10px 10px;
-    border-radius: 0px 0px 10px 10px;
-    background-color: aquamarine;
-    height: 70px;
-
-
-}
-
-
-a {
-    padding: 20px 10px;
-    text-decoration: none;
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
-    border-radius: 5px;
-    height: 30px;
-
-}
-
-.right-side {
-    position: relative;
-}
-
-.right-side p:not(.popup p) {
-    padding: 20px 10px;
-
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
-    border-radius: 5px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.right-side .popup {
-    display: flex;
-    position: absolute;
-    right: 0px;
-    justify-content: center;
-    flex-direction: column;
-    visibility: hidden;
-    
-}
-
-.popup p {
-    padding: 5px 5px;
-    margin-bottom: 2px;
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
-    border-radius: 5px;
-    max-width: 300px;
-    overflow: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-}
-
 #delete-user {
     padding: 5px 5px;
     margin-bottom: 2px;
@@ -140,7 +64,7 @@ form {
 #users_table tr:hover {
     background-color: #f8f9fa;
     transition: background-color 0.3s ease;
-    
+
 }
 
 
@@ -169,7 +93,7 @@ form {
     font-size: 13px;
     letter-spacing: 0.5px;
     border-bottom: 2px solid #111;
-    
+
 }
 
 
@@ -178,7 +102,7 @@ header {
     align-items: center;
     justify-content: center;
     width: 100%;
-    
+
 }
 
 nav {
@@ -189,7 +113,7 @@ nav {
     flex-direction: row;
     padding: 10px 10px;
     border-radius: 0px 0px 10px 10px;
-    
+
     background-color: #ffffff;
 }
 
@@ -230,4 +154,80 @@ a {
     font-size: 20px;
     background-color: #ffffff;
     border-radius: 5px;
+}
+
+/* Sidebar container */
+.side-bar {
+    position: relative;        /* needed for absolute popup positioning */
+    width: 200px;              /* width of the sidebar */
+    background-color: #f1f3f5; /* sidebar background */
+    padding: 10px;
+    border-radius: 10px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Main menu button */
+.side-bar #menu-button {
+    padding: 15px 10px;
+    background-color: rgb(91, 182, 152); /* button color */
+    color: black;
+    font-size: 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.3s ease;
+}
+
+.side-bar #menu-button:hover {
+    background-color: rgb(70, 150, 125); /* slightly darker on hover */
+}
+
+/* Popup container */
+.side-bar .popup {
+    position: absolute;
+    top: 100%;                 /* below the menu button */
+    left: 0;                   /* align left with sidebar */
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff; /* popup background */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    visibility: hidden;        /* hidden by default */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+    min-width: 180px;          /* matches sidebar width nicely */
+}
+
+/* Popup items */
+.side-bar .popup p {
+    padding: 10px 15px;
+    margin: 0;
+    font-size: 16px;
+    background-color: rgb(91, 182, 152);
+    border-radius: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    color: black;
+    transition: background-color 0.2s ease;
+}
+
+.side-bar .popup p a {
+    text-decoration: none;
+    color: black;
+}
+
+/* Hover effect for popup items */
+.side-bar .popup p:hover {
+    background-color: rgb(70, 150, 125);
+}
+
+/* Show popup when active (via JS toggle) */
+.side-bar.active .popup {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
 }
