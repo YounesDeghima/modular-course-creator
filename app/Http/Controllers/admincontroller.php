@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
-class dashboardcontroller extends Controller
+class admincontroller extends Controller
 {
-    public function showusers()
+    public function dashboard()
     {
         $users = User::all();
         $admin = Auth::user();
@@ -17,6 +17,14 @@ class dashboardcontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
 
-        return view('pages/admin/dashboard' ,compact('users', 'name', 'email','id'));
+        return view('pages.admin.dashboard' ,compact('users', 'name', 'email','id'));
+    }
+    public function main()
+    {
+        $admin = Auth::user();
+        $id = $admin->id;
+        $name = $admin->name;
+        $email = $admin->email;
+        return view('pages.admin.main' ,compact( 'name', 'email','id'));
     }
 }

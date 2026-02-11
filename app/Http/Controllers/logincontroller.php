@@ -24,7 +24,7 @@ class logincontroller extends Controller
         if(Auth::attempt($credentials))
         {
 
-            return(redirect('dashboard'));
+            return(redirect()->route('admin.main'));
 
         }
         return back()->withErrors(['email'=>'invalid email','password'=>'invalid password']);

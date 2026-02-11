@@ -1,24 +1,23 @@
+/* Reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Page layout */
 body {
     display: flex;
     align-items: flex-start;
     justify-content: flex-end;
     flex-direction: column;
     background-color: #f8f9fa;
-
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Header / nav */
 header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
-
 }
 
 nav {
@@ -26,107 +25,133 @@ nav {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    flex-direction: row;
-    padding: 10px 10px;
-    border-radius: 0px 0px 10px 10px;
-    background-color: aquamarine;
+    padding: 10px;
+    border-radius: 0 0 10px 10px;
+    background-color: #ffffff;
     height: 70px;
-
-
 }
 
-
-a {
-    padding: 20px 10px;
+/* Links / buttons (accent changed to blue) */
+a,
+.right-side p:not(.popup p),
+.popup p,
+#delete-user {
+    padding: 12px 10px;
     text-decoration: none;
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
+    color: #212529;
+    background-color: #f1f3f5;
     border-radius: 5px;
-    height: 30px;
-
+    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Accent variant for interactive controls */
+a.accent,
+.side-bar #menu-button,
+.side-bar .popup p,
+#delete-user.accent {
+    background-color: #4A90E2;     /* blue accent */
+    color: #ffffff;
+}
+
+a:hover,
+.side-bar #menu-button:hover,
+.side-bar .popup p:hover,
+#delete-user.accent:hover {
+    background-color: #357ABD;     /* slightly darker blue on hover */
+    color: #ffffff;
+}
+
+/* Right side popup (user info) */
 .right-side {
     position: relative;
 }
 
 .right-side p:not(.popup p) {
-    padding: 20px 10px;
-
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
+    padding: 16px 12px;
+    background-color: #f1f3f5;
+    color: #212529;
+    font-size: 18px;
     border-radius: 5px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-.right-side .popup {
+/* the popup itself */
+.right-side .popup{
     display: flex;
     position: absolute;
-    right: 0px;
-    justify-content: center;
+    right: 0;
+    top: calc(100% + 8px);
     flex-direction: column;
     visibility: hidden;
-    
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    z-index: 1000;
+    min-width: 220px;
+    padding: 10px;
 }
 
-.popup p {
-    padding: 5px 5px;
-    margin-bottom: 2px;
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
-    border-radius: 5px;
-    max-width: 300px;
+/* popup item */
+.right-side .popup p {
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background-color: #ffffff;
+    color: #212529;
+    border-radius: 6px;
+    font-size: 16px;
     overflow: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
 }
 
+/* visible state (toggle by adding .active to container via JS) */
+.right-side.active .popup
+{
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Delete user button (accent but full width inside forms) */
 #delete-user {
-    padding: 5px 5px;
-    margin-bottom: 2px;
-    color: black;
-    font-size: 20px;
-    background-color: rgb(91, 182, 152);
-    border-radius: 5px;
-
-
-    display: flex;
+    padding: 10px;
+    background-color: #4A90E2;
+    color: #fff;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    height: 50px;
-    width: 100%;
 }
 
+/* Forms */
 form {
     display: flex;
     justify-content: center;
 }
 
-/* Container styling to center the table and add padding */
+/* Users table container */
 .users {
     margin: 40px auto;
     max-width: 90%;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 #users_table {
     width: 100%;
     border-collapse: collapse;
     background-color: #ffffff;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
     border-radius: 8px;
     overflow: hidden;
 }
 
+/* Table rows / cells */
 #users_table td {
     padding: 15px 20px;
     text-align: left;
@@ -136,29 +161,16 @@ form {
     overflow: auto;
 }
 
-
 #users_table tr:hover {
     background-color: #f8f9fa;
-    transition: background-color 0.3s ease;
-    
+    transition: background-color 0.2s ease;
 }
-
 
 #users_table tr:nth-child(even) {
     background-color: #fafafa;
 }
 
-
-#users_table th {
-    background-color: #4A90E2;
-    color: white;
-    padding: 15px 20px;
-    text-align: left;
-    text-transform: uppercase;
-    font-size: 14px;
-    letter-spacing: 1px;
-}
-
+/* Table headers */
 #users_table th {
     background-color: #333;
     color: #ffffff;
@@ -169,65 +181,158 @@ form {
     font-size: 13px;
     letter-spacing: 0.5px;
     border-bottom: 2px solid #111;
-    
 }
 
 
-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    
-}
-
-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    flex-direction: row;
-    padding: 10px 10px;
-    border-radius: 0px 0px 10px 10px;
-    
-    background-color: #ffffff;
-}
-
-a {
-    padding: 20px 10px;
-    text-decoration: none;
-    color: #212529;
-    font-size: 20px;
-    background-color: #f1f3f5;
-    border-radius: 5px;
-}
-
-.right-side {
+p {
+    margin: 16px;
+    font-size: 96px;
+    color: #ccc;
+    text-transform: uppercase;
+    font-weight: 600;
+    transition: all 1s ease-in-out;
     position: relative;
+
+    &::before {
+        content: attr(data-item);
+        transition: all 1s ease-in-out;
+        color: #8254ff;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 0;
+        overflow: hidden;
+    }
+
+    &:hover {
+        &::before {
+            width: 100%;
+        }
+    }
 }
 
-.right-side p:not(.popup p) {
-    padding: 20px 10px;
-    color: #212529;
-    font-size: 20px;
-    background-color: #f1f3f5;
-    border-radius: 5px;
-}
+/*.options{*/
+/*    margin: 25px;*/
+/*    background: #f9f9f9;*/
+/*    padding: 16px;*/
+/*    .menuItems {*/
+/*        list-style: none;*/
+/*        display: flex;*/
+/*        flex-direction: column;*/
 
-.right-side .popup {
+/*        li {*/
+
+
+/*            a {*/
+/*                text-decoration: none;*/
+/*                color: #8f8f8f;*/
+/*                font-size: 24px;*/
+/*                font-weight: 400;*/
+/*                transition: all 0.5s ease-in-out;*/
+/*                position: relative;*/
+/*                text-transform: uppercase;*/
+
+/*                &::before {*/
+/*                    content: attr(data-item);*/
+/*                    transition: 0.5s;*/
+/*                    color: #8254ff;*/
+/*                    position: absolute;*/
+/*                    top: 0;*/
+/*                    bottom: 0;*/
+/*                    left: 0;*/
+/*                    right: 0;*/
+/*                    width: 0;*/
+/*                    overflow: hidden;*/
+/*                }*/
+
+/*                &:hover {*/
+/*                    &::before {*/
+/*                        width: 100%;*/
+/*                        transition: all 0.5s ease-in-out;*/
+/*                    }*/
+/*                }*/
+/*            }*/
+/*        }*/
+/*    }*/
+/*}*/
+
+
+main
+{
     display: flex;
-    position: absolute;
-    right: 0px;
-    justify-content: center;
-    flex-direction: column;
-    visibility: hidden;
+    align-self: center;
+
 }
 
-.popup p {
-    padding: 5px 5px;
-    margin-bottom: 2px;
-    color: #212529;
-    font-size: 20px;
-    background-color: #ffffff;
-    border-radius: 5px;
+.options{
+
+    background: #f9f9f9;
+    padding: 16px;
+    position: fixed;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    height: 100%;
+}
+
+.options .menuItems {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* space between items */
+    padding: 0;
+    margin: 0;
+}
+
+.options .menuItems li a {
+    position: relative;
+    display: inline-block;
+    text-decoration: none;
+    color: #212529; /* normal text color */
+    font-size: 18px;
+    font-weight: 500;
+    text-transform: uppercase;
+    padding: 12px 15px;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Hover background effect behind text */
+.options .menuItems li a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background-color: #4A90E2; /* blue accent */
+    border-radius: 6px;
+    transition: width 0.3s ease;
+    z-index: -1; /* **make sure it's behind text** */
+}
+
+/* Wrap text in span for proper layering */
+.options .menuItems li a span {
+    position: relative;
+    z-index: 1; /* text above pseudo-element */
+    transition: color 0.3s ease;
+}
+
+/* Hover effect */
+.options .menuItems li a:hover::before {
+    width: 100%;
+}
+
+.options .menuItems li a:hover span {
+    color: #ffffff; /* text turns white on hover */
+}
+
+/* Active state */
+.options .menuItems li a.active::before {
+    width: 100%;
+}
+
+.options .menuItems li a.active span {
+    color: #ffffff;
 }

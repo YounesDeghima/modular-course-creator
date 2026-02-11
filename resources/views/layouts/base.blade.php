@@ -49,7 +49,7 @@
 
 </div>
 <main>
-
+@yield('main')
 </main>
 
 <script>
