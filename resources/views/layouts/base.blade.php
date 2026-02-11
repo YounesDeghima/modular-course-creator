@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
+    <link rel="stylesheet" href="@yield('css')">
 </head>
 
 <body>
@@ -40,11 +40,13 @@
     </nav>
 </header>
 <div class="side-bar">
-        <p id="menu-button">Menu ▾</p>
-        <div class="popup" id="popup-menu">
-            <p><a href="{{ route('admin.dashboard_page') }}">Users dashboard</a></p>
-            <p><a href="#">book editor</a></p>
-        </div>
+
+    <div class="options">
+        <ul class="menuItems">
+            @yield('menuItems')
+        </ul>
+    </div>
+
 </div>
 <main>
 
@@ -62,13 +64,13 @@
     rightside.addEventListener("click", () => {
 
         if (open == false) {
-
-
             input.style.visibility = 'visible';
+            input.style.opacity=1;
             open = true;
         }
         else {
             input.style.visibility = 'hidden';
+            input.style.opacity=0;
             open = false;
         }
     });

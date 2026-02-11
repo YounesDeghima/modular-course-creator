@@ -17,6 +17,6 @@ class dashboardcontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
 
-        return view('/pages/admin/dashboard' ,compact('users', 'name', 'email','id'));
+        return view('pages/admin/dashboard' ,compact('users', 'name', 'email','id'));
     }
 }
