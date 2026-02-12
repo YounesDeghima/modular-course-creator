@@ -21,10 +21,18 @@ class admincontroller extends Controller
     }
     public function main()
     {
+
         $admin = Auth::user();
-        $id = $admin->id;
-        $name = $admin->name;
-        $email = $admin->email;
-        return view('pages.admin.main' ,compact( 'name', 'email','id'));
+        if($admin->ROLE=='admin')
+        {
+            $id = $admin->id;
+            $name = $admin->name;
+            $email = $admin->email;
+            return view('pages.admin.main' ,compact( 'name', 'email','id'));
+        }
+        else{
+            return redirect()->back();
+        }
+
     }
 }

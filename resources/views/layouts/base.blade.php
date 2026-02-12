@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
     <link rel="stylesheet" href="@yield('css')">
+
 </head>
 
 <body>
@@ -39,45 +41,28 @@
         </div>
     </nav>
 </header>
-<div class="side-bar">
+<div class="middle">
+    <div class="side-bar">
 
-    <div class="options">
-        <ul class="menuItems">
-            @yield('menuItems')
-        </ul>
+        <div class="options">
+            <ul class="menuItems">
+
+                <li><a href='{{route('admin.main')}}' data-item='Home'>Home</a></li>
+                <li><a href='{{route('admin.dashboard')}}' data-item='About'>Users</a></li>
+                <li><a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a></li>
+
+            </ul>
+        </div>
+
     </div>
-
+    <main>
+        @yield('main')
+    </main>
 </div>
-<main>
-@yield('main')
-</main>
-
-<script>
-    let rightside = document.getElementById('right-side');
-
-    let input = document.getElementById('popup');
 
 
 
-    let open = false;
-
-    rightside.addEventListener("click", () => {
-
-        if (open == false) {
-            input.style.visibility = 'visible';
-            input.style.opacity=1;
-            open = true;
-        }
-        else {
-            input.style.visibility = 'hidden';
-            input.style.opacity=0;
-            open = false;
-        }
-    });
-
-
-
-</script>
 </body>
+@yield('js')
 
 </html>

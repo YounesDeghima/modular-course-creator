@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\course;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class coursecontroller extends Controller
 {
@@ -11,7 +13,13 @@ class coursecontroller extends Controller
      */
     public function index()
     {
-        //
+        $admin = Auth::user();
+        $id = $admin->id;
+        $name = $admin->name;
+        $email = $admin->email;
+
+        $courses= Course::all();
+        return view('pages.admin.courses',compact('courses','name','email','id'));
     }
 
     /**
@@ -27,7 +35,17 @@ class coursecontroller extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'year' => 'required|integer|min:1|max:3',
+            'category' => 'required|string|max:255',
+            'description' => 'required|string',
+        ]);
+
+        Course::create($validated);
+
+
+        return redirect()->back()->with('success', 'Course created successfully');
     }
 
     /**
@@ -49,16 +67,30 @@ class coursecontroller extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $course = Course::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'year' => 'required|integer|min:1|max:3',
+            'category' => 'required|string|max:255',
+            'description' => 'required|string',
+        ]);
+
+        $course->update($validated);
+
+        return redirect()->back()->with('success', 'Course updated');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        $course = Course::findOrFail($id);
+        $course->delete();
+
+        return redirect()->back()->with('success', 'Course deleted');
     }
 }
