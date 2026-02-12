@@ -174,7 +174,6 @@ form {
     align-self: center;
     max-width: 500px;
 
-    justify-self: center;
 }
 
 /* Table rows / cells */
@@ -309,7 +308,12 @@ p {
 .options .menuItems li a.active span {
     color: #ffffff;
 }
-
+main{
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
 
 
 

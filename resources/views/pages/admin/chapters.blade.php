@@ -6,6 +6,7 @@
 @section('main')
 
     <div class="blocks-container" id="blocks-container">
+        <div class="route">{{$course->name}}</div>
         <div class="block-adder">
             <button id="block-adder">+</button>
             <div class="popup" id="block-popup">
