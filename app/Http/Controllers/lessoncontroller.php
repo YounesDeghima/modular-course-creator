@@ -22,6 +22,7 @@ class lessoncontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
         $lessons=lesson::where('chapter_id',$chapter->id)->get();
+
         return view('pages.admin.lessons',compact('lessons','course','chapter','id','name','email'));
 
     }

@@ -69,7 +69,7 @@
                         <form action="{{route('admin.courses.chapters.lessons.destroy',[$course,$chapter,$lesson])}}" method="post">
                             @csrf
                             @method('DELETE')
-                            <input type="submit" name="chapter-delete" class="block-delete delete-button" value="delete">
+                            <input type="submit" name="lesson-delete" class="block-delete delete-button" value="delete">
                         </form>
 
                         <a href="{{route('admin.courses.chapters.lessons.blocks.index',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">manage blocks</a>

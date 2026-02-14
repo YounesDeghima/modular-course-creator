@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class lesson extends Model
+class block extends Model
 {
     protected $fillable =[
         'name',
-        'description',
-        'lesson_number',
-        'chapter_id'
+        'type',
+        'content',
+        'block_number',
+        'lesson_id'
     ];
     public $timestamps = false;
 
-    public function blocks()
-    {
-        return $this->hasMany(Block::class);
-    }
+
+
+
 
 }
