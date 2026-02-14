@@ -2,9 +2,10 @@
 
 use App\Http\Controllers\blockcontroller;
 use App\Http\Controllers\chaptercontroller;
+use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\coursecontroller;
 use App\Http\Controllers\admincontroller;
-use App\Http\Controllers\lessoncontroller;
+
 
 use App\Http\Controllers\logincontroller;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,8 @@ Route::get('/', function () {
 });
 
 Route::get('/login',[logincontroller::class,'show'])->name('login_page');
+
+
 Route::post('/login',[LoginController::class,'verify'])->name('verify_user_login');
 
 

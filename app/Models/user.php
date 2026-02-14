@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class user extends Authenticatable
 {
 
     protected $fillable = [
-        'id',
+
         'name',
         'email',
         'password',
-        'ROLE'
+        'role'
     ];
 
     /**
@@ -42,7 +42,7 @@ class User extends Authenticatable
     }
     public function testDb()
     {
-        $users = User::all(); // fetch all rows from users table
+        $users = user::all(); // fetch all rows from users table
         dd($users);           // dump & die to see results
     }
 }

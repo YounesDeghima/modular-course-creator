@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
+use App\Models\user;
 
 class admincontroller extends Controller
 {
     public function dashboard()
     {
-        $users = User::all();
+        $users = user::all();
         $admin = Auth::user();
         $id = $admin->id;
         $name = $admin->name;
@@ -23,7 +23,7 @@ class admincontroller extends Controller
     {
 
         $admin = Auth::user();
-        if($admin->ROLE=='admin')
+        if($admin->role=='admin')
         {
             $id = $admin->id;
             $name = $admin->name;

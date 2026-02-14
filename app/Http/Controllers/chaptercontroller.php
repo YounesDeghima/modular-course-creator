@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\chapter;
 use App\Models\course;
+use App\Models\lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,6 +26,8 @@ class chaptercontroller extends Controller
 
     }
 
+
+
     /**
      * Show the form for creating a new resource.
      */
@@ -43,12 +46,9 @@ class chaptercontroller extends Controller
             'name' => 'required|string|max:255',
             'chapter_number'=>'required|integer',
             'description' => 'required|string',
-
-
         ]);
 
         $validated['course_id'] = $course->id;
-
 
         chapter::create($validated);
 
@@ -87,7 +87,7 @@ class chaptercontroller extends Controller
 
         $chapter->update($validated);
 
-        return redirect()->back()->with('success', 'chapter updated');
+        return redirect()->back()->with('success', 'lesson updated');
     }
 
     /**
@@ -98,6 +98,6 @@ class chaptercontroller extends Controller
         $chapter = chapter::findOrFail($chapter->id);
         $chapter->delete();
 
-        return redirect()->back()->with('success', 'Course deleted');
+        return redirect()->back()->with('success', 'chapter deleted');
     }
 }

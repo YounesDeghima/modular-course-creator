@@ -38,7 +38,7 @@
                 {{$message}}
                 @enderror
                 <p>you don't have an account?</p>
-                <button><a href="../signup-page/signup-page.php">sign-up</a></button>
+                <button><a href="#">sign-up</a></button>
             </div>
 
         </div>

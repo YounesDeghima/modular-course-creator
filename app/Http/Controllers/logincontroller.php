@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
+use App\Models\user;
 
 class logincontroller extends Controller
 {
@@ -25,6 +25,7 @@ class logincontroller extends Controller
         {
 
             return(redirect()->route('admin.main'));
+
 
         }
         return back()->withErrors(['email'=>'invalid email','password'=>'invalid password']);

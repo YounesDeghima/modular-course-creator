@@ -52,6 +52,7 @@
                 <li><a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a></li>
 
             </ul>
+            @yield('back-button')
         </div>
 
     </div>
