@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class course extends Model
 {
     protected $fillable =[
-        'name',
-        'description',
+        'title',
         'year',
-        'category',
+        'branch',
+        'description',
+
+
     ];
     public $timestamps = false;
 

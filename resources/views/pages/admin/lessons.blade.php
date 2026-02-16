@@ -11,18 +11,18 @@
 @section('main')
 
     <div class="blocks-container" id="blocks-container">
-        <div class="route">{{$course->name}}->{{$chapter->name}}</div>
+        <div class="route">{{$course->title}}->{{$chapter->title}}</div>
         <div class="block-adder">
             <button id="block-adder">+</button>
             <div class="popup" id="block-popup">
 
                 <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.lessons.store',['course'=>$course->id,'chapter'=>$chapter->id])}}">
                     @csrf
-                    <label>Name:</label>
-                    <input class="value-input" type="text" name="name" required>
+                    <label>Title:</label>
+                    <input class="value-input" type="text" name="title" required>
 
                     <label>lesson-number:</label>
-                    <input class="value-input" type="number" name="lesson_number" min="1" max="99" required>
+                    <input class="value-input" type="number" name="lesson_number" value="{{$lesson_count+1}}" readonly>
 
                     <label>Description:</label>
                     <textarea class="value-input" name="description" required></textarea>
@@ -46,12 +46,12 @@
                             @method('PUT')
 
                             <div class="info-row">
-                                <label  for="name">name</label>
-                                <input class="value-input" type="text"  name="name" value="{{$lesson->name}}">
+                                <label  for="name">title</label>
+                                <input class="value-input" type="text"  name="title" value="{{$lesson->title}}">
                             </div>
                             <div class="info-row">
-                                <label  for="name">number</label>
-                                <input class="value-input" type="text"  name="lesson_number" value="{{$lesson->lesson_number}}">
+                                <label  for="lesson_number">number</label>
+                                <input class="value-input" type="text"  name="lesson_number" value="{{$lesson->lesson_number}}" readonly>
                             </div>
 
 

@@ -13,14 +13,22 @@
 
                 <form id="new-block-form" method="POST" action="{{route('admin.courses.store')}}">
                     @csrf
-                    <label>Name:</label>
-                    <input class="value-input" type="text" name="name" required>
+                    <label>Title:</label>
+                    <input class="value-input" type="text" name="title" required>
 
                     <label>Year (1-3):</label>
-                    <input class="value-input" type="number" name="year" min="1" max="3" required>
+                    <select name="year" class="year-input">
+                        <option value="1">Year 1</option>
+                        <option value="2">Year 2</option>
+                        <option value="3">Year 3</option>
+                    </select>
+                    <label class="branch-label">branch:</label>
+                    <select name="branch" class="branch-input">
+                        <option value="mi">mi</option>
+                        <option value="st">st</option>
+                        <option value="none" style="display: none">none</option>
 
-                    <label>Category:</label>
-                    <input class="value-input" type="text" name="category" required>
+                    </select>
 
                     <label>Description:</label>
                     <textarea class="value-input" name="description" required></textarea>
@@ -45,14 +53,13 @@
 
                             <div>
                                 <div class="info-row">
-                                    <label  for="name">name</label>
-                                    <input class="value-input" type="text"  name="name" value="{{$course->name}}">
+                                    <label  for="name">Title</label>
+                                    <input class="value-input" type="text"  name="title" value="{{$course->title}}">
                                 </div>
 
                                 <div class="info-row">
                                     <label for="year">year</label>
-                                    <select name="year" >
-
+                                    <select name="year" class="year-input">
                                         <option value="1" {{ $course->year == 1 ? 'selected' : '' }}>Year 1</option>
                                         <option value="2" {{ $course->year == 2 ? 'selected' : '' }}>Year 2</option>
                                         <option value="3" {{ $course->year == 3 ? 'selected' : '' }}>Year 3</option>
@@ -62,8 +69,12 @@
 
 
                             <div class="info-row">
-                                <label for="category">category</label>
-                                <input class="value-input" type="text" name="category"  value="{{$course->category}}">
+                                <label for="branch" class="branch-label">branch</label>
+                                <select name="branch" class="branch-input">
+                                    <option value="mi" {{ $course->branch == 'mi' ? 'selected' : '' }}>mi</option>
+                                    <option value="st" {{ $course->branch == 'st' ? 'selected' : '' }}>st</option>
+                                    <option value="none" style="display: none" {{ $course->branch == 'none' ? 'selected' : '' }}>none</option>
+                                </select>
                             </div>
 
                             <div class="info-row">
@@ -112,6 +123,37 @@
             adder.style.visibility= 'hidden';
             adder.style.opacity= 0;
         });
+
+        let years = Array.from(document.getElementsByClassName('year-input'));
+        let branchs = Array.from(document.getElementsByClassName('branch-input'));
+        let branchlabels=Array.from(document.getElementsByClassName('branch-label'));
+
+        function togglebranch(year,i)
+        {
+            console.log(i);
+            if(parseInt(year.value)>1)
+            {
+
+                branchs[i].style.display='block';
+                branchlabels[i].style.display='block';
+                branchs[i].value='mi';
+
+            }
+            else {
+                branchs[i].style.display = 'none';
+                branchlabels[i].style.display = 'none';
+
+            }
+        }
+        years.forEach((year,i)=>{
+            year.addEventListener('change', ()=> togglebranch(year,i));
+
+        });
+
+        years.forEach((year, i) => togglebranch(year, i));
+
+
+
 
 
 

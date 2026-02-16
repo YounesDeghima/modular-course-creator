@@ -21,8 +21,11 @@ class chaptercontroller extends Controller
         $id = $admin->id;
         $name = $admin->name;
         $email = $admin->email;
-        $chapters=chapter::where('course_id',$course->id)->get();
-        return view('pages.admin.chapters',compact('chapters','course','id','name','email'));
+        $chapters=chapter::where('course_id',$course->id)
+            ->orderBy('chapter_number','asc')
+            ->get();
+        $chapter_count = $course->chapters->count();
+        return view('pages.admin.chapters',compact('chapters','course','chapter_count','id','name','email'));
 
     }
 
@@ -42,11 +45,13 @@ class chaptercontroller extends Controller
     public function store(Request $request,course $course)
     {
 
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'chapter_number'=>'required|integer',
-            'description' => 'required|string',
+            'description' => 'required|string'
         ]);
+
 
         $validated['course_id'] = $course->id;
 
@@ -79,7 +84,7 @@ class chaptercontroller extends Controller
     {
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'chapter_number'=>'required|integer',
             'description' => 'required|string',
         ]);

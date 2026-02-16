@@ -571,7 +571,11 @@ div{
 {
     align-self: flex-start;
 }
-
+.branch-label,
+.branch-input
+{
+    display: none;
+}
 
 
 

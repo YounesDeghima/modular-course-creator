@@ -5,24 +5,24 @@
 @endsection
 
 @section('back-button')
-    <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->name}}</a>
+    <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
 @endsection
 
 @section('main')
 
     <div class="blocks-container" id="blocks-container">
-        <div class="route">{{$course->name}}</div>
+        <div class="route">{{$course->title}}</div>
         <div class="block-adder">
             <button id="block-adder">+</button>
             <div class="popup" id="block-popup">
 
                 <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store',$course)}}">
                     @csrf
-                    <label>Name:</label>
-                    <input class="value-input" type="text" name="name" required>
+                    <label>Title:</label>
+                    <input class="value-input" type="text" name="title" required>
 
                     <label>chapter-number:</label>
-                    <input class="value-input" type="number" name="chapter_number" min="1" max="99" required>
+                    <input class="value-input" type="number" name="chapter_number" value="{{$chapter_count+1}}" readonly>
 
                     <label>Description:</label>
                     <textarea class="value-input" name="description" required></textarea>
@@ -46,20 +46,18 @@
                             @method('PUT')
 
                                 <div class="info-row">
-                                    <label  for="name">name</label>
-                                    <input class="value-input" type="text"  name="name" value="{{$chapter->name}}">
+                                    <label  for="name">Title</label>
+                                    <input class="value-input" type="text"  name="title" value="{{$chapter->title}}">
                                 </div>
                                 <div class="info-row">
-                                    <label  for="name">number</label>
-                                    <input class="value-input" type="text"  name="chapter_number" value="{{$chapter->chapter_number}}">
+                                    <label for="chapter_number">chapter number</label>
+                                    <input class="value-input" type="text" name="chapter_number" value="{{$chapter->chapter_number}}" readonly>
                                 </div>
 
-
-
-                            <div class="info-row">
-                                <label for="description">description</label>
-                                <textarea name="description" class="value-input" >{{$chapter->description}}</textarea>
-                            </div>
+                                <div class="info-row">
+                                    <label for="description">description</label>
+                                    <textarea name="description" class="value-input" >{{$chapter->description}}</textarea>
+                                </div>
 
                             <input class="value-input update-button" type="submit" name="update" value="update" >
 

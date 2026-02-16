@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class lesson extends Model
 {
     protected $fillable =[
-        'name',
+        'title',
         'description',
         'lesson_number',
         'chapter_id'

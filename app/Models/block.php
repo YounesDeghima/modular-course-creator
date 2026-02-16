@@ -9,7 +9,7 @@ use App\Models\exercisesolution;
 class block extends Model
 {
     protected $fillable =[
-        'name',
+        'title',
         'type',
         'content',
         'block_number',

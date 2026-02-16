@@ -21,9 +21,12 @@ class lessoncontroller extends Controller
         $id = $admin->id;
         $name = $admin->name;
         $email = $admin->email;
-        $lessons=lesson::where('chapter_id',$chapter->id)->get();
+        $lessons=lesson::where('chapter_id',$chapter->id)
+            ->orderBy('lesson_number','asc')
+            ->get();
+        $lesson_count = $chapter->lessons->count();
 
-        return view('pages.admin.lessons',compact('lessons','course','chapter','id','name','email'));
+        return view('pages.admin.lessons',compact('lessons','course','chapter','lesson_count','id','name','email'));
 
     }
 
@@ -44,7 +47,7 @@ class lessoncontroller extends Controller
     {
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'lesson_number'=>'required|integer',
             'description' => 'required|string',
         ]);
@@ -81,7 +84,7 @@ class lessoncontroller extends Controller
     {
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'lesson_number'=>'required|integer',
             'description' => 'required|string',
         ]);
