@@ -1,13 +1,11 @@
 @extends('layouts.base')
 @section('css')
-
     {{asset('css/modular-site.css')}}
 @endsection
 
 @section('back-button')
     <a class="back-button" href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->name}}->{{$chapter->name}}->{{$lesson->name}}</a>
 @endsection
-
 @section('main')
 
     <div class="blocks-container" id="blocks-container">
@@ -103,6 +101,13 @@
     </div>
 
 @endsection
+
+
+
+
+@section('main')
+
+
 
 
 @section('js')

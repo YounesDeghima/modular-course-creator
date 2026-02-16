@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\exercisesolution;
 
 class block extends Model
 {
@@ -16,6 +17,10 @@ class block extends Model
     ];
     public $timestamps = false;
 
+    public function solutions()
+    {
+        return $this->hasMany(exercisesolution::class);
+    }
 
 
 

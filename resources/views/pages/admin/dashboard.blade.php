@@ -48,6 +48,7 @@
 
 
 
+
         let open = false;
 
         rightside.addEventListener("click", () => {

@@ -1,0 +1,160 @@
+
+.editor-container {
+    display: flex;
+    width: 100%;
+
+}
+
+/* EDITOR */
+.editor {
+    width: 30%;
+    padding: 20px;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 200px;
+
+
+
+}
+
+.preview {
+    width: 70%;
+    padding: 30px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+
+}
+
+/* BLOCK */
+
+#blocks
+{
+    display: flex;
+    flex-direction: column;
+}
+
+.block {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.block-header {
+    background: #e9ecef;
+    padding: 6px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+}
+
+.block-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+textarea, input {
+    width: 100%;
+    padding: 6px;
+}
+
+/* ADD BLOCK */
+.add-wrapper {
+
+    margin-top: 20px;
+}
+
+.plus-btn {
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: #007bff;
+    color: white;
+}
+
+/* POPUP MENU */
+.add-menu {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    display: none;
+    width: 200px;
+}
+
+.add-menu div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.add-menu div:hover {
+    background: #f0f0f0;
+}
+
+/* PREVIEW STYLES */
+pre {
+    background: #111;
+    color: #0f0;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.note {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    padding: 10px;
+}
+
+.block-header button {
+    margin-left: 5px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.exercise {
+    border: 1px dashed #007bff;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    background: #e7f1ff;
+    display: flex;
+    flex-direction: column;
+}
+
+.exercise button {
+    margin-top: 5px;
+    align-self: flex-start;
+
+}
+
+.solution {
+    display: none;
+    margin-top: 5px;
+    padding: 8px;
+    background: #d4edda;      /* light green */
+    border-left: 5px solid #28a745; /* darker green border */
+    border-radius: 4px;
+    color: #155724;           /* text dark green */
+    font-weight: bold;
+}
+.block-body form
+{
+    display: flex;
+    flex-direction: column;
+}
+.info-row
+{
+    visibility: hidden;
+}

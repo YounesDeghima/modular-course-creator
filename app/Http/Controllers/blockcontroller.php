@@ -6,6 +6,7 @@ use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
 use App\Models\lesson;
+use App\Models\exercisesolution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,8 +23,14 @@ class blockcontroller extends Controller
         $id = $admin->id;
         $name = $admin->name;
         $email = $admin->email;
-        $blocks=block::where('lesson_id',$lesson->id)->get();
-        return view('pages.admin.blocks',compact('blocks','course','chapter','lesson','id','name','email'));
+        $blocks=block::where('lesson_id',$lesson->id)
+                                    ->with('solutions')
+                                    ->orderBy('block_number','asc')
+                                    ->get();
+        $block_count = $lesson->blocks->count();
+
+
+        return view('pages.admin.newblocks',compact('blocks','block_count','course','chapter','lesson','id','name','email'));
 
     }
 
@@ -54,8 +61,15 @@ class blockcontroller extends Controller
 
         $validated['lesson_id'] = $lesson->id;
 
+        $block=block::create($validated);
 
-        block::create($validated);
+        if($block->type == 'exercise'){
+            $block->solutions()->create([
+                'solution_number'=>1,
+                'block_id'=>$block->id,
+            ]);
+
+        }
 
 
         return redirect()->back();
@@ -83,6 +97,52 @@ class blockcontroller extends Controller
     public function update(Request $request, course $course, chapter $chapter,lesson $lesson,block $block)
     {
 
+
+        $direction = $request->input('update');
+
+        if($direction === 'up'){
+            $previous = block::where('lesson_id',$lesson->id)
+                ->where('block_number','<',$block->block_number)
+                ->orderBy('block_number','desc')
+                ->first();
+
+            if($previous){
+                $temp = $block->block_number;
+                $block->block_number=$previous->block_number;
+                $previous->block_number = $temp;
+
+                $block->save();
+                $previous->save();
+
+            }
+
+
+            return back();
+
+        }
+        if($direction === 'down'){
+            $previous = block::where('lesson_id',$lesson->id)
+                ->where('block_number','>',$block->block_number)
+                ->orderBy('block_number','asc')
+                ->first();
+
+            if($previous){
+                $temp = $block->block_number;
+                $block->block_number=$previous->block_number;
+                $previous->block_number = $temp;
+
+                $block->save();
+                $previous->save();
+
+            }
+
+
+            return back();
+
+        }
+
+
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:title,description,note,exercise,code',
@@ -90,6 +150,15 @@ class blockcontroller extends Controller
             'content' => 'required|string',
         ]);
 
+
+        if($block->type=='exercise'){
+            foreach ($block->solutions as $solution) {
+                $solution->content = $request->input('solution');
+
+                $solution->save();
+
+            }
+        }
 
         $block->update($validated);
 

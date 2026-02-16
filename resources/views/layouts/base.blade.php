@@ -7,6 +7,8 @@
     <title>Document</title>
     <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
     <link rel="stylesheet" href="@yield('css')">
+    <link rel="stylesheet" href="@yield('css2')">
+
 
 </head>
 
