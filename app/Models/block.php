@@ -8,6 +8,7 @@ use App\Models\exercisesolution;
 
 class block extends Model
 {
+    use HasFactory;
     protected $fillable =[
         'title',
         'type',

@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notifiable;
 class user extends Authenticatable
 {
 
+    use HasFactory;
+
     protected $fillable = [
 
         'name',
@@ -27,6 +29,8 @@ class user extends Authenticatable
         'password',
         'remember_token',
     ];
+
+
 
     /**
      * Get the attributes that should be cast.

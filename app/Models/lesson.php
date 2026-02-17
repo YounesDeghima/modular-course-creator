@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class lesson extends Model
 {
+    use HasFactory;
     protected $fillable =[
         'title',
         'description',
@@ -14,6 +15,8 @@ class lesson extends Model
         'chapter_id'
     ];
     public $timestamps = false;
+
+
 
     public function blocks()
     {
