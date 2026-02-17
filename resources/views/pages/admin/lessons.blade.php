@@ -5,7 +5,7 @@
 @endsection
 
 @section('back-button')
-    <a class="back-button" href="{{route('admin.courses.chapters.index',['course'=>$course->id])}}">{{$course->name}}->{{$chapter->name}}</a>
+    <a class="back-button" href="{{route('admin.courses.chapters.index',['course'=>$course->id])}}">{{$course->title}}->{{$chapter->title}}</a>
 @endsection
 
 @section('main')

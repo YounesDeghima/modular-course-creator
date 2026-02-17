@@ -8,7 +8,7 @@
 @endsection
 
 @section('back-button')
-    <a class="back-button" href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->name}}->{{$chapter->name}}->{{$lesson->name}}</a>
+    <a class="back-button" href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->title}}->{{$chapter->title}}->{{$lesson->title}}</a>
 @endsection
 @section('main')
     <div class="editor-container">
@@ -21,23 +21,27 @@
 
                 <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">
                     @csrf
-                    <label>Name:</label>
-                    <input class="value-input" type="text" name="name" required>
+                    <label>Ttile:</label>
+                    <input class="value-input" type="text" name="title" required>
 
                     <label>block-number:</label>
-                    <input class="value-input" type="number" name="block_number" min="1" max="99" value="{{$block_count+1}}" required>
+                    <input class="value-input" type="number" name="block_number" value="{{$block_count+1}}" readonly>
 
                     <label>type:</label>
                     <select name="type">
-                        <option value="title">title</option>
+                        <option value="header">header</option>
                         <option value="description">description</option>
                         <option value="note">note</option>
                         <option value="exercise">exercise</option>
                         <option value="code">code</option>
                     </select>
 
+
+
                     <label>content:</label>
                     <textarea class="value-input" name="content" required></textarea>
+
+
 
                     <div style="text-align:right; margin-top:10px;">
                         <button type="submit">create block</button>
@@ -76,7 +80,7 @@
                             <form action="{{route('admin.courses.chapters.lessons.blocks.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}" method="post">
                                 @csrf
                                 @method('PUT')
-                                <input class="value-input" type="text"  name="name" value="{{$block->name}}">
+                                <input class="value-input" type="text"  name="title" value="{{$block->title}}">
                                 @if($block->type=='exercise')
                                     <label>Question:</label>
                                     <textarea name="content">{{$block->content}}</textarea>
@@ -96,13 +100,15 @@
                                 </div>
                                 <div class="info-row">
                                     <select name="type" >
-                                        <option value="title"{{ $block->type == 'title' ? 'selected' : '' }}>title</option>
+                                        <option value="header"{{ $block->type == 'header' ? 'selected' : '' }}>header</option>
                                         <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>description</option>
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>note</option>
                                         <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>exercise</option>
                                         <option value="code" {{$block->type == 'code' ? 'selected' : ''}}>code</option>
                                     </select>
                                 </div>
+
+
 
                                 <input class="value-input update-button" type="submit" name="update" value="update" >
 
@@ -120,7 +126,7 @@
         <div class="preview" id="preview">
             @foreach($blocks as $block)
                 @switch($block->type)
-                    @case('title')
+                    @case('header')
                         <h1>{{$block->content}}</h1>
                         @break
                     @case('description')
@@ -137,8 +143,8 @@
                             <strong>Q: {{$block->content}}</strong>
                             <button class="toggle-solution" data-blockid="{{$block->id}}">show solution</button>
                             @foreach($block->solutions as $solution)
-
-                            @endforeach<div class="solution" id="solution-{{$block->id}}">{{$solution->content}}</div>
+                                <div class="solution" id="solution-{{$block->id}}">{{$solution->content}}</div>
+                            @endforeach
 
                         </div>
                 @endswitch

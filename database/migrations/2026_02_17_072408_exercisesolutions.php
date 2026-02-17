@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('blocks', function (Blueprint $table) {
+        Schema::create('exercisesolutions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('lesson_id')->constrained()->onDelete('cascade');
-            $table->string('title');
+            $table->foreignId('block_id')->constrained()->onDelete('cascade');
+            $table->string('title')->nullable();
 
             $table->string('content')->nullable();
-            $table->integer('block_number');
-            $table->enum('type',['header','description','note','code','exercise']);
+            $table->integer('solution_number');
+
 
             $table->timestamps();
         });
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('blocks');
+        Schema::dropIfExists('exercisesolutions ');
     }
 };
