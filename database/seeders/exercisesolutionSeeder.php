@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\block;
+use App\Models\exercisesolution;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class blockSeeder extends Seeder
+class exercisesolutionSeeder extends Seeder
 {
+
     public function run(): void
     {
-        block::factory()->count(200)->create();
+        exercisesolution::factory()->count(10)->create();
     }
 }

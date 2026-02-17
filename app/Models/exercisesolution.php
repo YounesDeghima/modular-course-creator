@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class exercisesolution extends Model
@@ -14,6 +15,8 @@ class exercisesolution extends Model
     ];
 
     public $timestamps = false;
+
+    use HasFactory;
 
     public function block()
     {
