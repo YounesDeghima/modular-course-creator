@@ -11,6 +11,6 @@ class exercisesolutionSeeder extends Seeder
 
     public function run(): void
     {
-        exercisesolution::factory()->count(10)->create();
+        exercisesolution::factory()->count(200)->create();
     }
 }

@@ -143,7 +143,7 @@
                             <strong>Q: {{$block->content}}</strong>
                             <button class="toggle-solution" data-blockid="{{$block->id}}">show solution</button>
                             @foreach($block->solutions as $solution)
-                                <div class="solution" id="solution-{{$block->id}}">{{$solution->content}}</div>
+                                <div class="solution solution-{{$block->id}}">{{$solution->content}}</div>
                             @endforeach
 
                         </div>
@@ -177,17 +177,25 @@
         solutionbuttons.forEach(button =>
         {
             let blockid=button.dataset.blockid;
-            let solution = document.getElementById(`solution-${blockid}`);
-            solution.style.display='none';
+            let solutions = document.querySelectorAll(`.solution-${blockid}`);
+
+            solutions.forEach(solution=>{
+                    solution.style.display='none';
+                }
+            )
 
             button.addEventListener('click',()=>
-            {
-               let ishidden = solution.style.display === 'none';
+                {
+                    let first_solution=solutions[0];
+                    let ishidden = first_solution.style.display === 'none';
+                    let display = ishidden ? 'block' : 'none';
 
-               solution.style.display = ishidden ? 'block' : 'none';
-               button.textContent = ishidden ? 'hide solution' : 'show solution' ;
+                    console.log(solutions);
 
-
+                    solutions.forEach(solution=>{
+                        solution.style.display=display;
+                    });
+                    button.textContent = ishidden ? 'hide solution' : 'show solution' ;
             });
 
         });
