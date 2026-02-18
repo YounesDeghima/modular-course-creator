@@ -1,4 +1,4 @@
-@extends('layouts.base')
+@extends('layouts.admin-base')
 
 @section('css')
     {{asset('css/modular-site.css')}}
@@ -8,7 +8,9 @@
 @endsection
 
 @section('back-button')
-    <a class="back-button" href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->title}}->{{$chapter->title}}->{{$lesson->title}}</a>
+    <a class="back-button"
+       href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->title}}
+        ->{{$chapter->title}}->{{$lesson->title}}</a>
 @endsection
 @section('main')
     <div class="editor-container">
@@ -19,7 +21,8 @@
             </button>
             <div class="popup" id="block-popup">
 
-                <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">
+                <form id="new-block-form" method="POST"
+                      action="{{route('admin.courses.chapters.lessons.blocks.store',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">
                     @csrf
                     <label>Ttile:</label>
                     <input class="value-input" type="text" name="title" required>
@@ -37,10 +40,8 @@
                     </select>
 
 
-
                     <label>content:</label>
                     <textarea class="value-input" name="content" required></textarea>
-
 
 
                     <div style="text-align:right; margin-top:10px;">
@@ -59,7 +60,9 @@
 
                         <div class="block-header">
 
-                            <form action="{{route('admin.courses.chapters.lessons.blocks.update',[$course,$chapter,$lesson,$block])}}" method="post">
+                            <form
+                                action="{{route('admin.courses.chapters.lessons.blocks.update',[$course,$chapter,$lesson,$block])}}"
+                                method="post">
                                 @csrf
                                 @method('PUT')
                                 <button type="submit" name="update" value="up">↑</button>
@@ -68,8 +71,9 @@
                             </form>
 
 
-
-                            <form action="{{route('admin.courses.chapters.lessons.blocks.destroy',[$course,$chapter,$lesson,$block])}}" method="post">
+                            <form
+                                action="{{route('admin.courses.chapters.lessons.blocks.destroy',[$course,$chapter,$lesson,$block])}}"
+                                method="post">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" name="delete">✕</button>
@@ -77,10 +81,12 @@
                             </form>
                         </div>
                         <div class="block-body">
-                            <form action="{{route('admin.courses.chapters.lessons.blocks.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}" method="post">
+                            <form
+                                action="{{route('admin.courses.chapters.lessons.blocks.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}"
+                                method="post">
                                 @csrf
                                 @method('PUT')
-                                <input class="value-input" type="text"  name="title" value="{{$block->title}}">
+                                <input class="value-input" type="text" name="title" value="{{$block->title}}">
                                 @if($block->type=='exercise')
                                     <label>Question:</label>
                                     <textarea name="content">{{$block->content}}</textarea>
@@ -94,23 +100,30 @@
                                 @endif
 
                                 <div class="info-row">
-                                    <label  for="block_number">number</label>
-                                    <input class="value-input" type="hidden"  name="block_number" value="{{$block->block_number}}">
+                                    <label for="block_number">number</label>
+                                    <input class="value-input" type="hidden" name="block_number"
+                                           value="{{$block->block_number}}">
 
                                 </div>
                                 <div class="info-row">
-                                    <select name="type" >
-                                        <option value="header"{{ $block->type == 'header' ? 'selected' : '' }}>header</option>
-                                        <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>description</option>
-                                        <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>note</option>
-                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>exercise</option>
+                                    <select name="type">
+                                        <option value="header"{{ $block->type == 'header' ? 'selected' : '' }}>header
+                                        </option>
+                                        <option
+                                            value="description" {{ $block->type == 'description' ? 'selected' : '' }}>
+                                            description
+                                        </option>
+                                        <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>note
+                                        </option>
+                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>
+                                            exercise
+                                        </option>
                                         <option value="code" {{$block->type == 'code' ? 'selected' : ''}}>code</option>
                                     </select>
                                 </div>
 
 
-
-                                <input class="value-input update-button" type="submit" name="update" value="update" >
+                                <input class="value-input update-button" type="submit" name="update" value="update">
 
                             </form>
 
@@ -119,7 +132,6 @@
                     </div>
                 @endforeach
             </div>
-
 
 
         </div>
@@ -164,38 +176,36 @@
         const closeBtn = document.getElementById('close-popup');
 
         openBtn.addEventListener('click', () => {
-            adder.style.visibility= 'visible';
-            adder.style.opacity= 1;
+            adder.style.visibility = 'visible';
+            adder.style.opacity = 1;
         });
 
         closeBtn.addEventListener('click', () => {
-            adder.style.visibility= 'hidden';
-            adder.style.opacity= 0;
+            adder.style.visibility = 'hidden';
+            adder.style.opacity = 0;
         });
 
         let solutionbuttons = document.querySelectorAll('.toggle-solution');
-        solutionbuttons.forEach(button =>
-        {
-            let blockid=button.dataset.blockid;
+        solutionbuttons.forEach(button => {
+            let blockid = button.dataset.blockid;
             let solutions = document.querySelectorAll(`.solution-${blockid}`);
 
-            solutions.forEach(solution=>{
-                    solution.style.display='none';
+            solutions.forEach(solution => {
+                    solution.style.display = 'none';
                 }
             )
 
-            button.addEventListener('click',()=>
-                {
-                    let first_solution=solutions[0];
-                    let ishidden = first_solution.style.display === 'none';
-                    let display = ishidden ? 'block' : 'none';
+            button.addEventListener('click', () => {
+                let first_solution = solutions[0];
+                let ishidden = first_solution.style.display === 'none';
+                let display = ishidden ? 'block' : 'none';
 
-                    console.log(solutions);
+                console.log(solutions);
 
-                    solutions.forEach(solution=>{
-                        solution.style.display=display;
-                    });
-                    button.textContent = ishidden ? 'hide solution' : 'show solution' ;
+                solutions.forEach(solution => {
+                    solution.style.display = display;
+                });
+                button.textContent = ishidden ? 'hide solution' : 'show solution';
             });
 
         });

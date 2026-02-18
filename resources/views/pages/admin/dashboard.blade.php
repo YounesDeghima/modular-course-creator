@@ -1,4 +1,4 @@
-@extends('layouts.base')
+@extends('layouts.admin-base')
 
 @section('css')
     {{asset('css/admin-page.css')}}
@@ -47,24 +47,20 @@
         let input = document.getElementById('popup');
 
 
-
-
         let open = false;
 
         rightside.addEventListener("click", () => {
 
             if (open == false) {
                 input.style.visibility = 'visible';
-                input.style.opacity=1;
+                input.style.opacity = 1;
                 open = true;
-            }
-            else {
+            } else {
                 input.style.visibility = 'hidden';
-                input.style.opacity=0;
+                input.style.opacity = 0;
                 open = false;
             }
         });
-
 
 
     </script>

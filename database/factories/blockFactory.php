@@ -21,7 +21,6 @@ class blockFactory extends Factory
             'content'=>$this->faker->paragraph(2),
             'type'=>$this->faker->randomElement(['header','description','note','code','exercise']),
             'block_number'=>$block_count+1,
-
         ];
     }
 }

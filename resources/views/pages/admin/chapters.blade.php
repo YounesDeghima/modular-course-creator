@@ -1,4 +1,4 @@
-@extends('layouts.base')
+@extends('layouts.admin-base')
 @section('css')
 
     {{asset('css/modular-site.css')}}
@@ -22,7 +22,8 @@
                     <input class="value-input" type="text" name="title" required>
 
                     <label>chapter-number:</label>
-                    <input class="value-input" type="number" name="chapter_number" value="{{$chapter_count+1}}" readonly>
+                    <input class="value-input" type="number" name="chapter_number" value="{{$chapter_count+1}}"
+                           readonly>
 
                     <label>Description:</label>
                     <textarea class="value-input" name="description" required></textarea>
@@ -41,25 +42,27 @@
 
                     <div class="block-top">
 
-                        <form action="{{route('admin.courses.chapters.update',['course'=>$course->id,'chapter'=>$chapter->id])}}" method="post">
+                        <form action="{{route('admin.courses.chapters.update',['course'=>$course->id,'chapter'=>$chapter->id])}}"
+                              method="post">
                             @csrf
                             @method('PUT')
 
-                                <div class="info-row">
-                                    <label  for="name">Title</label>
-                                    <input class="value-input" type="text"  name="title" value="{{$chapter->title}}">
-                                </div>
-                                <div class="info-row">
-                                    <label for="chapter_number">chapter number</label>
-                                    <input class="value-input" type="text" name="chapter_number" value="{{$chapter->chapter_number}}" readonly>
-                                </div>
+                            <div class="info-row">
+                                <label for="name">Title</label>
+                                <input class="value-input" type="text" name="title" value="{{$chapter->title}}">
+                            </div>
+                            <div class="info-row">
+                                <label for="chapter_number">chapter number</label>
+                                <input class="value-input" type="text" name="chapter_number"
+                                       value="{{$chapter->chapter_number}}" readonly>
+                            </div>
 
-                                <div class="info-row">
-                                    <label for="description">description</label>
-                                    <textarea name="description" class="value-input" >{{$chapter->description}}</textarea>
-                                </div>
+                            <div class="info-row">
+                                <label for="description">description</label>
+                                <textarea name="description" class="value-input">{{$chapter->description}}</textarea>
+                            </div>
 
-                            <input class="value-input update-button" type="submit" name="update" value="update" >
+                            <input class="value-input update-button" type="submit" name="update" value="update">
 
                         </form>
 
@@ -67,10 +70,12 @@
                         <form action="{{route('admin.courses.chapters.destroy',[$course,$chapter])}}" method="post">
                             @csrf
                             @method('DELETE')
-                            <input type="submit" name="chapter-delete" class="block-delete delete-button" value="delete">
+                            <input type="submit" name="chapter-delete" class="block-delete delete-button"
+                                   value="delete">
                         </form>
 
-                        <a href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">manage lessons</a>
+                        <a href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">manage
+                            lessons</a>
 
                     </div>
 
@@ -94,15 +99,14 @@
         const closeBtn = document.getElementById('close-popup');
 
         openBtn.addEventListener('click', () => {
-            adder.style.visibility= 'visible';
-            adder.style.opacity= 1;
+            adder.style.visibility = 'visible';
+            adder.style.opacity = 1;
         });
 
         closeBtn.addEventListener('click', () => {
-            adder.style.visibility= 'hidden';
-            adder.style.opacity= 0;
+            adder.style.visibility = 'hidden';
+            adder.style.opacity = 0;
         });
-
 
 
     </script>

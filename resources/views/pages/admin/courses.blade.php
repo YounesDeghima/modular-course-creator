@@ -1,4 +1,4 @@
-@extends('layouts.base')
+@extends('layouts.admin-base')
 @section('css')
 
     {{asset('css/modular-site.css')}}
@@ -53,8 +53,8 @@
 
                             <div>
                                 <div class="info-row">
-                                    <label  for="name">Title</label>
-                                    <input class="value-input" type="text"  name="title" value="{{$course->title}}">
+                                    <label for="name">Title</label>
+                                    <input class="value-input" type="text" name="title" value="{{$course->title}}">
                                 </div>
 
                                 <div class="info-row">
@@ -73,13 +73,15 @@
                                 <select name="branch" class="branch-input">
                                     <option value="mi" {{ $course->branch == 'mi' ? 'selected' : '' }}>mi</option>
                                     <option value="st" {{ $course->branch == 'st' ? 'selected' : '' }}>st</option>
-                                    <option value="none" style="display: none" {{ $course->branch == 'none' ? 'selected' : '' }}>none</option>
+                                    <option value="none"
+                                            style="display: none" {{ $course->branch == 'none' ? 'selected' : '' }}>none
+                                    </option>
                                 </select>
                             </div>
 
                             <div class="info-row">
                                 <label for="description"></label>
-                                <textarea name="description" class="value-input" >{{$course->description}}</textarea>
+                                <textarea name="description" class="value-input">{{$course->description}}</textarea>
                             </div>
 
                             <input class="value-input" type="submit" name="update" value="update">
@@ -115,46 +117,40 @@
         const closeBtn = document.getElementById('close-popup');
 
         openBtn.addEventListener('click', () => {
-            adder.style.visibility= 'visible';
-            adder.style.opacity= 1;
+            adder.style.visibility = 'visible';
+            adder.style.opacity = 1;
         });
 
         closeBtn.addEventListener('click', () => {
-            adder.style.visibility= 'hidden';
-            adder.style.opacity= 0;
+            adder.style.visibility = 'hidden';
+            adder.style.opacity = 0;
         });
 
         let years = Array.from(document.getElementsByClassName('year-input'));
         let branchs = Array.from(document.getElementsByClassName('branch-input'));
-        let branchlabels=Array.from(document.getElementsByClassName('branch-label'));
+        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
 
-        function togglebranch(year,i)
-        {
+        function togglebranch(year, i) {
             console.log(i);
-            if(parseInt(year.value)>1)
-            {
+            if (parseInt(year.value) > 1) {
 
-                branchs[i].style.display='block';
-                branchlabels[i].style.display='block';
-                branchs[i].value='mi';
+                branchs[i].style.display = 'block';
+                branchlabels[i].style.display = 'block';
+                branchs[i].value = 'mi';
 
-            }
-            else {
+            } else {
                 branchs[i].style.display = 'none';
                 branchlabels[i].style.display = 'none';
 
             }
         }
-        years.forEach((year,i)=>{
-            year.addEventListener('change', ()=> togglebranch(year,i));
+
+        years.forEach((year, i) => {
+            year.addEventListener('change', () => togglebranch(year, i));
 
         });
 
         years.forEach((year, i) => togglebranch(year, i));
-
-
-
-
 
 
     </script>
