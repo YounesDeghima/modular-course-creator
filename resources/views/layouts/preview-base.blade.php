@@ -1,11 +1,9 @@
+@extends('layouts.admin-base')
 
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document</title>
-</head>
-<body>
+@section('css')
+    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+@endsection
 
-</body>
-</html>
+@section('main')
+
+@endsection

@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
-    <link rel="stylesheet" href="@yield('css')">
-    <link rel="stylesheet" href="@yield('css2')">
+    @yield('css')
 
 
 </head>
@@ -52,6 +51,7 @@
                 <li><a href='{{route('admin.main')}}' data-item='Home'>Home</a></li>
                 <li><a href='{{route('admin.dashboard')}}' data-item='About'>Users</a></li>
                 <li><a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a></li>
+                <li><a href="{{route('admin.preview.years')}}" data-item='preview'>preview</a></li>
 
             </ul>
             @yield('back-button')

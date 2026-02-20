@@ -7,7 +7,9 @@ use App\Http\Controllers\coursecontroller;
 use App\Http\Controllers\admincontroller;
 
 
+
 use App\Http\Controllers\logincontroller;
+use App\Http\Controllers\previewcontroller;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,5 +35,15 @@ Route::prefix('admin')
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
             Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
         });
+        Route::get('preview',function(){return(redirect()->route('admin.preview.years'));});
+        Route::scopeBindings()->group(function () {
+            Route::get('preview/years', [previewcontroller::class,'loadyears'])->name('preview.years');
+            Route::get('preview/years/{year}/courses', [previewcontroller::class,'loadcourses'])->name('preview.courses');
+            Route::get('preview/years/{year}/courses/{course}/chapters', [previewcontroller::class,'loadchapters'])->name('preview.chapters');
+            Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class,'loadlessons'])->name('preview.lessons');
+          //  Route::get('preview.years.courses.chapters.lessons.blocks', previewcontroller::class)->name('preview.years.courses.chapters.lessons.blocks');
+        });
+
+
 
     });

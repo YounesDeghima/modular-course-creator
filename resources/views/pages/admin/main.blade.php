@@ -1,6 +1,6 @@
 @extends('layouts.admin-base')
 
 @section('css')
-    {{asset('css/admin-page.css')}}
+    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
 @endsection
 

@@ -451,6 +451,7 @@ textarea {
     cursor: pointer;
     font-weight: 600;
     transition: background 0.2s ease;
+
 }
 
 .value-input[type="submit"]:hover {

@@ -1,10 +1,8 @@
 @extends('layouts.admin-base')
 
 @section('css')
-    {{asset('css/modular-site.css')}}
-@endsection
-@section('css2')
-    {{asset('css/block-page.css')}}
+    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/block-page.css')}}">
 @endsection
 
 @section('back-button')

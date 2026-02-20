@@ -1,7 +1,7 @@
 @extends('layouts.admin-base')
 @section('css')
 
-    {{asset('css/modular-site.css')}}
+    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
 @endsection
 
 @section('back-button')
@@ -59,7 +59,7 @@
 
                             <div class="info-row">
                                 <label for="description">description</label>
-                                <textarea name="description" class="value-input">{{$chapter->description}}</textarea>
+                                <textarea name="description" class="value-input" style="height: 200px">{{$chapter->description}}</textarea>
                             </div>
 
                             <input class="value-input update-button" type="submit" name="update" value="update">
@@ -74,8 +74,7 @@
                                    value="delete">
                         </form>
 
-                        <a href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">manage
-                            lessons</a>
+                        <a href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">manage lessons</a>
 
                     </div>
 

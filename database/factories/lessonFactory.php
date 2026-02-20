@@ -20,7 +20,7 @@ class lessonFactory extends Factory
             'title'=>$this->faker->sentence(),
             'description'=>$this->faker->paragraph(2),
             'lesson_number'=>$lesson_count+1,
-            'status'=>'draft',
+            'status'=>$this->faker->randomElement(['draft','published']),
         ];
     }
 }

@@ -13,7 +13,7 @@ class courseFactory extends Factory
         'year'=> $year,
         'branch'=>$year <= 1 ? 'none': $this->faker->randomElement(['mi','st']),
         'description'=>$this->faker->paragraph(2),
-        'status'=>'draft',
+        'status'=>$this->faker->randomElement(['draft','published']),
 
     ];
 }

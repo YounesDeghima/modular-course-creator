@@ -19,7 +19,7 @@ class chapterFactory extends Factory
             'title'=>$this->faker->sentence(),
             'description'=>$this->faker->paragraph(2),
             'chapter_number'=>$chapter_count+1,
-            'status'=>'draft',
+            'status'=>$this->faker->randomElement(['draft','published']),
         ];
     }
 }

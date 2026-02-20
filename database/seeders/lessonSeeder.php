@@ -10,6 +10,6 @@ class lessonSeeder extends Seeder
 {
     public function run(): void
     {
-        lesson::factory()->count(10)->create();
+        lesson::factory()->count(60)->create();
     }
 }
