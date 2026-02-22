@@ -24,7 +24,7 @@
                             <textarea name="description" class="value-input description" style="height: 200px" readonly>{{$chapter->description}}</textarea>
                         </div>
 
-                        <a href="#">start lesson</a>
+                        <a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>start lesson</a>
 
                     </div>
 
@@ -79,6 +79,8 @@
         });
 
         years.forEach((year, i) => togglebranch(year, i));
+
+
 
 
     </script>

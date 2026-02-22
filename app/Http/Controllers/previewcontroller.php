@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
 use App\Models\lesson;
@@ -69,6 +70,20 @@ class previewcontroller extends Controller
             ->get();
 
         return view('pages.admin.preview.lessons',compact('course','chapter','lessons','year','name','email','id'));
+
+    }
+
+    public function loadblocks($year,course $course,chapter $chapter,lesson $lesson)
+    {
+        $admin = Auth::user();
+        $id = $admin->id;
+        $name = $admin->name;
+        $email = $admin->email;
+
+        $blocks = block::where('lesson_id','=',$lesson->id)->get();
+
+        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','blocks','year','name','email','id'));
+
 
     }
 
