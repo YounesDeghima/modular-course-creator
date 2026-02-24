@@ -19,7 +19,8 @@ body {
 /* Header / nav */
 header {
     width: 100%;
-    position: sticky;
+    position: fixed;
+
 }
 
 nav {
@@ -32,13 +33,15 @@ nav {
     background-color: #ffffff;
     height: 70px;
 
+
 }
 
 .middle
 {
     display: flex;
     width: 100%;
-    height: 100%;
+
+    margin-top: 70px;
 }
 
 /* Links / buttons (accent changed to blue) */
@@ -64,7 +67,7 @@ a,
     display: flex;
     flex-direction: column;
     flex: 0 0 250px;
-    position: sticky;
+    position: fixed;
 }
 
 
@@ -312,10 +315,28 @@ p {
     color: #ffffff;
 }
 main{
-    flex: 1;
+    display: flex;
     align-items: center;
     justify-content: center;
     margin-top: 10px;
+
+}
+main{
+    display: flex;
+
+}
+.nav-button
+{
+    position: sticky;
+}
+main{
+
+    margin-left: 180px;
+}
+
+.side-bar
+{
+    width: 180px;
 }
 
 

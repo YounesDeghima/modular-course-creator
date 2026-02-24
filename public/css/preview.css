@@ -1,0 +1,17 @@
+main{
+    display: flex;
+
+}
+.nav-button
+{
+    position: sticky;
+}
+main{
+
+    margin-left: 180px;
+}
+
+.side-bar
+{
+    width: 180px;
+}

@@ -8,6 +8,8 @@
 
 @section('main')
 
+    <div class="nav-button"><a href={{route('admin.preview.lastlesson',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}><</a></div>
+
     <div class="blocks-container" id="blocks-container">
 
 
@@ -21,7 +23,7 @@
                         <p>{{$block->content}}</p>
                         @break
                     @case('code')
-                        <pre><code>{{$block->content}}</code></pre>
+                        <pre><code >{{$block->content}}</code></pre>
                         @break
                     @case('note')
                         <div class="note">{{$block->content}}</div>
@@ -30,9 +32,14 @@
                         <div class="exercise">
                             <strong>Q: {{$block->content}}</strong>
                             <button class="toggle-solution" data-blockid="{{$block->id}}">show solution</button>
-                            @foreach($block->solutions as $solution)
-                                <div class="solution solution-{{$block->id}}">{{$solution->content}}</div>
-                            @endforeach
+
+                            @if(count($block->solutions)==0)
+                                <div class="solution solution-{{$block->id}}" >there is nothing here yet</div>
+                            @else
+                                @foreach($block->solutions as $solution)
+                                    <div class="solution solution-{{$block->id}}">{{$solution->content}}</div>
+                                @endforeach
+                            @endif
 
                         </div>
                 @endswitch
@@ -40,6 +47,8 @@
         </div>
 
     </div>
+
+    <div class="nav-button"><a href={{route('admin.preview.nextlesson',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>></a></div>
 
 @endsection
 

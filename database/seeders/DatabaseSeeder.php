@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
             userSeeder::class,
             courseSeeder::class,
             adminSeeder::class,
-            chapterSeeder::class,
-            lessonSeeder::class,
+
+
             blockSeeder::class,
             exercisesolutionSeeder::class,
         ]);

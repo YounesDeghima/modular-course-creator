@@ -42,5 +42,8 @@ Route::prefix('admin')
             Route::get('preview/years/{year}/courses/{course}/chapters', [previewcontroller::class,'loadchapters'])->name('preview.chapters');
             Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class,'loadlessons'])->name('preview.lessons');
             Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class,'loadblocks'])->name('preview.blocks');
+
         });
+        route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
+        route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
     });

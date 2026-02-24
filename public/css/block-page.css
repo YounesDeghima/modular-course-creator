@@ -22,7 +22,7 @@
 .preview {
     width: 70%;
     padding: 30px;
-    overflow-y: auto;
+
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -156,4 +156,21 @@ pre {
 .info-row
 {
     visibility: hidden;
+}
+main{
+    display: flex;
+
+}
+.nav-button
+{
+    position: sticky;
+}
+main{
+
+    margin-left: 180px;
+}
+
+.side-bar
+{
+    width: 180px;
 }
