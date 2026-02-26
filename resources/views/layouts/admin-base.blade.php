@@ -28,6 +28,7 @@
 
                 <p>name :
                     {{$name}}
+
                 </p>
 
                 <p>email :

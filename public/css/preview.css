@@ -9,6 +9,7 @@ main{
 main{
 
     margin-left: 180px;
+    justify-content: space-between;
 }
 
 .side-bar

@@ -332,6 +332,9 @@ main{
 main{
 
     margin-left: 180px;
+
+
+
 }
 
 .side-bar
@@ -339,5 +342,8 @@ main{
     width: 180px;
 }
 
-
+.preview
+{
+    width: 100%;
+}
 
