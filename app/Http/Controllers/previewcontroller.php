@@ -99,8 +99,10 @@ class previewcontroller extends Controller
 
         $lastlesson = lesson::where('chapter_id','=',$chapter->id)
             ->where('lesson_number','<',$lesson->lesson_number)
+            ->where('status','=','published')
             ->orderBy('lesson_number','desc')
             ->first();
+
 
         if(!$lastlesson){
             return redirect()->back();
@@ -127,6 +129,7 @@ class previewcontroller extends Controller
 
         $nextlesson = lesson::where('chapter_id','=',$chapter->id)
             ->where('lesson_number','>',$lesson->lesson_number)
+            ->where('status','=','published')
             ->orderBy('lesson_number','asc')
             ->first();
 
