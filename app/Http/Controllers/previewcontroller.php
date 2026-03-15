@@ -82,7 +82,23 @@ class previewcontroller extends Controller
 
         $blocks = block::where('lesson_id','=',$lesson->id)->get();
 
-        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','blocks','year','name','email','id'));
+        $prevlesson = lesson::where('chapter_id','=',$chapter->id)
+            ->where('lesson_number','<',$lesson->lesson_number)
+            ->where('status','=','published')
+            ->orderBy('lesson_number','desc')
+            ->first();
+
+
+        $nextlesson = lesson::where('chapter_id','=',$chapter->id)
+            ->where('lesson_number','>',$lesson->lesson_number)
+            ->where('status','=','published')
+            ->orderBy('lesson_number','asc')
+            ->first();
+
+
+        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','blocks','year','name','email','id'));
+
+
 
 
     }
