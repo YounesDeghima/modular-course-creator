@@ -98,7 +98,7 @@ class chaptercontroller extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(course $course ,chapter $chapter)
+    public function destroy(course $course ,chapter $chaptesr)
     {
         $chapter = chapter::findOrFail($chapter->id);
         $chapter->delete();

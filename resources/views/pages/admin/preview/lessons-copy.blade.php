@@ -6,14 +6,29 @@
 @endsection
 @section('main')
 
-    <div class="prev-lessons-container" id="blocks-container">
+    <div class="blocks-container" id="blocks-container">
 
-        <h1>{{$chapter->title}}</h1>
-        <div class="prev-lessons">
+
+        <div class="blocks">
             @foreach($lessons as $lesson)
+                <div class="block">
 
-                <a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
+                    <div class="block-top">
+                        <div class="info-row">
+                            <label for="name">Title</label>
+                            <input class="value-input" type="text" name="title" value="{{$lesson->title}}" readonly>
+                        </div>
 
+                        <div class="info-row">
+                            <label for="description">Description</label>
+                            <textarea name="description" class="value-input description" style="height: 200px" readonly>{{$chapter->description}}</textarea>
+                        </div>
+
+                        <a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>start lesson</a>
+
+                    </div>
+
+                </div>
             @endforeach
         </div>
 

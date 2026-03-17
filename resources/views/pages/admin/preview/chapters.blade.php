@@ -9,27 +9,19 @@
     <div class="blocks-container" id="blocks-container">
 
 
-        <div class="blocks">
-            @foreach($chapters as $chapter)
-                <div class="block">
-
-                    <div class="block-top">
-                        <div class="info-row">
-                            <label for="name">Title</label>
-                            <input class="value-input" type="text" name="title" value="{{$chapter->title}}" readonly>
-                        </div>
-
-                        <div class="info-row">
-                            <label for="description">Description</label>
-                            <textarea name="description" class="value-input description" style="height: 200px" readonly>{{$chapter->description}}</textarea>
-                        </div>
-
-                        <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">view lessons</a>
-
-                    </div>
-
-                </div>
-            @endforeach
+        <div class="chapters-container">
+            <ol class="chapters">
+                @foreach($chapters as $chapter)
+                    <li>
+                        <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
+                        <ol class="lessons">
+                            @foreach($chapter->lessons as $lesson)
+                                <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                            @endforeach
+                        </ol>
+                    </li>
+                @endforeach
+            </ol>
         </div>
 
     </div>
@@ -40,45 +32,21 @@
 @section('js')
     <script>
 
-        const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
-        const closeBtn = document.getElementById('close-popup');
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
-        });
 
-        closeBtn.addEventListener('click', () => {
-            adder.style.visibility = 'hidden';
-            adder.style.opacity = 0;
-        });
 
-        let years = Array.from(document.getElementsByClassName('year-input'));
-        let branchs = Array.from(document.getElementsByClassName('branch-input'));
-        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
+        let chapters = document.querySelectorAll('.chapters > li');
 
-        function togglebranch(year, i) {
-            console.log(i);
-            if (parseInt(year.value) > 1) {
+        chapters.forEach((chapter,i)=>{
+            let chapter_number= i+1;
+            let lessons = chapter.querySelectorAll(':scope> ol > li');
+            lessons.forEach((lesson,j)=>{
+                let lesson_number= lesson.querySelector(':scope >a');
+                lesson.insertAdjacentText('afterbegin',`${chapter_number}.` +`${j+1}`+' ');
 
-                branchs[i].style.display = 'block';
-                branchlabels[i].style.display = 'block';
-                branchs[i].value = 'mi';
-
-            } else {
-                branchs[i].style.display = 'none';
-                branchlabels[i].style.display = 'none';
-
+            })
             }
-        }
-
-        years.forEach((year, i) => {
-            year.addEventListener('change', () => togglebranch(year, i));
-
-        });
-
-        years.forEach((year, i) => togglebranch(year, i));
+        )
 
 
     </script>

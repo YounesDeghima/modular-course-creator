@@ -8,11 +8,92 @@ main{
 }
 main{
 
-    margin-left: 180px;
+    margin-left: 220px;
     justify-content: space-between;
 }
 
 .side-bar
 {
     width: 180px;
+}
+ol{
+    list-style: none;
+}
+
+
+.chapters a{
+    padding: 0;
+    background:none;
+}
+.chapters a:hover{
+    color: orange;
+    text-decoration:underline;
+}
+/* Reset lists */
+ol.chapters, ol.lessons {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+/* Chapter links styling */
+.chapters > li > a {
+    font-weight: bold;
+    display: block;
+    margin: 1rem 0 0.5rem 0;
+    color: #222;
+    text-decoration: none;
+}
+
+/* Lessons container → grid layout */
+.lessons {
+    list-style: none;           /* remove bullets */
+    margin: 0 0 24px;           /* spacing below list */
+    padding: 0;
+
+    column-count: 3;            /* number of columns */
+    column-gap: 20px;           /* space between columns */
+
+    -webkit-columns: 3;         /* Safari / Chrome */
+    -webkit-column-gap: 20px;
+    -moz-columns: 3;            /* Firefox */
+    -moz-column-gap: 20px;
+
+    counter-reset: lesson-counter; /* optional, if you want numbers generated automatically */
+}
+
+/* Individual lesson items → flex so number and link align horizontally */
+.lessons li {
+    break-inside: avoid;        /* prevents items from splitting between columns */
+    margin-bottom: 0.5rem;      /* spacing between items */
+}
+/* Lesson numbers styling */
+.lessons li .number {
+    color: #555;
+    flex-shrink: 0; /* number doesn't shrink */
+}
+
+/* Lesson links styling */
+.lessons li a {
+    text-decoration: none;
+    color: #0366d6;
+}
+
+.lessons li a:hover {
+    text-decoration: underline;
+}
+
+.prev-lessons{
+    display: flex;
+    flex-direction:column;
+    border:5px;
+    background-color: #706f6c;
+    border-radius:10px;
+    gap: 2px;
+    padding: 5px;
+}
+
+.prev-lessons-container{
+    display: flex;
+    flex-direction: column;
 }
