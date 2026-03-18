@@ -4,6 +4,15 @@
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
+@section('navigation')
+    <div class="navigation">
+        <a href="{{route('admin.preview.years')}}">home</a>
+        <a>--></a>
+        <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+        <a>---></a>
+        <a href="{{route('admin.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+    </div>
+@endsection
 @section('main')
 
     <div class="prev-lessons-container" id="blocks-container">

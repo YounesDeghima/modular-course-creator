@@ -7,10 +7,34 @@ main{
     position: sticky;
 }
 main{
-
-    margin-left: 220px;
+    display: flex;
+    flex-direction: column;
     justify-content: space-between;
+    margin-left: 220px;
+
 }
+
+.navigation{
+    align-self: flex-start;
+}
+
+
+.navigation a {
+    font-weight: bold;
+    padding: 0;
+    margin: 1rem 0 0.5rem 0;
+    color: #222;
+    text-decoration: none;
+    background: none;
+}
+
+.navigation a[href]:hover{
+    color: orange;
+    text-decoration: underline;
+}
+
+
+
 
 .side-bar
 {
@@ -96,4 +120,11 @@ ol.chapters, ol.lessons {
 .prev-lessons-container{
     display: flex;
     flex-direction: column;
+}
+
+.lesson-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }

@@ -39,6 +39,7 @@ Route::prefix('admin')
         Route::scopeBindings()->group(function () {
             Route::get('preview/years', [previewcontroller::class,'loadyears'])->name('preview.years');
             Route::get('preview/years/{year}/courses', [previewcontroller::class,'loadcourses'])->name('preview.courses');
+            Route::get('preview/years/{year}/branch/{branch}/courses', [previewcontroller::class,'loadbackcourses'])->name('preview.backcourses');
             Route::get('preview/years/{year}/courses/{course}/chapters', [previewcontroller::class,'loadchapters'])->name('preview.chapters');
             Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class,'loadlessons'])->name('preview.lessons');
             Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class,'loadblocks'])->name('preview.blocks');

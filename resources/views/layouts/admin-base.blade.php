@@ -60,6 +60,7 @@
 
     </div>
     <main>
+        @yield('navigation')
         @yield('main')
     </main>
 </div>

@@ -39,6 +39,20 @@ class previewcontroller extends Controller
 
         return view('pages.admin.preview.courses',compact('courses','year','branch','name','email','id'));
     }
+    public function loadbackcourses($year, $branch)
+    {
+        $admin = Auth::user();
+        $id = $admin->id;
+        $name = $admin->name;
+        $email = $admin->email;
+
+        $courses=course::where('status','=','published')
+            ->where('year','=',$year)
+            ->where('branch','=',$branch)
+            ->get();
+        return view('pages.admin.preview.courses',compact('courses','year','branch','name','email','id'));
+
+    }
 
     public function loadchapters($year,course $course)
     {
