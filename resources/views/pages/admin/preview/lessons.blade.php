@@ -21,7 +21,7 @@
         <div class="prev-lessons">
             @foreach($lessons as $lesson)
 
-                <a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
+                <a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
 
             @endforeach
         </div>

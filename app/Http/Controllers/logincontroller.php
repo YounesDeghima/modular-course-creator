@@ -25,8 +25,6 @@ class logincontroller extends Controller
         {
 
             return(redirect()->route('admin.main'));
-
-
         }
         return back()->withErrors(['email'=>'invalid email','password'=>'invalid password']);
     }

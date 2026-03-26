@@ -9,6 +9,7 @@ use App\Http\Controllers\admincontroller;
 
 
 use App\Http\Controllers\logincontroller;
+use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\previewcontroller;
 use Illuminate\Support\Facades\Route;
 
@@ -17,9 +18,12 @@ Route::get('/', function () {
 });
 
 Route::get('/login',[logincontroller::class,'show'])->name('login_page');
+Route::get('/signup',[signupcontroller::class,'show'])->name('signup_page');
 
 
 Route::post('/login',[LoginController::class,'verify'])->name('verify_user_login');
+Route::post('/signup',[signupController::class,'verify'])->name('verify_user_signup');
+
 
 
 Route::prefix('admin')
@@ -47,4 +51,11 @@ Route::prefix('admin')
         });
         route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+    });
+
+Route::prefix('user')
+    ->name('user.')
+    ->group(function () {
+        Route::get('/main',[\App\Http\Controllers\usercontroller::class,'main'])->name('main');
+
     });

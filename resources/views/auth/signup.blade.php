@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+<?php
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+session_start();
+?>
+
+    <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -10,40 +17,45 @@
 
 <body>
 <div class="container">
-    <form method="POST" action="{{ route('verify_user_login') }}">
+    <form method="post" action="{{route('verify_user_signup')}}">
         @csrf
         <div class="credentials">
+            <div class="name">
+                <label for="name">name</label>
+                <input type="text" name="name" id="name">
+
+                <label for="lastname">lastname</label>
+                <input type="text" name="lastname" id="lastname">
+
+            </div>
             <div class="sensitive-info">
+                <label for="birthdate">birth-date</label>
+                <input type="date" name="birthdate" id="birthdate">
+
                 <label for="email">email</label>
                 <input type="email" name="email" id="email">
 
                 <label for="password">password</label>
                 <input type="password" name="password" id="password">
+
+                <label for="confirm-password">confirm-password</label>
+                <input type="password" name="confirm-password" id="confirm-password">
             </div>
             <div class="submit">
-                <input type="submit" value="login" name="login" id="login">
-
-
+                <input type="submit" value="sign-up" name="signup" id="signup">
             </div>
-            <div class="sign-up">
-                @error('email')
-                {{ $message }}
-                @enderror
-                @error('password')
-                {{$message}}
-                @enderror
-                <p>you don't have an account?</p>
-                <button><a href="{{route('signup_page')}}">sign-up</a></button>
+            <div class="login">
+                <p>already have an account?</p>
+                <button><a href="{{route('login_page')}}">login</a></button>
             </div>
-
         </div>
     </form>
 </div>
 <script>
     let form = document.querySelector("form");
-    let submit = document.getElementById("login");
+    let submit = document.getElementById("signupcontroller");
     let inputs = document.querySelectorAll('input');
-
+    let confirmpass = document.getElementById('confirm-password');
     let pass = document.getElementById("password");
 
 
@@ -61,8 +73,15 @@
             }
         }
 
+        if (confirmpass.value != pass.value) {
+            confirmpass.value = '';
+            confirmpass.placeholder = 'pls renter the password correctly';
+            complete = false;
+        }
+
         if (!complete) {
             e.preventDefault();
+
         }
 
     });

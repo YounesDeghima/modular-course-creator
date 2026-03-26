@@ -16,6 +16,7 @@
         <a>---></a>
         <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
     </div>
+
 @endsection
 
 @section('main')
