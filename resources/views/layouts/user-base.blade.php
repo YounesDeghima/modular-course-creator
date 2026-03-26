@@ -49,10 +49,9 @@
         <div class="options">
             <ul class="menuItems">
 
-                <li><a href='{{route('admin.main')}}' data-item='Home'>Home</a></li>
-                <li><a href='{{route('admin.dashboard')}}' data-item='About'>Users</a></li>
-                <li><a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a></li>
-                <li><a href="{{route('admin.preview.years')}}" data-item='preview'>preview</a></li>
+                <li><a href='{{route('user.main')}}' data-item='Home'>Home</a></li>
+
+
 
             </ul>
             @yield('back-button')

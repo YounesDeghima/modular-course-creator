@@ -1,148 +1,105 @@
-@extends('layouts.admin-base')
+@extends('layouts.user-base')
+
 @section('css')
-
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/block-page.css')}}">
+    <link rel="stylesheet" href="{{asset('css/preview.css')}}">
+@endsection
+
+@section('navigation')
+    <div class="navigation">
+        <a href="{{route('user.preview.years')}}">home</a>
+        <a>--></a>
+        <a href="{{route('user.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+        <a>---></a>
+        <a href="{{route('user.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+        <a>---></a>
+        <a href="{{route('user.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
+    </div>
 
 @endsection
 
-@section('back-button')
-    <a class="back-button"
-       href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">{{$course->name}}
-        ->{{$chapter->name}}->{{$lesson->name}}</a>
-@endsection
 @section('main')
+    <div class="lesson-wrapper">
+        @if($prevlesson)
+            <div class="nav-button"><a href={{route('user.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
+        @endif
+        <div class="blocks-container" id="blocks-container">
 
-    <div class="blocks-container" id="blocks-container">
-        <div class="route">{{$course->name}}->{{$chapter->name}}->{{$lesson->name}}</div>
-        <div class="block-adder">
-            <button id="block-adder">+</button>
-            <div class="popup" id="block-popup">
 
-                <form id="new-block-form" method="POST"
-                      action="{{route('admin.courses.chapters.lessons.blocks.store',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">
-                    @csrf
-                    <label>Name:</label>
-                    <input class="value-input" type="text" name="name" required>
+            <div class="preview" id="preview">
+                @foreach($blocks as $block)
+                    @switch($block->type)
+                        @case('header')
+                            <h1>{{$block->content}}</h1>
+                            @break
+                        @case('description')
+                            <p>{{$block->content}}</p>
+                            @break
+                        @case('code')
+                            <pre><code >{{$block->content}}</code></pre>
+                            @break
+                        @case('note')
+                            <div class="note">{{$block->content}}</div>
+                            @break
+                        @case('exercise')
+                            <div class="exercise">
+                                <strong>Q: {{$block->content}}</strong>
+                                <button class="toggle-solution" data-blockid="{{$block->id}}">show solution</button>
 
-                    <label>block-number:</label>
-                    <input class="value-input" type="number" name="block_number" min="1" max="99" required>
+                                @if(count($block->solutions)==0)
+                                    <div class="solution solution-{{$block->id}}" >there is nothing here yet</div>
+                                @else
+                                    @foreach($block->solutions as $solution)
+                                        <div class="solution solution-{{$block->id}}">{{$solution->content}}</div>
+                                    @endforeach
+                                @endif
 
-                    <label>type:</label>
-                    <select name="type">
-                        <option value="title">title</option>
-                        <option value="description">description</option>
-                        <option value="note">note</option>
-                        <option value="exercise">exercise</option>
-                        <option value="code">code</option>
-                    </select>
-
-                    <label>content:</label>
-                    <textarea class="value-input" name="content" required></textarea>
-
-                    <div style="text-align:right; margin-top:10px;">
-                        <button type="submit">create block</button>
-                        <button type="button" id="close-popup">Cancel</button>
-                    </div>
-                </form>
+                            </div>
+                    @endswitch
+                @endforeach
             </div>
 
         </div>
-        <div class="blocks">
-            @foreach($blocks as $block)
-                <div class="block">
-
-                    <div class="block-top">
-
-                        <form
-                            action="{{route('admin.courses.chapters.lessons.blocks.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}"
-                            method="post">
-                            @csrf
-                            @method('PUT')
-
-                            <div class="info-row">
-                                <label for="name">name</label>
-                                <input class="value-input" type="text" name="name" value="{{$block->name}}">
-                            </div>
-                            <div class="info-row">
-                                <label for="type">type</label>
-                                <input class="value-input" type="text" name="type" id="type" value="{{$block->type}}">
-                            </div>
-                            <div class="info-row">
-                                <label for="block_number">number</label>
-                                <input class="value-input" type="text" name="block_number" id="block_number"
-                                       value="{{$block->block_number}}">
-                            </div>
-                            <div class="info-row">
-                                <select name="type">
-                                    <option value="title" {{ $block->type == 'title' ? 'selected' : '' }}>title</option>
-                                    <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>
-                                        description
-                                    </option>
-                                    <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>note</option>
-                                    <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>
-                                        exercise
-                                    </option>
-                                    <option value="code" {{$block->type == 'code' ? 'selected' : ''}}>code</option>
-                                </select>
-                            </div>
-
-
-                            <div class="info-row">
-                                <label for="content">content</label>
-                                <textarea name="content" class="value-input">{{$block->content}}</textarea>
-                            </div>
-
-                            <input class="value-input update-button" type="submit" name="update" value="update">
-
-                        </form>
-
-
-                        <form
-                            action="{{route('admin.courses.chapters.lessons.blocks.destroy',[$course,$chapter,$lesson,$block])}}"
-                            method="post">
-                            @csrf
-                            @method('DELETE')
-                            <input type="submit" name="block-delete" class="block-delete delete-button" value="delete">
-                        </form>
-
-
-                    </div>
-
-
-                </div>
-            @endforeach
-        </div>
-
+        @if($nextlesson)
+            <div class="nav-button"><a href={{route('user.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
+        @endif
     </div>
 
 @endsection
 
 
+@section('js')
+    <script>
 
 
+        let solutionbuttons = document.querySelectorAll('.toggle-solution');
+        solutionbuttons.forEach(button => {
+            let blockid = button.dataset.blockid;
+            let solutions = document.querySelectorAll(`.solution-${blockid}`);
 
+            solutions.forEach(solution => {
+                    solution.style.display = 'none';
+                }
+            )
 
+            button.addEventListener('click', () => {
+                let first_solution = solutions[0];
+                let ishidden = first_solution.style.display === 'none';
+                let display = ishidden ? 'block' : 'none';
 
+                console.log(solutions);
 
-
-    @section('js')
-        <script>
-
-            const adder = document.getElementById('block-popup');
-            const openBtn = document.getElementById('block-adder');
-            const closeBtn = document.getElementById('close-popup');
-
-            openBtn.addEventListener('click', () => {
-                adder.style.visibility = 'visible';
-                adder.style.opacity = 1;
+                solutions.forEach(solution => {
+                    solution.style.display = display;
+                });
+                button.textContent = ishidden ? 'hide solution' : 'show solution';
             });
 
-            closeBtn.addEventListener('click', () => {
-                adder.style.visibility = 'hidden';
-                adder.style.opacity = 0;
-            });
+        });
 
 
-        </script>
-    @endsection
+
+    </script>
+@endsection
 

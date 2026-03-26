@@ -1,88 +1,28 @@
-@extends('layouts.admin-base')
+@extends('layouts.user-base')
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
-
-@section('back-button')
-    <a class="back-button" href="{{route('admin.courses.chapters.index',['course'=>$course->id])}}">{{$course->title}}
-        ->{{$chapter->title}}</a>
+@section('navigation')
+    <div class="navigation">
+        <a href="{{route('user.preview.years')}}">home</a>
+        <a>--></a>
+        <a href="{{route('user.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+        <a>---></a>
+        <a href="{{route('user.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+    </div>
 @endsection
-
 @section('main')
 
-    <div class="blocks-container" id="blocks-container">
-        <div class="route">{{$course->title}}->{{$chapter->title}}</div>
-        <div class="block-adder">
-            <button id="block-adder">+</button>
-            <div class="popup" id="block-popup">
+    <div class="prev-lessons-container" id="blocks-container">
 
-                <form id="new-block-form" method="POST"
-                      action="{{route('admin.courses.chapters.lessons.store',['course'=>$course->id,'chapter'=>$chapter->id])}}">
-                    @csrf
-                    <label>Title:</label>
-                    <input class="value-input" type="text" name="title" required>
-
-                    <label>lesson-number:</label>
-                    <input class="value-input" type="number" name="lesson_number" value="{{$lesson_count+1}}" readonly>
-
-                    <label>Description:</label>
-                    <textarea class="value-input" name="description" required></textarea>
-
-                    <div style="text-align:right; margin-top:10px;">
-                        <button type="submit">Create lesson</button>
-                        <button type="button" id="close-popup">Cancel</button>
-                    </div>
-                </form>
-            </div>
-
-        </div>
-        <div class="blocks">
+        <h1>{{$chapter->title}}</h1>
+        <div class="prev-lessons">
             @foreach($lessons as $lesson)
-                <div class="block">
 
-                    <div class="block-top">
+                <a href={{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
 
-                        <form action="{{route('admin.courses.chapters.lessons.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}"
-                              method="post">
-                            @csrf
-                            @method('PUT')
-
-                            <div class="info-row">
-                                <label for="name">title</label>
-                                <input class="value-input" type="text" name="title" value="{{$lesson->title}}">
-                            </div>
-                            <div class="info-row">
-                                <label for="lesson_number">number</label>
-                                <input class="value-input" type="text" name="lesson_number"
-                                       value="{{$lesson->lesson_number}}" readonly>
-                            </div>
-
-
-                            <div class="info-row">
-                                <label for="description">description</label>
-                                <textarea name="description" class="value-input">{{$lesson->description}}</textarea>
-                            </div>
-
-                            <input class="value-input update-button" type="submit" name="update" value="update">
-
-                        </form>
-
-
-                        <form action="{{route('admin.courses.chapters.lessons.destroy',[$course,$chapter,$lesson])}}"
-                              method="post">
-                            @csrf
-                            @method('DELETE')
-                            <input type="submit" name="lesson-delete" class="block-delete delete-button" value="delete">
-                        </form>
-
-                        <a href="{{route('admin.courses.chapters.lessons.blocks.index',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id])}}">manage
-                            blocks</a>
-
-                    </div>
-
-
-                </div>
             @endforeach
         </div>
 
@@ -107,6 +47,34 @@
             adder.style.visibility = 'hidden';
             adder.style.opacity = 0;
         });
+
+        let years = Array.from(document.getElementsByClassName('year-input'));
+        let branchs = Array.from(document.getElementsByClassName('branch-input'));
+        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
+
+        function togglebranch(year, i) {
+            console.log(i);
+            if (parseInt(year.value) > 1) {
+
+                branchs[i].style.display = 'block';
+                branchlabels[i].style.display = 'block';
+                branchs[i].value = 'mi';
+
+            } else {
+                branchs[i].style.display = 'none';
+                branchlabels[i].style.display = 'none';
+
+            }
+        }
+
+        years.forEach((year, i) => {
+            year.addEventListener('change', () => togglebranch(year, i));
+
+        });
+
+        years.forEach((year, i) => togglebranch(year, i));
+
+
 
 
     </script>

@@ -23,8 +23,16 @@ class logincontroller extends Controller
 
         if(Auth::attempt($credentials))
         {
+            $user = user::where('email','=',$request->email)->first();
+            if($user->role == 'admin')
+            {
+                return(redirect()->route('admin.main'));
+            }
+            else if($user->role == 'user'){
+                return(redirect()->route('user.main'));
+            }
 
-            return(redirect()->route('admin.main'));
+
         }
         return back()->withErrors(['email'=>'invalid email','password'=>'invalid password']);
     }
