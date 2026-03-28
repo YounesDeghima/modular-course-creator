@@ -1,112 +1,371 @@
-@extends('layouts.admin-base')
+@if(!request()->ajax())
+    @extends('layouts.edditor')
+@endif
+
+
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+
+
 @endsection
 
 @section('back-button')
     <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
 @endsection
 
+
+
+
+
 @section('main')
-
-    <div class="blocks-container" id="blocks-container">
-        <div class="route">{{$course->title}}</div>
-        <div class="block-adder">
-            <button id="block-adder">+</button>
-            <div class="popup" id="block-popup">
-
-                <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store',$course)}}">
-                    @csrf
-                    <label>Title:</label>
-                    <input class="value-input" type="text" name="title" required>
-
-                    <label>chapter-number:</label>
-                    <input class="value-input" type="number" name="chapter_number" value="{{$chapter_count+1}}"
-                           readonly>
-
-                    <label>Description:</label>
-                    <textarea class="value-input" name="description" required></textarea>
-
-                    <div style="text-align:right; margin-top:10px;">
-                        <button type="submit">Create Chapter</button>
-                        <button type="button" id="close-popup">Cancel</button>
-                    </div>
-                </form>
+    @fragment('main-content')
+        <div class="blocks-wrapper">
+            <div class="route-header">
+                <h2>
+                    <span class="course-name">{{$course->title}}</span>
+                    <small>></small> {{$chapter->title}}
+                    <small>></small> <span class="active-lesson">{{$lesson->title}}</span>
+                </h2>
             </div>
 
-        </div>
-        <div class="blocks">
-            @foreach($chapters as $chapter)
-                <div class="block">
+            {{-- Single form wrapper for bulk saving --}}
+            <form action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
+                @csrf
+                @method('PUT')
 
-                    <div class="block-top">
+                <div class="blocks-list stack-container">
+                    @forelse($blocks as $block)
+                        <div class="block-row type-{{ $block->type }}">
+                            <input type="hidden" name="blocks[{{ $block->id }}][id]" value="{{ $block->id }}">
 
-                        <form action="{{route('admin.courses.chapters.update',['course'=>$course->id,'chapter'=>$chapter->id])}}"
-                              method="post">
-                            @csrf
-                            @method('PUT')
-
-                            <div class="info-row">
-                                <label for="name">Title</label>
-                                <input class="value-input" type="text" name="title" value="{{$chapter->title}}">
-                            </div>
-                            <div class="info-row">
-                                <label for="chapter_number">chapter number</label>
-                                <input class="value-input" type="text" name="chapter_number"
-                                       value="{{$chapter->chapter_number}}" readonly>
-                            </div>
-
-                            <div class="info-row">
-                                <label for="description">description</label>
-                                <textarea name="description" class="value-input" style="height: 200px">{{$chapter->description}}</textarea>
+                            <div class="block-main-content">
+                                @if($block->type == 'title')
+                                    <input type="text" name="blocks[{{ $block->id }}][content]"
+                                           value="{{ $block->content }}"
+                                           class="input-ghost title-style"
+                                           placeholder="Enter Title...">
+                                @else
+                                    <textarea name="blocks[{{ $block->id }}][content]"
+                                              class="input-ghost content-style"
+                                              rows="1"
+                                              oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+                                @endif
                             </div>
 
-                            <input class="value-input update-button" type="submit" name="update" value="update">
+                            <div class="block-controls">
+                                <div class="control-group">
+                                    <span class="control-icon" onclick="toggleTypeSelect('{{ $block->id }}')">✏️</span>
+                                    <select name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
+                                        <option value="title" {{ $block->type == 'title' ? 'selected' : '' }}>H1</option>
+                                        <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>Text</option>
+                                        <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
+                                        <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
+                                    </select>
+                                </div>
 
-                        </form>
-
-
-                        <form action="{{route('admin.courses.chapters.destroy',[$course,$chapter])}}" method="post">
-                            @csrf
-                            @method('DELETE')
-                            <input type="submit" name="chapter-delete" class="block-delete delete-button"
-                                   value="delete">
-                        </form>
-
-                        <a href="{{route('admin.courses.chapters.lessons.index',['course'=>$course->id,'chapter'=>$chapter->id])}}">manage lessons</a>
-
-                    </div>
-
-
+                                <button type="submit" name="move" value="{{ $block->id }}:up" class="arrow-btn">∨</button>
+                                <button type="submit" name="move" value="{{ $block->id }}:down" class="arrow-btn">∧</button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="empty-state">
+                            <p>No content here yet. Click the <strong>+</strong> button to add a block.</p>
+                        </div>
+                    @endforelse
                 </div>
-            @endforeach
+
+                <div class="save-container">
+                    <button type="submit" class="btn-save-all">Save All Changes</button>
+                </div>
+            </form>
         </div>
 
-    </div>
+        <div class="block-adder-container">
+            <button id="block-adder" class="fab-button" type="button" onclick="openModal('block-popup')">+</button>
+        </div>
 
+        <div id="block-popup" class="modal-overlay">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeModal('block-popup')">&times;</span>
+                <h3>Add New Content Block</h3>
+                <form method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}">
+                    @csrf
+                    <div class="form-group">
+                        <label>Internal Name</label>
+                        <input class="modal-input" type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Block Type</label>
+                        <select name="type" class="modal-input">
+                            <option value="title">Title</option>
+                            <option value="description">Description</option>
+                            <option value="note">Note</option>
+                            <option value="code">Code</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Content</label>
+                        <textarea class="modal-input" name="content" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-update">Create Block</button>
+                </form>
+            </div>
+        </div>
+    @endfragment
 @endsection
 
+@section('sidebar-elements')
+    <div class="sidebar-blocks-container">
+        @foreach($chapters as $chapter)
+            <div class="chapter-group">
 
+                <div class="chapter-header">
+                    <div class="header-left" onclick="toggleLessons('{{$chapter->id}}')">
+                        <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
+                        <strong class="chapter-title">{{ $chapter->title }}</strong>
+                    </div>
+
+                    <div class="header-right">
+                        <span class="pen-icon" onclick="openModal('chapter-modal-{{$chapter->id}}')">✏️</span>
+                    </div>
+                </div>
+
+                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" style="display: none;">
+                    @foreach($chapter->lessons as $lesson)
+                        <div class="lesson-row">
+                            <div class="lesson-content">
+                                <span class="bullet">•</span>
+                                <a href="{{ route('admin.courses.chapters.lessons.blocks.index', ['course'=>$course->id, 'chapter'=>$chapter->id, 'lesson'=>$lesson->id]) }}" class="lesson-link">
+                                    {{ $lesson->title }}
+                                </a>
+                            </div>
+
+                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}')">✏️</span>
+                        </div>
+
+                        <div id="lesson-modal-{{$lesson->id}}" class="modal-overlay">
+                            <div class="modal-content">
+                                <span class="close-btn" onclick="closeModal('lesson-modal-{{$lesson->id}}')">&times;</span>
+                                <h3>Edit Lesson: {{ $lesson->lesson_number }}</h3>
+
+                                <form action="{{ route('admin.courses.chapters.lessons.update', [$course->id, $chapter->id, $lesson->id]) }}" method="POST" class="lesson-form">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="form-title">
+                                        <label>Title</label>
+                                        <input type="text" name="title" value="{{ $lesson->title }}" class="modal-input">
+                                    </div>
+                                    <div class="form-discription">
+                                        <label>Description</label>
+                                        <textarea name="description" class="modal-input">{{ $lesson->description }}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn-update">Update Lesson</button>
+                                </form>
+
+                                <form action="{{ route('admin.courses.chapters.lessons.destroy', [$course, $chapter, $lesson]) }}" method="POST" class="delete-form">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-delete" onclick="return confirm('Delete lesson?')">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+
+                    @endforeach
+                    <div class="lesson-row add-lesson-row" onclick="openModal('add-lesson-modal-{{$chapter->id}}')">
+                        <span class="plus-icon">+</span>
+                        <span class="lesson-link">Add Lesson</span>
+                    </div>
+                    <div id="add-lesson-modal-{{$chapter->id}}" class="modal-overlay">
+                        <div class="modal-content">
+                            <span class="close-btn" onclick="closeModal('add-lesson-modal-{{$chapter->id}}')">&times;</span>
+                            <h3>New Lesson for {{ $chapter->title }}</h3>
+
+                            <form action="{{ route('admin.courses.chapters.lessons.store', [$course->id, $chapter->id]) }}" method="POST">
+                                @csrf
+                                <div class="form-group">
+                                    <label>Title</label>
+                                    <input type="text" name="title" class="modal-input" required placeholder="Lesson name...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Lesson Number</label>
+                                    <input type="number" name="lesson_number" value="{{ $chapter->lessons->count() + 1 }}" class="modal-input" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Description</label>
+                                    <textarea name="description" class="modal-input" required></textarea>
+                                </div>
+                                <button type="submit" class="btn-update">Create Lesson</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chapter-modal-{{$chapter->id}}" class="modal-overlay">
+                    <div class="modal-content">
+                        <span class="close-btn" onclick="closeModal('chapter-modal-{{$chapter->id}}')">&times;</span>
+                        <h3>Edit Chapter</h3>
+
+                        <form action="{{ route('admin.courses.chapters.update', [$course->id, $chapter->id]) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea name="description" class="modal-input" style="height:120px">{{ $chapter->description }}</textarea>
+                            </div>
+                            <button type="submit" class="btn-update">Update Chapter</button>
+                        </form>
+
+                        <form action="{{ route('admin.courses.chapters.destroy', [$course, $chapter]) }}" method="POST" class="delete-form">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-delete" onclick="return confirm('Delete chapter?')">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div> @endforeach
+
+            <div class="chapter-group add-chapter-trigger">
+                <div class="chapter-header add-header" onclick="openModal('add-chapter-modal')">
+                    <div class="header-left">
+                        <span class="plus-icon-lg">+</span>
+                        <strong class="chapter-title">Add New Chapter</strong>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <div id="add-chapter-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('add-chapter-modal')">&times;</span>
+            <h3>Create New Chapter</h3>
+            <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store', $course)}}">
+                @csrf
+                <div class="form-group">
+                    <label>Title:</label>
+                    <input class="modal-input" type="text" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label>Chapter Number:</label>
+                    <input class="modal-input" type="number" name="chapter_number" value="{{$chapter_count+1}}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <textarea class="modal-input" name="description" style="height:100px;" required></textarea>
+                </div>
+                <button type="submit" class="btn-update">Create Chapter</button>
+            </form>
+        </div>
+
+
+
+    </div>
+@endsection
 
 
 @section('js')
     <script>
 
-        const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
-        const closeBtn = document.getElementById('close-popup');
+        document.addEventListener('DOMContentLoaded', function() {
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
+            // --- 1. CORE UTILITIES ---
+
+            // Auto-resize textareas based on content
+            function initAutoResize() {
+                document.querySelectorAll('textarea.input-ghost').forEach(el => {
+                    el.style.height = 'auto'; // Reset first
+                    el.style.height = el.scrollHeight + 'px';
+                });
+            }
+
+            // Initialize UI elements for the block editor
+            function initBlockEditor() {
+                initAutoResize();
+
+                // Setup Floating Action Button
+                const btn = document.getElementById('block-adder');
+                const popup = document.getElementById('block-popup');
+                const close = document.getElementById('close-popup');
+
+                if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
+                if (close && popup) close.onclick = () => popup.style.display = 'none';
+            }
+
+            // --- 2. AJAX LESSON LOADING ---
+            document.addEventListener('click', function(e) {
+                const lessonLink = e.target.closest('.lesson-link');
+                if (lessonLink && !lessonLink.closest('.add-lesson-row')) {
+                    e.preventDefault();
+                    loadLesson(lessonLink.href);
+                }
+            });
+
+            function loadLesson(url) {
+                const mainContainer = document.querySelector('main');
+                mainContainer.style.opacity = '0.5';
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(response => response.text())
+                    .then(html => {
+                        mainContainer.innerHTML = html;
+                        mainContainer.style.opacity = '1';
+                        history.pushState(null, '', url);
+
+                        // Re-run setup for the new HTML content
+                        initBlockEditor();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        mainContainer.style.opacity = '1';
+                    });
+            }
+
+            // --- 3. GLOBAL WINDOW FUNCTIONS ---
+
+            // Toggle the sidebar lesson lists
+            window.toggleLessons = function(id) {
+                const container = document.getElementById('lessons-container-' + id);
+                const arrow = document.getElementById('arrow-' + id);
+                if (!container) return;
+
+                const isHidden = container.style.display === "none" || container.style.display === "";
+                container.style.display = isHidden ? "flex" : "none";
+                if (arrow) arrow.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
+            }
+
+            // Open/Close Modals
+            window.openModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'flex';
+            }
+
+            window.closeModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'none';
+            }
+
+            // The Pen button toggles the type dropdown (Using ID)
+            window.toggleTypeSelect = function(id) {
+                const el = document.getElementById('select-' + id);
+                if (el) el.classList.toggle('active');
+            }
+
+            // Close modals on background click
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal-overlay')) {
+                    event.target.style.display = 'none';
+                }
+            }
+
+            // --- 4. INITIALIZATION ---
+            initBlockEditor();
+            window.onpopstate = () => loadLesson(window.location.href);
         });
-
-        closeBtn.addEventListener('click', () => {
-            adder.style.visibility = 'hidden';
-            adder.style.opacity = 0;
-        });
-
 
     </script>
 @endsection

@@ -34,11 +34,17 @@ Route::prefix('admin')
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
+
+
         Route::resource('courses', coursecontroller::class);
 
         Route::scopeBindings()->group(function () {
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
+
+            Route::put('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/update-all', [blockcontroller::class, 'updateAll'])
+                ->name('courses.chapters.lessons.blocks.update-all');
+
             Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
         });
 

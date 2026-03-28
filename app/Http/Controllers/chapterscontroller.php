@@ -4,66 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\chapter;
 use App\Models\course;
-use App\Models\lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 
-class chaptercontroller extends Controller
+class chapterscontroller extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index(course $course)
     {
-        $admin = Auth::user();
-
-        // 1. Get all chapters for the sidebar
+        // Eager load lessons to be memory efficient
         $chapters = chapter::where('course_id', $course->id)
+            ->with('lessons')
             ->orderBy('chapter_number', 'asc')
             ->get();
 
-        // 2. Logic to prevent the "Undefined Variable" crash:
-        // We grab the first chapter and its first lesson so the main part has something to show.
-        $chapter = $chapters->first();
-        $lesson = $chapter ? $chapter->lessons()->orderBy('lesson_number', 'asc')->first() : null;
-
-        // 3. Get the blocks for that default lesson (if they exist)
-        $blocks = $lesson ? $lesson->blocks()->orderBy('block_number', 'asc')->get() : collect();
-
-        // 4. Other data you need
         $chapter_count = $chapters->count();
-        $id = $admin->id;
-        $name = $admin->name;
-        $email = $admin->email;
 
-        return view('pages.admin.chapters', compact(
-            'chapters',
-            'course',
-            'chapter', // Fixed: Added singular $chapter
-            'lesson',  // Fixed: Added singular $lesson
-            'blocks',  // Fixed: Added $blocks
-            'chapter_count',
-            'id',
-            'name',
-            'email'
-        ));
+        return view('pages.admin.chapters', compact('chapters', 'course', 'chapter_count'));
     }
 
 
-//    public function index(course $course)
-//    {
-//        $chapters = $course->chapters()->with('lessons')->get();
-//
-//        // Grab the first chapter and first lesson so the page has something to show
-//        $chapter = $chapters->first();
-//        $lesson = $chapter ? $chapter->lessons->first() : null;
-//        $blocks = $lesson ? $lesson->blocks : collect();
-//
-//        return view('pages.admin.chapters', compact('course', 'chapters', 'chapter', 'lesson', 'blocks'));
-//    }
-
-    // Inside chaptercontroller.php
 
     /**
      * Show the form for creating a new resource.
