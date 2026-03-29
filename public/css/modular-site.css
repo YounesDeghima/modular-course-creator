@@ -7,10 +7,12 @@
 }
 
 form {
-    display: block !important; /* Disables Flex/Grid */
+    display: flex;
+    flex-direction: column;
     width: 100%;
     margin: 0;
     padding: 0;
+
 }
 
 body {
@@ -43,7 +45,8 @@ main {
 .blocks-wrapper {
     max-width: 1200px;
     margin: 0 auto;
-    display: block;
+    display: flex;
+    flex-direction:column;
 }
 .block-main-content {
     flex: 1;          /* Forces it to grow and fill the row */
@@ -305,8 +308,14 @@ textarea {
     line-height: 1.5;
     color: #333;
     padding: 5px 0;
-    resize: none;
+
     display: block;
+
+    min-height: 80px;     /* starting height */
+    max-height: 500px;    /* optional cap */
+
+    overflow-y: auto;     /* scroll when full */
+    resize: vertical;     /* allows user to drag height */
 }
 
 /* ============================
@@ -505,3 +514,13 @@ textarea {
     .block-top { grid-template-columns: 1fr; }
     main { margin-left: 20px; }
 }
+
+
+.block-form{
+    display: flex;
+    flex-direction: column;
+    min-width: 1200px;
+}
+
+
+

@@ -30,7 +30,7 @@
             </div>
 
             {{-- Single form wrapper for bulk saving --}}
-            <form action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
+            <form class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -38,20 +38,39 @@
                     @forelse($blocks as $block)
                         <div class="block-row type-{{ $block->type }}">
                             <input type="hidden" name="blocks[{{ $block->id }}][id]" value="{{ $block->id }}">
+                            <input type="hidden" name="blocks[{{ $block->id }}][block_number]" value="{{ $block->block_number }}">
+
+
 
                             <div class="block-main-content">
-                                @if($block->type == 'title')
-                                    <input type="text" name="blocks[{{ $block->id }}][content]"
-                                           value="{{ $block->content }}"
-                                           class="input-ghost title-style"
-                                           placeholder="Enter Title...">
+                                @if($block->type == 'header')
+                                    <textarea type="text" name="blocks[{{ $block->id }}][content]"
+                                       class="input-ghost title-style"
+                                       placeholder="Enter Title...">{{ $block->content }}</textarea>
+
                                 @else
-                                    <textarea name="blocks[{{ $block->id }}][content]"
-                                              class="input-ghost content-style"
-                                              rows="1"
-                                              oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+
+                                    @if($block->type == 'exercise')
+                                        <label>Question:</label>
+                                        <textarea name="blocks[{{ $block->id }}][content]"
+                                                  class="input-ghost content-style"
+                                                  rows="1"
+                                                  oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+                                        @foreach($block->solutions as $solution)
+                                            <label>Solution</label>
+                                            <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id }}]">{{ $solution->content }}</textarea>
+                                        @endforeach
+
+
+                                    @else
+                                        <textarea name="blocks[{{ $block->id }}][content]"
+                                                  class="input-ghost content-style"
+                                                  rows="1"
+                                                  oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+                                    @endif
                                 @endif
                             </div>
+
 
                             <div class="block-controls">
                                 <div class="control-group">
@@ -65,8 +84,9 @@
                                     </select>
                                 </div>
 
-                                <button type="submit" name="move" value="{{ $block->id }}:up" class="arrow-btn">∨</button>
-                                <button type="submit" name="move" value="{{ $block->id }}:down" class="arrow-btn">∧</button>
+
+                                <button type="button" value="{{ $block->id }}:up" class="arrow-btn">∧</button>
+                                <button type="button" value="{{ $block->id }}:down" class="arrow-btn">∨</button>
                             </div>
                         </div>
                     @empty
@@ -126,25 +146,29 @@
 @section('sidebar-elements')
     <div class="sidebar-blocks-container">
         @foreach($chapters as $chapter)
-            <div class="chapter-group">
+            <div class="chapter-group" >
 
-                <div class="chapter-header">
-                    <div class="header-left" onclick="toggleLessons('{{$chapter->id}}')">
+                <div class="chapter-header" onclick="toggleLessons('{{$chapter->id}}')">
+                    <div class="header-left" >
                         <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
+                        <div class="chapter-description">
+
+                        </div>
                     </div>
 
                     <div class="header-right">
                         <span class="pen-icon" onclick="openModal('chapter-modal-{{$chapter->id}}')">✏️</span>
+
                     </div>
                 </div>
 
                 <div id="lessons-container-{{$chapter->id}}" class="lessons-list" style="display: none;">
                     @foreach($chapter->lessons as $lesson)
-                        <div class="lesson-row">
-                            <div class="lesson-content">
+                        <div class="lesson-row " data-href='{{ route('admin.courses.chapters.lessons.blocks.index', ['course'=>$course->id, 'chapter'=>$chapter->id, 'lesson'=>$lesson->id]) }}'>
+                            <div class="lesson-content" >
                                 <span class="bullet">•</span>
-                                <a href="{{ route('admin.courses.chapters.lessons.blocks.index', ['course'=>$course->id, 'chapter'=>$chapter->id, 'lesson'=>$lesson->id]) }}" class="lesson-link">
+                                <a class="lesson-link">
                                     {{ $lesson->title }}
                                 </a>
                             </div>
@@ -226,9 +250,9 @@
                                 <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
                             </div>
 
-                            <div class="form-group">
-                                <label>Chapter Number</label>
-                                <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input" style="visibility: hidden">
+                            <div class="form-group" style="visibility: hidden">
+                                <label >Chapter Number</label>
+                                <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
                             </div>
 
                             <div class="form-group">
@@ -315,13 +339,16 @@
             }
 
             // --- 2. AJAX LESSON LOADING ---
-            document.addEventListener('click', function(e) {
-                const lessonLink = e.target.closest('.lesson-link');
-                if (lessonLink && !lessonLink.closest('.add-lesson-row')) {
+            document.querySelectorAll('.lesson-row').forEach(row => {
+                row.addEventListener('click', e => {
+                    if (e.target.closest('.pen-icon')) return; // ignore edit button
+                    const url = row.dataset.href;
+                    if (!url) return;
                     e.preventDefault();
-                    loadLesson(lessonLink.href);
-                }
+                    loadLesson(url);
+                });
             });
+
 
             function loadLesson(url) {
                 const mainContainer = document.querySelector('main');
@@ -336,6 +363,8 @@
 
                         // Re-run setup for the new HTML content
                         initBlockEditor();
+
+                        initBlockReordering();
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -384,6 +413,75 @@
             initBlockEditor();
             window.onpopstate = () => loadLesson(window.location.href);
         });
+
+        function updateBlockNumbers() {
+            document.querySelectorAll('.blocks-list .block-row').forEach((block, index) => {
+                const id = block.querySelector('input[name*="[id]"]').value;
+                const blockNumberInput = block.querySelector(`input[name="blocks[${id}][block_number]"]`);
+                if (blockNumberInput) blockNumberInput.value = index + 1;
+            });
+        }
+
+        // --- 5. CLIENT-SIDE BLOCK REORDERING ---
+        const blocksList = document.querySelector('.blocks-list');
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.arrow-btn');
+            if (!btn) return;
+
+            e.preventDefault(); // stop form submit
+
+            const blockRow = btn.closest('.block-row');
+            if (!blockRow) return;
+
+            const parent = blockRow.parentNode;
+
+            if (btn.value.endsWith(':up')) {
+                const prev = blockRow.previousElementSibling;
+                if (prev && prev.classList.contains('block-row')) {
+                    parent.insertBefore(blockRow, prev); // swap
+                }
+            } else if (btn.value.endsWith(':down')) {
+                const next = blockRow.nextElementSibling;
+                if (next && next.classList.contains('block-row')) {
+                    parent.insertBefore(next, blockRow); // swap
+                }
+            }
+
+            // Update block numbers
+            updateBlockNumbers();
+        });
+
+
+        function initBlockReordering() {
+            document.querySelectorAll('.arrow-btn').forEach(btn => {
+                btn.onclick = function(e) {
+                    e.preventDefault();
+                    const blockRow = btn.closest('.block-row');
+                    const parent = blockRow.parentNode;
+
+                    if (btn.value.endsWith(':up')) {
+                        const prev = blockRow.previousElementSibling;
+                        if (prev && prev.classList.contains('block-row')) {
+                            parent.insertBefore(blockRow, prev);
+                        }
+                    } else if (btn.value.endsWith(':down')) {
+                        const next = blockRow.nextElementSibling;
+                        if (next && next.classList.contains('block-row')) {
+                            parent.insertBefore(next, blockRow);
+                        }
+                    }
+
+                    updateBlockNumbers();
+                }
+            });
+        }
+
+
+
+
+
+
 
     </script>
 @endsection

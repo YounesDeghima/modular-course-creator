@@ -11,7 +11,7 @@
             <button id="block-adder">+</button>
             <div class="popup" id="block-popup">
 
-                <form id="new-block-form" method="POST" action="{{route('admin.courses.store')}}">
+                <form class="courses-form" id="new-block-form" method="POST" action="{{route('admin.courses.store')}}">
                     @csrf
                     <label>Title:</label>
                     <input class="value-input" type="text" name="title" required>
@@ -113,7 +113,7 @@
     <script>
 
         const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
+        const openBtn = document.getElementById('courses-form');
         const closeBtn = document.getElementById('close-popup');
 
         openBtn.addEventListener('click', () => {

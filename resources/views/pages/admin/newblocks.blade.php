@@ -80,7 +80,7 @@
                         </div>
                         <div class="block-body">
                             <form
-                                action="{{route('admin.courses.chapters.lessons.blocks.update',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}"
+                                action="{{route('admin.courses.chapters.lessons.blocks.updateAll',['course'=>$course->id,'chapter'=>$chapter->id,'lesson'=>$lesson->id,'block'=>$block->id])}}"
                                 method="post">
                                 @csrf
                                 @method('PUT')
@@ -92,7 +92,7 @@
                                     <textarea name="content">{{$block->content}}</textarea>
                                     @foreach($block->solutions as $solution)
                                         <label>Solution</label>
-                                        <textarea name="solution">{{$solution->content}}</textarea>
+                                        <textarea name="solutions[{{ $solution->id }}]">{{$solution->content}}</textarea>
                                     @endforeach
 
                                 @else
@@ -212,6 +212,57 @@
                 button.textContent = ishidden ? 'hide solution' : 'show solution';
             });
 
+        });
+
+        // --- 5. CLIENT-SIDE BLOCK REORDERING ---
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Function to swap two DOM elements
+            function swapElements(el1, el2) {
+                const parent = el1.parentNode;
+                const next = el2.nextSibling === el1 ? el2 : el2.nextSibling;
+                parent.insertBefore(el1, next);
+            }
+
+            // Update all visible block numbers in the UI
+            function updateBlockNumbers() {
+                document.querySelectorAll('.blocks-list .block-row').forEach((block, index) => {
+                    block.dataset.blockNumber = index + 1;
+                    const numberInput = block.querySelector('input[name$="[block_number]"]');
+                    if (numberInput) numberInput.value = index + 1;
+                });
+            }
+
+            // Attach click events to arrow buttons
+            document.querySelectorAll('.arrow-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault(); // prevent form submission for instant reordering
+
+                    const blockRow = btn.closest('.block-row');
+                    if (!blockRow) return;
+
+                    const isUp = btn.value.endsWith(':up');
+                    const isDown = btn.value.endsWith(':down');
+
+                    if (isUp) {
+                        const prev = blockRow.previousElementSibling;
+                        if (prev && prev.classList.contains('block-row')) {
+                            swapElements(blockRow, prev);
+                        }
+                    } else if (isDown) {
+                        const next = blockRow.nextElementSibling;
+                        if (next && next.classList.contains('block-row')) {
+                            swapElements(next, blockRow);
+                        }
+                    }
+
+                    // Update block numbers after swap
+                    updateBlockNumbers();
+                });
+            });
+
+            // Initial update in case page loads out of order
+            updateBlockNumbers();
         });
     </script>
 @endsection

@@ -62,39 +62,40 @@ class blockcontroller extends Controller
 
     public function updateAll(Request $request, $courseId, $chapterId, $lessonId)
     {
+
         // 1. HANDLE REORDERING (If an arrow was clicked)
         // The 'move' value comes in as "blockId:direction" (e.g., "12:up")
         if ($request->has('move')) {
             $parts = explode(':', $request->move);
-            $currentBlockId = $parts[0];
+            $currentblockId = $parts[0];
             $direction = $parts[1];
 
-            $currentBlock = \App\Models\Block::findOrFail($currentBlockId);
-            $currentOrder = $currentBlock->block_number;
+            $currentblock = \App\Models\block::findOrFail($currentblockId);
+            $currentOrder = $currentblock->block_number;
 
             if ($direction === 'up') {
                 // Find the block immediately above it
-                $previousBlock = \App\Models\Block::where('lesson_id', $lessonId)
+                $previousblock = \App\Models\block::where('lesson_id', $lessonId)
                     ->where('block_number', '<', $currentOrder)
                     ->orderBy('block_number', 'desc')
                     ->first();
 
-                if ($previousBlock) {
+                if ($previousblock) {
                     // Swap their order numbers
-                    $currentBlock->update(['block_number' => $previousBlock->block_number]);
-                    $previousBlock->update(['block_number' => $currentOrder]);
+                    $currentblock->update(['block_number' => $previousblock->block_number]);
+                    $previousblock->update(['block_number' => $currentOrder]);
                 }
             } else {
                 // Find the block immediately below it
-                $nextBlock = \App\Models\Block::where('lesson_id', $lessonId)
+                $nextblock = \App\Models\block::where('lesson_id', $lessonId)
                     ->where('block_number', '>', $currentOrder)
                     ->orderBy('block_number', 'asc')
                     ->first();
 
-                if ($nextBlock) {
+                if ($nextblock) {
                     // Swap their order numbers
-                    $currentBlock->update(['block_number' => $nextBlock->block_number]);
-                    $nextBlock->update(['block_number' => $currentOrder]);
+                    $currentblock->update(['block_number' => $nextblock->block_number]);
+                    $nextblock->update(['block_number' => $currentOrder]);
                 }
             }
 
@@ -105,10 +106,36 @@ class blockcontroller extends Controller
         // This loops through the 'blocks' array from the form
         if ($request->has('blocks')) {
             foreach ($request->blocks as $id => $data) {
-                \App\Models\Block::where('id', $id)->update([
-                    'content' => $data['content'],
-                    'type'    => $data['type']
+                $block = \App\Models\block::find($id);
+                if (!$block) continue;
+
+                $content = trim($data['content'] ?? '');
+                $type = $data['type'] ?? $block->type;
+                $number = $data['block_number'] ?? $block->block_number;
+
+                // Delete blocks with empty content
+                if ($content === '') {
+                    $block->delete();
+                    continue;
+                }
+
+                // Update block content and type
+                $block->update([
+                    'content' => $content,
+                    'type'    => $type,
+                    'block_number'  => $number,
+
                 ]);
+
+                // Update solutions if exercise
+                if($block->type == 'exercise' && $request->has('solutions')){
+                    foreach ($request->input('solutions') as $solutionId => $content){
+                        $solution = $block->solutions()->find($solutionId);
+                        if ($solution) {
+                            $solution->update(['content' => $content]);
+                        }
+                    }
+                }
             }
         }
 
