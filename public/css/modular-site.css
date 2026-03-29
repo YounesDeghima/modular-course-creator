@@ -9,7 +9,7 @@
 form {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    
     margin: 0;
     padding: 0;
 
@@ -523,4 +523,14 @@ textarea {
 }
 
 
-
+.block-adder .popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
