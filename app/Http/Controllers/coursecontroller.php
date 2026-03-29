@@ -35,12 +35,21 @@ class coursecontroller extends Controller
      */
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'year' => 'required|in:1,2,3',
-            'branch' => 'required|in:mi,st,none',
+
             'description' => 'required|string',
         ]);
+
+
+
+        if ($request->year == 1) {
+            $validated['branch'] = 'none';
+        }
+
+
 
         course::create($validated);
 
@@ -70,6 +79,8 @@ class coursecontroller extends Controller
     {
         $course = Course::findOrFail($id);
 
+
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'year' => 'required|in:1,2,3',
@@ -77,9 +88,15 @@ class coursecontroller extends Controller
             'description' => 'required|string',
         ]);
 
+        if ($request->year == 1) {
+            $validated['branch'] = 'none';
+        }
+
+
         $course->update($validated);
 
-        return redirect()->back()->with('success', 'Course updated');
+
+        return(redirect()->back()->with('success', 'Course updated successfully'));
     }
 
     /**

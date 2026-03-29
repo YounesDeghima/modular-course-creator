@@ -1,7 +1,7 @@
 @extends('layouts.admin-base')
 @section('css')
 
-    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
 @endsection
 @section('main')
 
@@ -47,7 +47,7 @@
 
                     <div class="block-top">
 
-                        <form action="{{route('admin.courses.update',$course->id)}}" method="post">
+                        <form class="update-form" action="{{route('admin.courses.update',$course->id)}}" method="post">
                             @csrf
                             @method('PUT')
 
@@ -133,14 +133,12 @@
         function togglebranch(year, i) {
             console.log(i);
             if (parseInt(year.value) > 1) {
-
-                branchs[i].style.display = 'block';
-                branchlabels[i].style.display = 'block';
-                branchs[i].value = 'mi';
+                branchs[i].style.visibility = 'visible';
+                branchlabels[i].style.visibility = 'visible';
 
             } else {
-                branchs[i].style.display = 'none';
-                branchlabels[i].style.display = 'none';
+                branchs[i].style.visibility = 'hidden';
+                branchlabels[i].style.visibility = 'hidden';
 
             }
         }
@@ -151,6 +149,53 @@
         });
 
         years.forEach((year, i) => togglebranch(year, i));
+
+
+        // Get all update forms
+        const forms = document.querySelectorAll('.update-form');
+
+        forms.forEach(form => {
+            const inputs = form.querySelectorAll('input, textarea, select');
+            const updateBtn = form.querySelector('input[type="submit"]');
+
+            // Store original values
+            const originalValues = [];
+
+            inputs.forEach((input, index) => {
+                originalValues[index] = input.value;
+            });
+
+            // Hide button initially
+            updateBtn.style.visibility = 'hidden';
+
+            // Listen for changes
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', () => {
+                    let changed = false;
+
+                    inputs.forEach((inp, i) => {
+                        if (inp.value != originalValues[i]) {
+                            changed = true;
+                        }
+                    });
+
+                    updateBtn.style.visibility = changed ? 'visible' : 'hidden';
+                });
+
+                // For select elements (important)
+                input.addEventListener('change', () => {
+                    let changed = false;
+
+                    inputs.forEach((inp, i) => {
+                        if (inp.value != originalValues[i]) {
+                            changed = true;
+                        }
+                    });
+
+                    updateBtn.style.display = changed ? 'inline-block' : 'none';
+                });
+            });
+        });
 
 
     </script>

@@ -37,6 +37,7 @@ class chaptercontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
 
+
         return view('pages.admin.chapters', compact(
             'chapters',
             'course',
