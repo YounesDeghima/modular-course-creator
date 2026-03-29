@@ -117,6 +117,7 @@ class chaptercontroller extends Controller
     public function update(Request $request, course $course, chapter $chapter)
     {
 
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'chapter_number'=>'required|integer',
@@ -125,6 +126,7 @@ class chaptercontroller extends Controller
 
 
         $chapter->update($validated);
+
 
         return redirect()->back()->with('success', 'lesson updated');
     }

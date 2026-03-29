@@ -137,7 +137,6 @@ class blockcontroller extends Controller
         ]);
 
 
-
         $validated['lesson_id'] = $lesson->id;
 
         $block=block::create($validated);

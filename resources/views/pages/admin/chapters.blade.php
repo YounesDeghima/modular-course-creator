@@ -57,10 +57,11 @@
                                 <div class="control-group">
                                     <span class="control-icon" onclick="toggleTypeSelect('{{ $block->id }}')">✏️</span>
                                     <select name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
-                                        <option value="title" {{ $block->type == 'title' ? 'selected' : '' }}>H1</option>
+                                        <option value="header" {{ $block->type == 'header' ? 'selected' : '' }}>H1</option>
                                         <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>Text</option>
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
                                         <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
+                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>exercise</option>
                                     </select>
                                 </div>
 
@@ -93,21 +94,28 @@
                     @csrf
                     <div class="form-group">
                         <label>Internal Name</label>
-                        <input class="modal-input" type="text" name="name" required>
+                        <input class="modal-input" type="text" name="title" required>
                     </div>
                     <div class="form-group">
                         <label>Block Type</label>
                         <select name="type" class="modal-input">
-                            <option value="title">Title</option>
+                            <option value="header">header</option>
                             <option value="description">Description</option>
                             <option value="note">Note</option>
                             <option value="code">Code</option>
+                            <option value="exercise">exercise</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Initial Content</label>
                         <textarea class="modal-input" name="content" rows="4" required></textarea>
                     </div>
+
+                    <div class="form-group">
+                        <label>Block Number</label>
+                        <input style="visibility: hidden" class="modal-input" type="number" name="block_number" value="{{ $lesson->blocks->count() + 1 }}" min="1" required>
+                    </div>
+
                     <button type="submit" class="btn-update">Create Block</button>
                 </form>
             </div>
@@ -155,6 +163,10 @@
                                     <div class="form-title">
                                         <label>Title</label>
                                         <input type="text" name="title" value="{{ $lesson->title }}" class="modal-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Lesson Number</label>
+                                        <input type="number" name="lesson_number" value="{{ $lesson->lesson_number }}" class="modal-input" min="1" required>
                                     </div>
                                     <div class="form-discription">
                                         <label>Description</label>
@@ -213,6 +225,12 @@
                                 <label>Title</label>
                                 <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
                             </div>
+
+                            <div class="form-group">
+                                <label>Chapter Number</label>
+                                <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input" style="visibility: hidden">
+                            </div>
+
                             <div class="form-group">
                                 <label>Description</label>
                                 <textarea name="description" class="modal-input" style="height:120px">{{ $chapter->description }}</textarea>
