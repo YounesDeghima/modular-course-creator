@@ -127,10 +127,20 @@ class chaptercontroller extends Controller
     }
     public function publishAll(course $course)
     {
-        // Update all chapters belonging to this course in one go
-        $course->chapters()->update(['status' => 'published']);
+        // Count how many are NOT published
+        $draftCount = $course->chapters()->where('status', 'draft')->count();
 
-        return redirect()->back()->with('success', 'All chapters are now live!');
+        if ($draftCount > 0) {
+            // If there is at least one draft, make EVERYTHING published
+            $course->chapters()->update(['status' => 'published']);
+            $message = 'All chapters are now Live!';
+        } else {
+            // If everything was already published, move EVERYTHING to draft
+            $course->chapters()->update(['status' => 'draft']);
+            $message = 'All chapters moved to Draft.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**

@@ -154,17 +154,14 @@
 @section('sidebar-elements')
 
     <div class="bulk-actions" style="padding: 10px; border-bottom: 1px solid #ddd;">
-        <form action="{{ route('admin.courses.chapters.publish-all', $course->id) }}" method="POST">
+        <form action="{{ route('admin.courses.chapters.publish-all', $course->id) }}" method="POST" id="master-toggle-form">
             @csrf
             @method('PUT')
-            <button type="submit" class="btn-publish-all"
-                    onclick="return confirm('Make all chapters public for students?')"
-                    style="width: 100%; background: #2ecc71; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                🚀 Publish All Chapters
+            <button type="submit" id="master-toggle-btn" class="btn-publish-all">
+                Loading...
             </button>
         </form>
     </div>
-    <div class="sidebar-blocks-container">
         @foreach($chapters as $chapter)
             <div class="chapter-group" >
 
@@ -172,9 +169,14 @@
                     <div class="header-left">
                         <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
-                        <span class="status-badge {{ $chapter->status }}">
-                                {{ ucfirst($chapter->status) }}
-                        </span>
+
+                        <button type="button"
+                                class="status-toggle-btn {{ $chapter->status }}"
+                                data-chapter-id="{{ $chapter->id }}"
+                                data-status="{{ $chapter->status }}"
+                                onclick="toggleSingleChapter(this)">
+                            {{ ucfirst($chapter->status) }}
+                        </button>
                     </div>
 
                     <div class="header-right">
@@ -327,6 +329,13 @@
                 <div class="form-group">
                     <label>Description:</label>
                     <textarea class="modal-input" name="description" style="height:100px;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Initial Status:</label>
+                    <select name="status" class="modal-input">
+                        <option value="draft" selected>Draft (Hidden)</option>
+                        <option value="published">Published (Live)</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn-update">Create Chapter</button>
             </form>
@@ -506,9 +515,96 @@
         }
 
 
+        function toggleSingleChapter(btn) {
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}"; // Blade variable
 
+            // 1. Immediate UI Feedback (Oogabooga speed)
+            updateButtonUI(btn, newStatus);
 
+            // 2. Send to Server
+            fetch(`/admin/courses/${courseId}/chapters/${chapterId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-HTTP-Method-Override': 'PUT' // Since it's a PUT request
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    // Pass existing title/description so validation doesn't fail
+                    title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
+                    description: "Updated via toggle"
+                })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Update failed');
+                    checkMasterToggle(); // Update the "All" button state
+                })
+                .catch(error => {
+                    // Revert UI if server fails
+                    updateButtonUI(btn, currentStatus);
+                    alert('Failed to update status');
+                });
+        }
 
+        function updateButtonUI(btn, status) {
+            btn.dataset.status = status;
+            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
+            btn.classList.remove('published', 'draft');
+            btn.classList.add(status);
+        }
+
+        function checkMasterToggle() {
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+            const masterBtn = document.querySelector('.btn-publish-all');
+
+            // Check if EVERY button has the 'published' class
+            const allPublished = Array.from(allBtns).every(btn => btn.classList.contains('published'));
+
+            if (allPublished) {
+                masterBtn.classList.add('all-green');
+                masterBtn.innerText = "🚀 All Published";
+                masterBtn.style.background = "#2ecc71";
+            } else {
+                masterBtn.classList.remove('all-green');
+                masterBtn.innerText = "📂 Publish All";
+                masterBtn.style.background = "#95a5a6";
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', checkMasterToggle);
+
+        function updateMasterButtonUI() {
+            const masterBtn = document.getElementById('master-toggle-btn');
+            const smallBtns = document.querySelectorAll('.status-toggle-btn');
+
+            // Check if there are any chapters at all
+            if (smallBtns.length === 0) return;
+
+            // Logic: Are there any drafts?
+            const draftCount = Array.from(smallBtns).filter(btn => btn.classList.contains('draft')).length;
+
+            if (draftCount > 0) {
+                // At least one is gray -> Button should say "Publish All" and be Gray
+                masterBtn.innerText = "🚀 Publish All Chapters";
+                masterBtn.className = "btn-publish-all has-drafts";
+            } else {
+                // Everything is green -> Button should say "Unpublish All" and be Green
+                masterBtn.innerText = "📂 Move All to Draft";
+                masterBtn.className = "btn-publish-all all-published";
+            }
+        }
+
+        // Run it immediately on page load
+        document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
+
+        // If you use the AJAX toggle from the previous step,
+        // make sure to call updateMasterButtonUI() inside the .then() block!
 
 
     </script>
