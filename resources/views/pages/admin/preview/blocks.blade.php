@@ -8,6 +8,7 @@
 
 @section('navigation')
     <div class="navigation">
+
         <a href="{{route('admin.preview.years')}}">home</a>
         <a>--></a>
         <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
@@ -20,6 +21,7 @@
 @endsection
 
 @section('main')
+    <div id="scroll-progress"></div>
     <div class="lesson-wrapper">
         @if($prevlesson)
             <div class="nav-button"><a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
@@ -65,6 +67,12 @@
             <div class="nav-button"><a href={{route('admin.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
         @endif
     </div>
+    <form id="progress-form" method="POST" action="{{ route('lesson.progress.store') }}" style="display: none;">
+        @csrf
+        <input type="hidden" name="lesson_id" value="{{ $lesson->id ?? '' }}">
+        <input type="hidden" name="progress" id="progress-input" value="0">
+        <button type="submit">Send</button>
+    </form>
 
 @endsection
 
@@ -96,6 +104,31 @@
                 button.textContent = ishidden ? 'hide solution' : 'show solution';
             });
 
+        });
+
+        let maxProgress = 0;
+        let sent = false;
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+            const progress = (scrollTop / docHeight) * 100;
+
+            // update visual bar (optional)
+            if (progress > maxProgress) {
+                maxProgress = progress;
+                document.getElementById('scroll-progress').style.width = maxProgress + '%';
+            }
+
+            // ✅ trigger when > 90%
+            if (maxProgress >= 90 && !sent) {
+                sent = true;
+
+                document.getElementById('progress-input').value = Math.round(maxProgress);
+
+                document.getElementById('progress-form').submit();
+            }
         });
 
 

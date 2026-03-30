@@ -32,7 +32,7 @@ class signupcontroller extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-
+            Auth::login($user);
             return(redirect()->route('user.main'));
         }
 

@@ -598,3 +598,14 @@ pre{
     word-break: break-word;
     overflow-wrap: break-word;
 }
+
+#scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 5px;
+    background: #3498db; /* change color if you want */
+    z-index: 9999;
+    transition: width 0.1s ease;
+}
