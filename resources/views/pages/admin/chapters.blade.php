@@ -51,15 +51,22 @@
                                 @else
 
                                     @if($block->type == 'exercise')
-                                        <label>Question:</label>
-                                        <textarea name="blocks[{{ $block->id }}][content]"
-                                                  class="input-ghost content-style"
-                                                  rows="1"
-                                                  oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
-                                        @foreach($block->solutions as $solution)
-                                            <label>Solution</label>
-                                            <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id }}]">{{ $solution->content }}</textarea>
-                                        @endforeach
+                                        <div class="exercise-container">
+                                            <label>Question:</label>
+                                            <textarea name="blocks[{{ $block->id }}][content]"
+                                                      class="input-ghost content-style"
+                                                      rows="1"
+                                                      oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+
+
+
+
+
+                                            @foreach($block->solutions as $solution)
+                                                <label>Solution</label>
+                                                <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
+                                            @endforeach
+                                        </div>
 
 
                                     @else
@@ -99,6 +106,7 @@
                 <div class="save-container">
                     <button type="submit" class="btn-save-all">Save All Changes</button>
                 </div>
+
             </form>
         </div>
 

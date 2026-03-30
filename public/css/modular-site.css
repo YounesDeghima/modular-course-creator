@@ -571,3 +571,12 @@ textarea {
     cursor: pointer;
     margin-left: 8px;
 }
+
+.exercise-container{
+    display: flex;
+    flex-direction: column;
+
+        flex: 1;          /* Forces it to grow and fill the row */
+        min-width: 0;     /* Critical: Prevents the text from "overflowing" or squashing */
+        width: 100%;
+}

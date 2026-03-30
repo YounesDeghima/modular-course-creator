@@ -128,14 +128,31 @@ class blockcontroller extends Controller
                 ]);
 
                 // Update solutions if exercise
-                if($block->type == 'exercise' && $request->has('solutions')){
-                    foreach ($request->input('solutions') as $solutionId => $content){
-                        $solution = $block->solutions()->find($solutionId);
-                        if ($solution) {
-                            $solution->update(['content' => $content]);
+                if ($block->type === 'exercise' && isset($data['solutions'])) {
+
+                    foreach ($data['solutions'] as $solutionId => $content) {
+
+                        if (is_numeric($solutionId)) {
+                            // ✅ update existing solution
+                            $solution = $block->solutions()->find($solutionId);
+                            if ($solution) {
+                                $solution->update([
+                                    'content' => $content
+                                ]);
+                            }
+                        } else {
+                            // ✅ create new solutions
+                            foreach ($content as $newContent) {
+                                if (trim($newContent) !== '') {
+                                    $block->solutions()->create([
+                                        'content' => $newContent
+                                    ]);
+                                }
+                            }
                         }
                     }
                 }
+
             }
         }
 
@@ -172,9 +189,11 @@ class blockcontroller extends Controller
             $block->solutions()->create([
                 'solution_number'=>1,
                 'block_id'=>$block->id,
+                'content'=>'nothing here yet',
             ]);
 
         }
+
 
 
         return redirect()->back();
