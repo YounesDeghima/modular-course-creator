@@ -13,7 +13,7 @@ class course extends Model
         'year',
         'branch',
         'description',
-
+        'status'
 
     ];
     public $timestamps = false;

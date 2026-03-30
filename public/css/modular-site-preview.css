@@ -598,3 +598,70 @@ pre{
     word-break: break-word;
     overflow-wrap: break-word;
 }
+/* --- Visibility Buttons --- */
+.status-toggle-btn {
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+}
+
+/* Gray for Draft */
+.status-toggle-btn.draft {
+    background-color: #95a5a6;
+    color: white;
+}
+
+/* Green for Published */
+.status-toggle-btn.published {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.status-toggle-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+/* --- Global Toggle Button at Top --- */
+.bulk-actions-top {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #fdfdfd;
+    border-bottom: 2px solid #eee;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-global-toggle {
+    padding: 10px 25px;
+    background: #34495e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-global-toggle:hover {
+    background: #2c3e50;
+}
+
+/* --- Quick Layout Fix --- */
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.info-row label {
+    min-width: 80px;
+    font-weight: bold;
+}
+

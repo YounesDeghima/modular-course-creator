@@ -34,7 +34,8 @@ Route::prefix('admin')
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
-
+        Route::put('courses/toggle-everything', [coursecontroller::class, 'toggleEverything'])
+            ->name('courses.toggle-everything');
 
         Route::resource('courses', coursecontroller::class);
 
