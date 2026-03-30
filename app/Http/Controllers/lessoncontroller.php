@@ -43,22 +43,35 @@ class lessoncontroller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request,course $course,chapter $chapter)
+    public function store(Request $request, course $course, chapter $chapter)
     {
-
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'lesson_number'=>'required|integer',
+            'lesson_number' => 'required|integer',
             'description' => 'required|string',
+            'status' => 'required|in:draft,published', // Add this
         ]);
 
         $validated['chapter_id'] = $chapter->id;
-
-
         lesson::create($validated);
 
+        return redirect()->back()->with('success', 'Lesson created');
+    }
 
-        return redirect()->back();
+
+
+// The New Publish All for Lessons
+    public function publishAll(course $course, chapter $chapter)
+    {
+        $draftCount = $chapter->lessons()->where('status', 'draft')->count();
+
+        if ($draftCount > 0) {
+            $chapter->lessons()->update(['status' => 'published']);
+        } else {
+            $chapter->lessons()->update(['status' => 'draft']);
+        }
+
+        return redirect()->back()->with('success', 'Lessons toggled');
     }
 
     /**
@@ -80,19 +93,29 @@ class lessoncontroller extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, course $course, chapter $chapter,lesson $lesson)
+    public function update(Request $request, course $course, chapter $chapter, lesson $lesson)
     {
-
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'lesson_number'=>'required|integer',
+            'lesson_number' => 'required|integer',
             'description' => 'required|string',
+            'status' => 'required|in:draft,published', // Add this
         ]);
 
-
         $lesson->update($validated);
+        return redirect()->back()->with('success', 'Lesson updated');
+    }
 
-        return redirect()->back()->with('success', 'lesson updated');
+    public function toggleAll(course $course, chapter $chapter)
+    {
+        // Check if there is at least one draft lesson in this chapter
+        $hasDrafts = $chapter->lessons()->where('status', 'draft')->exists();
+
+        $newStatus = $hasDrafts ? 'published' : 'draft';
+
+        $chapter->lessons()->update(['status' => $newStatus]);
+
+        return redirect()->back()->with('success', "All lessons in {$chapter->title} are now {$newStatus}.");
     }
 
     /**

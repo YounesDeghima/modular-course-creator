@@ -33,6 +33,13 @@
                     <label>Description:</label>
                     <textarea class="value-input" name="description" required></textarea>
 
+                    <label>Initial Status:</label>
+                    
+                    <select name="status" class="year-input">
+                        <option value="draft" selected>Draft (Hidden)</option>
+                        <option value="published">Published (Live)</option>
+                    </select>
+
                     <div style="text-align:right; margin-top:10px;">
                         <button type="submit">Create Course</button>
                         <button type="button" id="close-popup">Cancel</button>
@@ -41,9 +48,20 @@
             </div>
 
         </div>
+
+        <div class="bulk-actions-top">
+            <form action="{{ route('admin.courses.toggle-everything') }}" method="POST">
+                @csrf
+                @method('PUT')
+                <button type="submit" class="btn-global-toggle">
+                    🌍 Toggle All Site Visibility
+                </button>
+            </form>
+        </div>
         <div class="blocks">
             @foreach($courses as $course)
                 <div class="block">
+
 
                     <div class="block-top">
 
@@ -51,7 +69,9 @@
                             @csrf
                             @method('PUT')
 
+
                             <div>
+
                                 <div class="info-row">
                                     <label for="name">Title</label>
                                     <input class="value-input" type="text" name="title" value="{{$course->title}}">
@@ -82,6 +102,18 @@
                             <div class="info-row">
                                 <label for="description"></label>
                                 <textarea name="description" class="value-input">{{$course->description}}</textarea>
+                            </div>
+
+                            <div class="info-row">
+                                <label>Visibility</label>
+                                <button type="button"
+                                        class="status-toggle-btn {{ $course->status }}"
+                                        data-course-id="{{ $course->id }}"
+                                        data-status="{{ $course->status }}"
+                                        onclick="toggleSingleCourse(this, event)">
+                                    {{ ucfirst($course->status) }}
+                                </button>
+                                <input type="hidden" name="status" value="{{ $course->status }}">
                             </div>
 
                             <input class="value-input" type="submit" name="update" value="update">
@@ -197,6 +229,70 @@
             });
         });
 
+        function toggleSingleCourse(btn, event) {
+            if (event) event.stopPropagation();
+
+            const courseId = btn.dataset.courseId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+
+            // 1. UI Update
+            updateButtonUI(btn, newStatus);
+
+            // Update the hidden input in the form
+            btn.closest('form').querySelector('input[name="status"]').value = newStatus;
+
+            // 2. AJAX Fetch
+            fetch(`/admin/courses/${courseId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-HTTP-Method-Override': 'PUT'
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    title: btn.closest('.update-form').querySelector('input[name="title"]').value,
+                    year: btn.closest('.update-form').querySelector('.year-input').value,
+                    branch: btn.closest('.update-form').querySelector('.branch-input').value,
+                    description: btn.closest('.update-form').querySelector('textarea').value
+                })
+            }).catch(err => {
+                updateButtonUI(btn, currentStatus);
+                alert('Sync failed');
+            });
+        }
+        // Function to handle the visual flip of the buttons
+        function updateButtonUI(btn, status) {
+            btn.dataset.status = status;
+            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
+
+            // Remove old classes and add the new one
+            btn.classList.remove('published', 'draft');
+            btn.classList.add(status);
+        }
+
+        // Global UI helper to sync the "Big Switch" (Optional but good for consistency)
+        function updateGlobalButtonUI() {
+            const globalBtn = document.querySelector('.btn-global-toggle');
+            const allCourseBtns = document.querySelectorAll('.status-toggle-btn');
+
+            if(!globalBtn || allCourseBtns.length === 0) return;
+
+            const hasAnyDrafts = Array.from(allCourseBtns).some(btn => btn.dataset.status === 'draft');
+
+            if (hasAnyDrafts) {
+                globalBtn.innerText = "🚀 Publish All Courses";
+                globalBtn.style.background = "#34495e"; // Neutral Dark
+            } else {
+                globalBtn.innerText = "📂 Move All to Draft";
+                globalBtn.style.background = "#27ae60"; // Solid Green
+            }
+        }
+
+        // Run it on load to set the initial state of the Big Switch
+        document.addEventListener('DOMContentLoaded', updateGlobalButtonUI);
 
     </script>
 @endsection

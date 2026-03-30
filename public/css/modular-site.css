@@ -7,9 +7,10 @@
 }
 
 form {
+    height: 100%;
     display: flex;
     flex-direction: column;
-
+    gap: 10px;
     margin: 0;
     padding: 0;
 
@@ -27,7 +28,7 @@ body {
 .middle {
     display: flex;
     align-items: flex-start;
-    width: 100%;
+
     position: relative;
 }
 
@@ -49,10 +50,18 @@ main {
     flex-direction:column;
 }
 .block-main-content {
+    flex-direction: column;
+    display: flex;
     flex: 1;          /* Forces it to grow and fill the row */
     min-width: 0;     /* Critical: Prevents the text from "overflowing" or squashing */
     width: 100%;
 }
+.solution-item{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .blocks-container {
     display: flex;
     flex-flow: wrap;
@@ -331,6 +340,10 @@ textarea {
     text-transform: uppercase;
     text-align: center;
 }
+.exercise-container{
+    display: flex;
+    flex-direction: column;
+}
 
 .block-type-badge.code { background-color: #4b0082; }
 .block-type-badge.note { background-color: #b8860b; }
@@ -439,12 +452,14 @@ textarea {
 .modal-content {
     background: #fff;
     width: 90%;
-    max-width: 500px;
+    height: 90%;
+    max-width: 800px;
     border-radius: 12px;
     padding: 25px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
+    gap: 10px;
     position: relative;
     animation: fadeIn 0.3s ease;
 }
@@ -517,6 +532,7 @@ textarea {
 
 
 .block-form{
+    height: 100%;
     display: flex;
     flex-direction: column;
     min-width: 1200px;
@@ -570,4 +586,131 @@ textarea {
     border-radius: 6px;
     cursor: pointer;
     margin-left: 8px;
+}
+
+.form-group{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group *{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Status Badges */
+.status-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.status-badge.draft {
+    background: #555; /* Grey for draft */
+    color: #eee;
+}
+
+.status-badge.published {
+    background: #2ecc71; /* Green for live */
+    color: white;
+}
+
+/* Optional: Make draft chapters look slightly faded in the sidebar */
+.chapter-group.draft {
+    opacity: 0.8;
+}
+.status-toggle-btn {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    margin-left: 10px;
+}
+
+/* Published state (Green) */
+.status-toggle-btn.published {
+    background-color: #2ecc71;
+    color: white;
+    box-shadow: 0 0 5px rgba(46, 204, 113, 0.4);
+}
+
+/* Draft state (Gray) */
+.status-toggle-btn.draft {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.status-toggle-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+/* Ensure the sidebar itself doesn't grow or overflow */
+aside, .sidebar {
+    width: 300px; /* Or whatever your fixed width was */
+    min-width: 300px;
+    flex-shrink: 0;
+    overflow-x: hidden;
+}
+
+/* Fix the Bulk Actions container */
+.bulk-actions {
+    width: 100%;
+    box-sizing: border-box; /* Crucial: stops padding from adding to width */
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+/* Fix the Master Button so it doesn't push the main content */
+.btn-publish-all {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap; /* Keeps text on one line */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds ... if text is too long */
+}
+
+/* Ensure the main content wrapper is allowed to take the rest of the space */
+.wrapper, .admin-container {
+    display: flex;
+    align-items: flex-start;
+}
+
+
+
+.btn-bulk-lessons {
+    width: 100%;
+    padding: 6px;
+    background: #f8f9fa;
+    border: 1px dashed #cbd5e0;
+    border-radius: 4px;
+    color: #4a5568;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+}
+
+.btn-bulk-lessons:hover {
+    background: #edf2f7;
+    border-color: #a0aec0;
+    color: #2d3748;
+}
+
+.lesson-row.bulk-lesson-action {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    background: transparent !important; /* No hover effect like regular lessons */
 }

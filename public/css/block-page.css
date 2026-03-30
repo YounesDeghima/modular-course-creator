@@ -157,20 +157,38 @@ pre {
 {
     visibility: hidden;
 }
-main{
-    display: flex;
 
-}
 .nav-button
 {
     position: sticky;
 }
-main{
 
-    margin-left: 180px;
+/* The Master Button Base */
+
+.btn-publish-all {
+    width: 100%;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease, transform 0.1s active;
+    text-transform: uppercase;
 }
 
-.side-bar
-{
-    width: 180px;
+/* State: One or more are Gray */
+.btn-publish-all.has-drafts {
+    background-color: #95a5a6; /* Gray */
+    color: white;
+}
+
+/* State: All are Green */
+.btn-publish-all.all-published {
+    background-color: #2ecc71; /* Green */
+    color: white;
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+}
+
+.btn-publish-all:active {
+    transform: scale(0.98);
 }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class exercisesolution extends Model
 {
     protected $fillable=[
-        'title',
+        'content',
         'solution_number',
         'block_id',
 

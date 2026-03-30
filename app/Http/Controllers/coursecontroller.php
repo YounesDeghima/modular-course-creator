@@ -39,7 +39,7 @@ class coursecontroller extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'year' => 'required|in:1,2,3',
-
+            'status' => 'required|in:draft,published',
             'description' => 'required|string',
         ]);
 
@@ -86,7 +86,8 @@ class coursecontroller extends Controller
             'year' => 'required|in:1,2,3',
             'branch' => 'required|in:mi,st,none',
             'description' => 'required|string',
-        ]);
+            'status' => 'required|in:draft,published',
+            ]);
 
         if ($request->year == 1) {
             $validated['branch'] = 'none';
@@ -108,5 +109,22 @@ class coursecontroller extends Controller
         $course->delete();
 
         return redirect()->back()->with('success', 'Course deleted');
+    }
+
+    public function toggleEverything()
+    {
+        $hasDrafts = course::where('status', 'draft')->exists();
+        $newStatus = $hasDrafts ? 'published' : 'draft';
+
+        // 1. Update all Courses
+        course::query()->update(['status' => $newStatus]);
+
+        // 2. Update all Chapters
+        \App\Models\chapter::query()->update(['status' => $newStatus]);
+
+        // 3. Update all Lessons
+        \App\Models\lesson::query()->update(['status' => $newStatus]);
+
+        return redirect()->back()->with('success', "Entire platform is now $newStatus");
     }
 }

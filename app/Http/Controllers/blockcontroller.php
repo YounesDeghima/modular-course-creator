@@ -35,7 +35,7 @@ class blockcontroller extends Controller
         $email = $admin->email;
 
         // 3. The AJAX Check
-        if (request()->ajax()) {
+
             if (request()->ajax()) {
                 return view('pages.admin.chapters', compact(
                     'blocks',
@@ -50,7 +50,7 @@ class blockcontroller extends Controller
                     'email'
                 ))->fragment('main-content');
             }
-        }
+
 
         return view('pages.admin.chapters', compact(
             'blocks', 'block_count', 'course', 'chapter', 'lesson',
@@ -62,48 +62,39 @@ class blockcontroller extends Controller
 
     public function updateAll(Request $request, $courseId, $chapterId, $lessonId)
     {
-
-        // 1. HANDLE REORDERING (If an arrow was clicked)
-        // The 'move' value comes in as "blockId:direction" (e.g., "12:up")
+        // 1. HANDLE REORDERING (The Arrow Buttons)
         if ($request->has('move')) {
             $parts = explode(':', $request->move);
-            $currentblockId = $parts[0];
+            $currentBlockId = $parts[0];
             $direction = $parts[1];
 
-            $currentblock = \App\Models\block::findOrFail($currentblockId);
-            $currentOrder = $currentblock->block_number;
+            $currentBlock = \App\Models\block::findOrFail($currentBlockId);
+            $currentOrder = $currentBlock->block_number;
 
             if ($direction === 'up') {
-                // Find the block immediately above it
-                $previousblock = \App\Models\block::where('lesson_id', $lessonId)
+                $previousBlock = \App\Models\block::where('lesson_id', $lessonId)
                     ->where('block_number', '<', $currentOrder)
                     ->orderBy('block_number', 'desc')
                     ->first();
 
-                if ($previousblock) {
-                    // Swap their order numbers
-                    $currentblock->update(['block_number' => $previousblock->block_number]);
-                    $previousblock->update(['block_number' => $currentOrder]);
+                if ($previousBlock) {
+                    $currentBlock->update(['block_number' => $previousBlock->block_number]);
+                    $previousBlock->update(['block_number' => $currentOrder]);
                 }
             } else {
-                // Find the block immediately below it
-                $nextblock = \App\Models\block::where('lesson_id', $lessonId)
+                $nextBlock = \App\Models\block::where('lesson_id', $lessonId)
                     ->where('block_number', '>', $currentOrder)
                     ->orderBy('block_number', 'asc')
                     ->first();
 
-                if ($nextblock) {
-                    // Swap their order numbers
-                    $currentblock->update(['block_number' => $nextblock->block_number]);
-                    $nextblock->update(['block_number' => $currentOrder]);
+                if ($nextBlock) {
+                    $currentBlock->update(['block_number' => $nextBlock->block_number]);
+                    $nextBlock->update(['block_number' => $currentOrder]);
                 }
             }
-
-            // After moving, we usually want to save any text changes made too
         }
 
-        // 2. BULK UPDATE CONTENT & TYPES
-        // This loops through the 'blocks' array from the form
+        // 2. BULK UPDATE (Content, Types, and ALL Solution Logic)
         if ($request->has('blocks')) {
             foreach ($request->blocks as $id => $data) {
                 $block = \App\Models\block::find($id);
@@ -113,26 +104,53 @@ class blockcontroller extends Controller
                 $type = $data['type'] ?? $block->type;
                 $number = $data['block_number'] ?? $block->block_number;
 
-                // Delete blocks with empty content
-                if ($content === '') {
+                // Delete blocks with empty content (unless it's an exercise)
+                if ($content === '' && $type !== 'exercise') {
                     $block->delete();
                     continue;
                 }
 
-                // Update block content and type
+                // Update core block data
                 $block->update([
                     'content' => $content,
                     'type'    => $type,
                     'block_number'  => $number,
-
                 ]);
 
-                // Update solutions if exercise
-                if($block->type == 'exercise' && $request->has('solutions')){
-                    foreach ($request->input('solutions') as $solutionId => $content){
-                        $solution = $block->solutions()->find($solutionId);
-                        if ($solution) {
-                            $solution->update(['content' => $content]);
+                // 3. SOLUTION LOGIC (Existing, New, and Empty-Check)
+                if ($type === 'exercise') {
+
+                    // A. Ensure a solution exists if it's a fresh conversion
+                    if ($block->solutions()->count() === 0) {
+                        $block->solutions()->create([
+                            'solution_number' => 1,
+                            'content' => 'nothing here yet',
+                        ]);
+                    }
+
+                    // B. Handle Solution Updates/Creation from the request
+                    if (isset($data['solutions'])) {
+                        foreach ($data['solutions'] as $solutionId => $solContent) {
+                            if (is_numeric($solutionId)) {
+                                // Update existing solution
+                                $solution = $block->solutions()->find($solutionId);
+                                if ($solution) {
+                                    $solution->update(['content' => $solContent]);
+                                }
+                            } else {
+                                // Create new solutions (Your custom logic for dynamic adding)
+                                // Expecting $solContent to be an array of strings
+                                if (is_array($solContent)) {
+                                    foreach ($solContent as $newContent) {
+                                        if (trim($newContent) !== '') {
+                                            $block->solutions()->create([
+                                                'content' => $newContent,
+                                                'solution_number' => $block->solutions()->count() + 1
+                                            ]);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -141,7 +159,6 @@ class blockcontroller extends Controller
 
         return back()->with('success', 'Lesson layout updated successfully!');
     }
-
     /**
      * Show the form for creating a new resource.
      */
@@ -172,9 +189,11 @@ class blockcontroller extends Controller
             $block->solutions()->create([
                 'solution_number'=>1,
                 'block_id'=>$block->id,
+                'content'=>'nothing here yet',
             ]);
 
         }
+
 
 
         return redirect()->back();

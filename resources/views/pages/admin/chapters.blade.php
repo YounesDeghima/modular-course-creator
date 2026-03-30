@@ -51,15 +51,22 @@
                                 @else
 
                                     @if($block->type == 'exercise')
-                                        <label>Question:</label>
-                                        <textarea name="blocks[{{ $block->id }}][content]"
-                                                  class="input-ghost content-style"
-                                                  rows="1"
-                                                  oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
-                                        @foreach($block->solutions as $solution)
-                                            <label>Solution</label>
-                                            <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id }}]">{{ $solution->content }}</textarea>
-                                        @endforeach
+                                        <div class="exercise-container">
+                                            <label>Question:</label>
+                                            <textarea name="blocks[{{ $block->id }}][content]"
+                                                      class="input-ghost content-style"
+                                                      rows="1"
+                                                      oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+
+
+
+
+
+                                            @foreach($block->solutions as $solution)
+                                                <label>Solution</label>
+                                                <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
+                                            @endforeach
+                                        </div>
 
 
                                     @else
@@ -99,6 +106,7 @@
                 <div class="save-container">
                     <button type="submit" class="btn-save-all">Save All Changes</button>
                 </div>
+
             </form>
         </div>
 
@@ -144,17 +152,31 @@
 @endsection
 
 @section('sidebar-elements')
-    <div class="sidebar-blocks-container">
+
+    <div class="bulk-actions" style="padding: 10px; border-bottom: 1px solid #ddd;">
+        <form action="{{ route('admin.courses.chapters.publish-all', $course->id) }}" method="POST" id="master-toggle-form">
+            @csrf
+            @method('PUT')
+            <button type="submit" id="master-toggle-btn" class="btn-publish-all">
+                Loading...
+            </button>
+        </form>
+    </div>
         @foreach($chapters as $chapter)
             <div class="chapter-group" >
 
                 <div class="chapter-header" onclick="toggleLessons('{{$chapter->id}}')">
-                    <div class="header-left" >
+                    <div class="header-left">
                         <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
-                        <div class="chapter-description">
 
-                        </div>
+                        <button type="button"
+                                class="status-toggle-btn {{ $chapter->status }}"
+                                data-chapter-id="{{ $chapter->id }}"
+                                data-status="{{ $chapter->status }}"
+                                onclick="toggleSingleChapter(this)">
+                            {{ ucfirst($chapter->status) }}
+                        </button>
                     </div>
 
                     <div class="header-right">
@@ -164,16 +186,33 @@
                 </div>
 
                 <div id="lessons-container-{{$chapter->id}}" class="lessons-list" style="display: none;">
+                    @if($chapter->lessons->count() > 0)
+                        <div class="lesson-row bulk-lesson-action">
+                            <form action="{{ route('admin.courses.chapters.lessons.toggle-all', [$course->id, $chapter->id]) }}" method="POST" style="width: 100%;">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn-bulk-lessons">
+                                    ⚡ Toggle All Lessons
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                     @foreach($chapter->lessons as $lesson)
-                        <div class="lesson-row " data-href='{{ route('admin.courses.chapters.lessons.blocks.index', ['course'=>$course->id, 'chapter'=>$chapter->id, 'lesson'=>$lesson->id]) }}'>
-                            <div class="lesson-content" >
+                        <div class="lesson-row" data-href='{{ route('admin.courses.chapters.lessons.blocks.index',[$course->id, $chapter->id, $lesson->id]) }}'>
+                            <div class="lesson-content">
                                 <span class="bullet">•</span>
-                                <a class="lesson-link">
-                                    {{ $lesson->title }}
-                                </a>
-                            </div>
+                                <a class="lesson-link">{{ $lesson->title }}</a>
 
-                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}')">✏️</span>
+                                <button type="button"
+                                        class="status-toggle-btn lesson-status {{ $lesson->status }}"
+                                        data-lesson-id="{{ $lesson->id }}"
+                                        data-chapter-id="{{ $chapter->id }}"
+                                        data-status="{{ $lesson->status }}"
+                                        onclick="toggleSingleLesson(this, event)">
+                                    {{ ucfirst($lesson->status) }}
+                                </button>
+                            </div>
+                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}', event)">✏️</span>
                         </div>
 
                         <div id="lesson-modal-{{$lesson->id}}" class="modal-overlay">
@@ -195,6 +234,13 @@
                                     <div class="form-discription">
                                         <label>Description</label>
                                         <textarea name="description" class="modal-input">{{ $lesson->description }}</textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Visibility Status</label>
+                                        <select name="status" class="modal-input">
+                                            <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                            <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                        </select>
                                     </div>
                                     <button type="submit" class="btn-update">Update Lesson</button>
                                 </form>
@@ -231,6 +277,14 @@
                                     <label>Description</label>
                                     <textarea name="description" class="modal-input" required></textarea>
                                 </div>
+
+                                <div class="form-group">
+                                    <label>Visibility Status</label>
+                                    <select name="status" class="modal-input">
+                                        <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                        <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                    </select>
+                                </div>
                                 <button type="submit" class="btn-update">Create Lesson</button>
                             </form>
                         </div>
@@ -253,6 +307,14 @@
                             <div class="form-group" style="visibility: hidden">
                                 <label >Chapter Number</label>
                                 <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Visibility Status</label>
+                                <select name="status" class="modal-input">
+                                    <option value="draft" {{ $chapter->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                    <option value="published" {{ $chapter->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
@@ -280,7 +342,7 @@
                     </div>
                 </div>
             </div>
-    </div>
+
 
     <div id="add-chapter-modal" class="modal-overlay">
         <div class="modal-content">
@@ -300,12 +362,16 @@
                     <label>Description:</label>
                     <textarea class="modal-input" name="description" style="height:100px;" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Initial Status:</label>
+                    <select name="status" class="modal-input">
+                        <option value="draft" selected>Draft (Hidden)</option>
+                        <option value="published">Published (Live)</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn-update">Create Chapter</button>
             </form>
         </div>
-
-
-
     </div>
 @endsection
 
@@ -478,9 +544,136 @@
         }
 
 
+        function toggleSingleChapter(btn, event) {
+
+            if (event) {
+                event.stopPropagation();
+            }
 
 
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}"; // Blade variable
 
+            // 1. Immediate UI Feedback (Oogabooga speed)
+            updateButtonUI(btn, newStatus);
+
+            // 2. Send to Server
+            fetch(`/admin/courses/${courseId}/chapters/${chapterId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-HTTP-Method-Override': 'PUT' // Since it's a PUT request
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    // Pass existing title/description so validation doesn't fail
+                    title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
+                    description: "Updated via toggle"
+                })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Update failed');
+                    checkMasterToggle(); // Update the "All" button state
+                })
+                .catch(error => {
+                    // Revert UI if server fails
+                    updateButtonUI(btn, currentStatus);
+                    alert('Failed to update status');
+                });
+        }
+
+        function updateButtonUI(btn, status) {
+            btn.dataset.status = status;
+            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
+            btn.classList.remove('published', 'draft');
+            btn.classList.add(status);
+        }
+
+        function checkMasterToggle() {
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+            const masterBtn = document.querySelector('.btn-publish-all');
+
+            // Check if EVERY button has the 'published' class
+            const allPublished = Array.from(allBtns).every(btn => btn.classList.contains('published'));
+
+            if (allPublished) {
+                masterBtn.classList.add('all-green');
+                masterBtn.innerText = "🚀 All Published";
+                masterBtn.style.background = "#2ecc71";
+            } else {
+                masterBtn.classList.remove('all-green');
+                masterBtn.innerText = "📂 Publish All";
+                masterBtn.style.background = "#95a5a6";
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', checkMasterToggle);
+
+        function updateMasterButtonUI() {
+            const masterBtn = document.getElementById('master-toggle-btn');
+            // Select all status buttons (Chapters + Lessons)
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+
+            if (!masterBtn || allBtns.length === 0) return;
+
+            // Is there at least one "draft" button visible?
+            const hasAnyDrafts = Array.from(allBtns).some(btn => btn.dataset.status === 'draft');
+
+            if (hasAnyDrafts) {
+                masterBtn.innerText = "🚀 Publish Everything";
+                masterBtn.style.background = "#95a5a6"; // Gray-ish
+                masterBtn.className = "btn-publish-all has-drafts";
+            } else {
+                masterBtn.innerText = "📂 Draft Everything";
+                masterBtn.style.background = "#2ecc71"; // Green
+                masterBtn.className = "btn-publish-all all-published";
+            }
+        }
+
+        // Run it immediately on page load
+        document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
+
+        function toggleSingleLesson(btn, event) {
+            if (event) event.stopPropagation();
+
+            const lessonId = btn.dataset.lessonId;
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}";
+
+            // 1. UI Update
+            updateButtonUI(btn, newStatus);
+
+            // 2. Fetch
+            fetch(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-HTTP-Method-Override': 'PUT'
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
+                    lesson_number: 1, // You might need to pull the actual number or adjust your validation
+                    description: "Status update"
+                })
+            })
+                .catch(error => {
+                    updateButtonUI(btn, currentStatus);
+                    alert('Sync failed');
+                });
+        }
+
+        // If you use the AJAX toggle from the previous step,
+        // make sure to call updateMasterButtonUI() inside the .then() block!
 
 
     </script>
