@@ -7,9 +7,10 @@
 }
 
 form {
+    height: 100%;
     display: flex;
     flex-direction: column;
-
+    gap: 10px;
     margin: 0;
     padding: 0;
 
@@ -49,10 +50,18 @@ main {
     flex-direction:column;
 }
 .block-main-content {
+    flex-direction: column;
+    display: flex;
     flex: 1;          /* Forces it to grow and fill the row */
     min-width: 0;     /* Critical: Prevents the text from "overflowing" or squashing */
     width: 100%;
 }
+.solution-item{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .blocks-container {
     display: flex;
     flex-flow: wrap;
@@ -331,6 +340,10 @@ textarea {
     text-transform: uppercase;
     text-align: center;
 }
+.exercise-container{
+    display: flex;
+    flex-direction: column;
+}
 
 .block-type-badge.code { background-color: #4b0082; }
 .block-type-badge.note { background-color: #b8860b; }
@@ -439,12 +452,14 @@ textarea {
 .modal-content {
     background: #fff;
     width: 90%;
-    max-width: 500px;
+    height: 90%;
+    max-width: 800px;
     border-radius: 12px;
     padding: 25px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
+    gap: 10px;
     position: relative;
     animation: fadeIn 0.3s ease;
 }
@@ -517,6 +532,7 @@ textarea {
 
 
 .block-form{
+    height: 100%;
     display: flex;
     flex-direction: column;
     min-width: 1200px;
@@ -572,11 +588,14 @@ textarea {
     margin-left: 8px;
 }
 
-.exercise-container{
+.form-group{
+    height: 100%;
     display: flex;
     flex-direction: column;
+}
 
-        flex: 1;          /* Forces it to grow and fill the row */
-        min-width: 0;     /* Critical: Prevents the text from "overflowing" or squashing */
-        width: 100%;
+.form-group *{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
