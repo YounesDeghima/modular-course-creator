@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\lesson_progress;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 class lessonprogresscontroller extends Controller
@@ -26,9 +27,23 @@ class lessonprogresscontroller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request,$lesson)
     {
-        //
+        $userId = Auth::id();
+
+
+        $validated = $request->validate([
+            'progress' => 'required|string|max:255',
+        ]);
+        $validated['user_id'] = $userId;
+        $validated['lesson_id'] = $lesson;
+
+        $lesson_progress = lesson_progress::create($validated);
+
+
+        return redirect()->back();
+
+
     }
 
     /**

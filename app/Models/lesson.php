@@ -23,5 +23,17 @@ class lesson extends Model
     {
         return $this->hasMany(Block::class);
     }
+    public function lesson_progress()
+    {
+        return $this->hasMany(lesson_progress::class);
+    }
+
+    public function progressForUser($userId)
+    {
+        return $this->lesson_progress()
+            ->where('user_id', $userId)
+            ->latest()
+            ->first();
+    }
 
 }

@@ -49,4 +49,6 @@ class user extends Authenticatable
         $users = user::all(); // fetch all rows from users table
         dd($users);           // dump & die to see results
     }
+
+
 }

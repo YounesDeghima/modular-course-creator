@@ -24,7 +24,16 @@
                         <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
                         <ol class="lessons">
                             @foreach($chapter->lessons as $lesson)
-                                <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                @if($lesson->status=='published')
+
+                                    @if($lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90)
+
+                                        <li><a style="color: #2ecc71" href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @else
+                                        <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @endif
+
+                                @endif
                             @endforeach
                         </ol>
                     </li>

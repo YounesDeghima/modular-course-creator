@@ -9,7 +9,7 @@ use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
-use App\Models\lesson_progress;
+use App\Http\Controllers\lessonprogresscontroller;
 use Illuminate\Support\Facades\Route;
 
 
@@ -94,7 +94,7 @@ Route::prefix('user')
 
         });
 
-        Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/progress', [lesson_progress::class, 'user_loadblocks'])->name('preview.blocks');
+        Route:: Resource('lesson.progress', lessonprogresscontroller::class);
 
 
     });
