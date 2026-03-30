@@ -52,20 +52,6 @@ class chaptercontroller extends Controller
     }
 
 
-//    public function index(course $course)
-//    {
-//        $chapters = $course->chapters()->with('lessons')->get();
-//
-//        // Grab the first chapter and first lesson so the page has something to show
-//        $chapter = $chapters->first();
-//        $lesson = $chapter ? $chapter->lessons->first() : null;
-//        $blocks = $lesson ? $lesson->blocks : collect();
-//
-//        return view('pages.admin.chapters', compact('course', 'chapters', 'chapter', 'lesson', 'blocks'));
-//    }
-
-    // Inside chaptercontroller.php
-
     /**
      * Show the form for creating a new resource.
      */
@@ -127,20 +113,26 @@ class chaptercontroller extends Controller
     }
     public function publishAll(course $course)
     {
-        // Count how many are NOT published
-        $draftCount = $course->chapters()->where('status', 'draft')->count();
+        // 1. Check if there is ANY draft anywhere (Chapter OR Lesson)
+        $hasDrafts = $course->chapters()->where('status', 'draft')->exists() ||
+            \App\Models\Lesson::whereIn('chapter_id', $course->chapters()->pluck('id'))
+                ->where('status', 'draft')->exists();
 
-        if ($draftCount > 0) {
-            // If there is at least one draft, make EVERYTHING published
+        if ($hasDrafts) {
+            // --- PUBLISH EVERYTHING ---
             $course->chapters()->update(['status' => 'published']);
-            $message = 'All chapters are now Live!';
+            \App\Models\Lesson::whereIn('chapter_id', $course->chapters()->pluck('id'))
+                ->update(['status' => 'published']);
+            $msg = "Course is now 100% Live!";
         } else {
-            // If everything was already published, move EVERYTHING to draft
+            // --- DRAFT EVERYTHING ---
             $course->chapters()->update(['status' => 'draft']);
-            $message = 'All chapters moved to Draft.';
+            \App\Models\Lesson::whereIn('chapter_id', $course->chapters()->pluck('id'))
+                ->update(['status' => 'draft']);
+            $msg = "All content moved to Draft.";
         }
 
-        return redirect()->back()->with('success', $message);
+        return redirect()->back()->with('success', $msg);
     }
 
     /**

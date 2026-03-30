@@ -28,7 +28,7 @@ body {
 .middle {
     display: flex;
     align-items: flex-start;
-    width: 100%;
+
     position: relative;
 }
 
@@ -652,4 +652,65 @@ textarea {
 .status-toggle-btn:hover {
     filter: brightness(1.1);
     transform: scale(1.05);
+}
+/* Ensure the sidebar itself doesn't grow or overflow */
+aside, .sidebar {
+    width: 300px; /* Or whatever your fixed width was */
+    min-width: 300px;
+    flex-shrink: 0;
+    overflow-x: hidden;
+}
+
+/* Fix the Bulk Actions container */
+.bulk-actions {
+    width: 100%;
+    box-sizing: border-box; /* Crucial: stops padding from adding to width */
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+/* Fix the Master Button so it doesn't push the main content */
+.btn-publish-all {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap; /* Keeps text on one line */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds ... if text is too long */
+}
+
+/* Ensure the main content wrapper is allowed to take the rest of the space */
+.wrapper, .admin-container {
+    display: flex;
+    align-items: flex-start;
+}
+
+
+
+.btn-bulk-lessons {
+    width: 100%;
+    padding: 6px;
+    background: #f8f9fa;
+    border: 1px dashed #cbd5e0;
+    border-radius: 4px;
+    color: #4a5568;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+}
+
+.btn-bulk-lessons:hover {
+    background: #edf2f7;
+    border-color: #a0aec0;
+    color: #2d3748;
+}
+
+.lesson-row.bulk-lesson-action {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    background: transparent !important; /* No hover effect like regular lessons */
 }

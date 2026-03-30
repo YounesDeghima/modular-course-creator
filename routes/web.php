@@ -42,6 +42,10 @@ Route::prefix('admin')
 
             Route::put('courses/{course}/chapters/publish-all', [chaptercontroller::class, 'publishAll'])
                 ->name('courses.chapters.publish-all');
+            Route::put('courses/{course}/chapters/{chapter}/publish-all-lessons', [lessoncontroller::class, 'publishAll'])
+                ->name('courses.chapters.lessons.publish-all');
+            Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
+                ->name('courses.chapters.lessons.toggle-all');
 
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);

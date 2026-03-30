@@ -186,16 +186,33 @@
                 </div>
 
                 <div id="lessons-container-{{$chapter->id}}" class="lessons-list" style="display: none;">
+                    @if($chapter->lessons->count() > 0)
+                        <div class="lesson-row bulk-lesson-action">
+                            <form action="{{ route('admin.courses.chapters.lessons.toggle-all', [$course->id, $chapter->id]) }}" method="POST" style="width: 100%;">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn-bulk-lessons">
+                                    ⚡ Toggle All Lessons
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                     @foreach($chapter->lessons as $lesson)
-                        <div class="lesson-row " data-href='{{ route('admin.courses.chapters.lessons.blocks.index', ['course'=>$course->id, 'chapter'=>$chapter->id, 'lesson'=>$lesson->id]) }}'>
-                            <div class="lesson-content" >
+                        <div class="lesson-row" data-href='{{ route('admin.courses.chapters.lessons.blocks.index',[$course->id, $chapter->id, $lesson->id]) }}'>
+                            <div class="lesson-content">
                                 <span class="bullet">•</span>
-                                <a class="lesson-link">
-                                    {{ $lesson->title }}
-                                </a>
-                            </div>
+                                <a class="lesson-link">{{ $lesson->title }}</a>
 
-                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}')">✏️</span>
+                                <button type="button"
+                                        class="status-toggle-btn lesson-status {{ $lesson->status }}"
+                                        data-lesson-id="{{ $lesson->id }}"
+                                        data-chapter-id="{{ $chapter->id }}"
+                                        data-status="{{ $lesson->status }}"
+                                        onclick="toggleSingleLesson(this, event)">
+                                    {{ ucfirst($lesson->status) }}
+                                </button>
+                            </div>
+                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}', event)">✏️</span>
                         </div>
 
                         <div id="lesson-modal-{{$lesson->id}}" class="modal-overlay">
@@ -217,6 +234,13 @@
                                     <div class="form-discription">
                                         <label>Description</label>
                                         <textarea name="description" class="modal-input">{{ $lesson->description }}</textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Visibility Status</label>
+                                        <select name="status" class="modal-input">
+                                            <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                            <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                        </select>
                                     </div>
                                     <button type="submit" class="btn-update">Update Lesson</button>
                                 </form>
@@ -252,6 +276,14 @@
                                 <div class="form-group">
                                     <label>Description</label>
                                     <textarea name="description" class="modal-input" required></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Visibility Status</label>
+                                    <select name="status" class="modal-input">
+                                        <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                        <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                    </select>
                                 </div>
                                 <button type="submit" class="btn-update">Create Lesson</button>
                             </form>
@@ -310,7 +342,7 @@
                     </div>
                 </div>
             </div>
-    </div>
+
 
     <div id="add-chapter-modal" class="modal-overlay">
         <div class="modal-content">
@@ -340,9 +372,6 @@
                 <button type="submit" class="btn-update">Create Chapter</button>
             </form>
         </div>
-
-
-
     </div>
 @endsection
 
@@ -515,7 +544,13 @@
         }
 
 
-        function toggleSingleChapter(btn) {
+        function toggleSingleChapter(btn, event) {
+
+            if (event) {
+                event.stopPropagation();
+            }
+
+
             const chapterId = btn.dataset.chapterId;
             const currentStatus = btn.dataset.status;
             const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
@@ -581,27 +616,61 @@
 
         function updateMasterButtonUI() {
             const masterBtn = document.getElementById('master-toggle-btn');
-            const smallBtns = document.querySelectorAll('.status-toggle-btn');
+            // Select all status buttons (Chapters + Lessons)
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
 
-            // Check if there are any chapters at all
-            if (smallBtns.length === 0) return;
+            if (!masterBtn || allBtns.length === 0) return;
 
-            // Logic: Are there any drafts?
-            const draftCount = Array.from(smallBtns).filter(btn => btn.classList.contains('draft')).length;
+            // Is there at least one "draft" button visible?
+            const hasAnyDrafts = Array.from(allBtns).some(btn => btn.dataset.status === 'draft');
 
-            if (draftCount > 0) {
-                // At least one is gray -> Button should say "Publish All" and be Gray
-                masterBtn.innerText = "🚀 Publish All Chapters";
+            if (hasAnyDrafts) {
+                masterBtn.innerText = "🚀 Publish Everything";
+                masterBtn.style.background = "#95a5a6"; // Gray-ish
                 masterBtn.className = "btn-publish-all has-drafts";
             } else {
-                // Everything is green -> Button should say "Unpublish All" and be Green
-                masterBtn.innerText = "📂 Move All to Draft";
+                masterBtn.innerText = "📂 Draft Everything";
+                masterBtn.style.background = "#2ecc71"; // Green
                 masterBtn.className = "btn-publish-all all-published";
             }
         }
 
         // Run it immediately on page load
         document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
+
+        function toggleSingleLesson(btn, event) {
+            if (event) event.stopPropagation();
+
+            const lessonId = btn.dataset.lessonId;
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}";
+
+            // 1. UI Update
+            updateButtonUI(btn, newStatus);
+
+            // 2. Fetch
+            fetch(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-HTTP-Method-Override': 'PUT'
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
+                    lesson_number: 1, // You might need to pull the actual number or adjust your validation
+                    description: "Status update"
+                })
+            })
+                .catch(error => {
+                    updateButtonUI(btn, currentStatus);
+                    alert('Sync failed');
+                });
+        }
 
         // If you use the AJAX toggle from the previous step,
         // make sure to call updateMasterButtonUI() inside the .then() block!

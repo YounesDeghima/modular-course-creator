@@ -12,7 +12,8 @@ class lesson extends Model
         'title',
         'description',
         'lesson_number',
-        'chapter_id'
+        'chapter_id',
+        'status'
     ];
     public $timestamps = false;
 
