@@ -152,17 +152,29 @@
 @endsection
 
 @section('sidebar-elements')
+
+    <div class="bulk-actions" style="padding: 10px; border-bottom: 1px solid #ddd;">
+        <form action="{{ route('admin.courses.chapters.publish-all', $course->id) }}" method="POST">
+            @csrf
+            @method('PUT')
+            <button type="submit" class="btn-publish-all"
+                    onclick="return confirm('Make all chapters public for students?')"
+                    style="width: 100%; background: #2ecc71; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                🚀 Publish All Chapters
+            </button>
+        </form>
+    </div>
     <div class="sidebar-blocks-container">
         @foreach($chapters as $chapter)
             <div class="chapter-group" >
 
                 <div class="chapter-header" onclick="toggleLessons('{{$chapter->id}}')">
-                    <div class="header-left" >
+                    <div class="header-left">
                         <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
-                        <div class="chapter-description">
-
-                        </div>
+                        <span class="status-badge {{ $chapter->status }}">
+                                {{ ucfirst($chapter->status) }}
+                        </span>
                     </div>
 
                     <div class="header-right">
@@ -261,6 +273,14 @@
                             <div class="form-group" style="visibility: hidden">
                                 <label >Chapter Number</label>
                                 <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Visibility Status</label>
+                                <select name="status" class="modal-input">
+                                    <option value="draft" {{ $chapter->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)</option>
+                                    <option value="published" {{ $chapter->status == 'published' ? 'selected' : '' }}>Published (Live)</option>
+                                </select>
                             </div>
 
                             <div class="form-group">

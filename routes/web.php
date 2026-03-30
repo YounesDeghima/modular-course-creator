@@ -39,6 +39,10 @@ Route::prefix('admin')
         Route::resource('courses', coursecontroller::class);
 
         Route::scopeBindings()->group(function () {
+
+            Route::put('courses/{course}/chapters/publish-all', [chaptercontroller::class, 'publishAll'])
+                ->name('courses.chapters.publish-all');
+
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
 

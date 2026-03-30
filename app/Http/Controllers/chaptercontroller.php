@@ -77,24 +77,22 @@ class chaptercontroller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request,course $course)
+    public function store(Request $request, course $course)
     {
-
-
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'chapter_number'=>'required|integer',
-            'description' => 'required|string'
+            'chapter_number' => 'required|integer',
+            'description' => 'required|string',
+            'status' => 'required|in:draft,published', // Add this
         ]);
 
-
         $validated['course_id'] = $course->id;
-
         chapter::create($validated);
 
-
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Chapter created successfully');
     }
+
+
 
     /**
      * Display the specified resource.
@@ -117,19 +115,22 @@ class chaptercontroller extends Controller
      */
     public function update(Request $request, course $course, chapter $chapter)
     {
-
-
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'chapter_number'=>'required|integer',
             'description' => 'required|string',
+            'status' => 'required|in:draft,published',
         ]);
-
 
         $chapter->update($validated);
 
+        return redirect()->back()->with('success', 'Chapter updated');
+    }
+    public function publishAll(course $course)
+    {
+        // Update all chapters belonging to this course in one go
+        $course->chapters()->update(['status' => 'published']);
 
-        return redirect()->back()->with('success', 'lesson updated');
+        return redirect()->back()->with('success', 'All chapters are now live!');
     }
 
     /**

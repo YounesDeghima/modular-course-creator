@@ -599,3 +599,28 @@ textarea {
     display: flex;
     flex-direction: column;
 }
+
+/* Status Badges */
+.status-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.status-badge.draft {
+    background: #555; /* Grey for draft */
+    color: #eee;
+}
+
+.status-badge.published {
+    background: #2ecc71; /* Green for live */
+    color: white;
+}
+
+/* Optional: Make draft chapters look slightly faded in the sidebar */
+.chapter-group.draft {
+    opacity: 0.8;
+}

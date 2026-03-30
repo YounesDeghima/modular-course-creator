@@ -12,7 +12,9 @@ class chapter extends Model
         'title',
         'description',
         'chapter_number',
-        'course_id'
+        'course_id',
+        'status'
+
     ];
     public $timestamps = false;
 
