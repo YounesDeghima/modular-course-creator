@@ -1,7 +1,7 @@
 @extends('layouts.user-base')
 @section('css')
 
-    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
 
@@ -20,11 +20,35 @@
         <div class="chapters-container">
             <ol class="chapters">
                 @foreach($chapters as $chapter)
+
+
                     <li>
+                        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" onsubmit="return confirmReset()" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+
+                            <button type="submit">Reset chapter progress</button>
+                        </form>
                         <a href="{{route('user.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
+
+                        <div class="chapter-progress-bar">
+                            <div class="chapter-progress-fill"
+                                 data-progress="{{ $chapter->progressForUser($id) }}">
+                            </div>
+                        </div>
+
                         <ol class="lessons">
                             @foreach($chapter->lessons as $lesson)
-                                <li><a href="{{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                @if($lesson->status=='published')
+
+                                    @if($lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90)
+
+                                        <li><a style="color: #2ecc71" href="{{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @else
+                                        <li><a href="{{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @endif
+
+                                @endif
                             @endforeach
                         </ol>
                     </li>
@@ -52,9 +76,23 @@
                 let lesson_number= lesson.querySelector(':scope >a');
                 lesson.insertAdjacentText('afterbegin',`${chapter_number}.` +`${j+1}`+' ');
 
-            })
-            }
-        )
+            });
+
+
+            let progressFill = chapter.querySelector('.chapter-progress-fill');
+            let progress = progressFill.dataset.progress;
+
+            setTimeout(() => {
+                progressFill.style.width = progress + '%';
+            }, 50);
+        });
+
+        function confirmReset() {
+            return confirm("Are you sure you want to reset this chapter's progress? This action cannot be undone.");
+        }
+
+
+
 
 
     </script>

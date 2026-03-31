@@ -1,7 +1,7 @@
 @extends('layouts.user-base')
 
 @section('css')
-    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
 
@@ -58,5 +58,5 @@
                 </div>
             </div>
 
-    </div>
+        </div>
 @endsection
