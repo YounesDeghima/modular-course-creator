@@ -5,6 +5,7 @@ use App\Http\Controllers\blockcontroller;
 use App\Http\Controllers\chaptercontroller;
 use App\Http\Controllers\chapterprogresscontroller;
 use App\Http\Controllers\coursecontroller;
+use App\Http\Controllers\courseprogresscontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
@@ -97,6 +98,7 @@ Route::prefix('user')
 
         Route:: Resource('lesson.progress', lessonprogresscontroller::class);
         Route:: Resource('chapter.progress', chapterprogresscontroller::class);
+        Route:: Resource('course.progress', courseprogresscontroller::class);
 
 
     });

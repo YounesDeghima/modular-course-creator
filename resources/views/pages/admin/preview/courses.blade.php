@@ -13,9 +13,18 @@
 
     <div class="blocks-container" id="blocks-container">
         <div class="blocks">
+
             @foreach($courses as $course)
 
                 <div class="block">
+
+
+                    <form action="{{ route('user.course.progress.destroy',['course'=>$course,'progress'=>$course->progressForUser($id)]) }}" method="POST" style="display:inline;">
+                        @csrf
+                        @method('DELETE')
+
+                        <button type="submit">Reset course progress</button>
+                    </form>
 
                     <div class="course-progress-bar">
                         <div class="course-progress-fill"
