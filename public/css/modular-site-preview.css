@@ -609,3 +609,39 @@ pre{
     z-index: 9999;
     transition: width 0.1s ease;
 }
+
+
+.chapter-progress-bar {
+
+    height: 6px;
+    background: #eee;
+    border-radius: 10px;
+    margin: 5px 0 10px;
+    overflow: hidden;
+}
+
+.chapter-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #2ecc71;
+    transition: width 0.4s ease;
+}
+
+.course-progress-bar {
+
+    height: 6px;
+    background: #eee;
+    border-radius: 10px;
+    margin: 5px 0 10px;
+    overflow: hidden;
+}
+
+.course-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #2ecc71;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+
+
+}

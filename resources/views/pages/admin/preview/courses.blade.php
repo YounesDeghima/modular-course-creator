@@ -12,15 +12,21 @@
 @section('main')
 
     <div class="blocks-container" id="blocks-container">
-
-
         <div class="blocks">
             @foreach($courses as $course)
+
                 <div class="block">
+
+                    <div class="course-progress-bar">
+                        <div class="course-progress-fill"
+                             data-progress="{{ $course->progressForUser($id) }}">
+                        </div>
+                    </div>
 
                     <div class="block-top">
                         <div class="info-row">
                             <label for="name">Title</label>
+
                             <input class="value-input" type="text" name="title" value="{{$course->title}}" readonly>
                         </div>
 
@@ -45,45 +51,21 @@
 @section('js')
     <script>
 
-        const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
-        const closeBtn = document.getElementById('close-popup');
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
-        });
 
-        closeBtn.addEventListener('click', () => {
-            adder.style.visibility = 'hidden';
-            adder.style.opacity = 0;
-        });
 
-        let years = Array.from(document.getElementsByClassName('year-input'));
-        let branchs = Array.from(document.getElementsByClassName('branch-input'));
-        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
 
-        function togglebranch(year, i) {
-            console.log(i);
-            if (parseInt(year.value) > 1) {
+        let courses = document.querySelectorAll('.blocks>.block');
+        courses.forEach((course,i)=>{
+            let progressFill = course.querySelector('.course-progress-fill');
+            let progress = progressFill.dataset.progress;
 
-                branchs[i].style.display = 'block';
-                branchlabels[i].style.display = 'block';
-                branchs[i].value = 'mi';
+            setTimeout(() => {
+                progressFill.style.width = progress + '%';
+            }, 50);
+        })
 
-            } else {
-                branchs[i].style.display = 'none';
-                branchlabels[i].style.display = 'none';
 
-            }
-        }
-
-        years.forEach((year, i) => {
-            year.addEventListener('change', () => togglebranch(year, i));
-
-        });
-
-        years.forEach((year, i) => togglebranch(year, i));
 
 
     </script>

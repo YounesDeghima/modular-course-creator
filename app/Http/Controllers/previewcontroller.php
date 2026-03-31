@@ -69,6 +69,7 @@ class previewcontroller extends Controller
 
 
 
+
         return view('pages.admin.preview.chapters',compact('course','chapters','year','name','email','id'));
     }
 

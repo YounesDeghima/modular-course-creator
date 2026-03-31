@@ -3,6 +3,7 @@
 use App\Http\Controllers\admincontroller;
 use App\Http\Controllers\blockcontroller;
 use App\Http\Controllers\chaptercontroller;
+use App\Http\Controllers\chapterprogresscontroller;
 use App\Http\Controllers\coursecontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
@@ -95,6 +96,7 @@ Route::prefix('user')
         });
 
         Route:: Resource('lesson.progress', lessonprogresscontroller::class);
+        Route:: Resource('chapter.progress', chapterprogresscontroller::class);
 
 
     });

@@ -22,7 +22,7 @@
     <div class="lesson-complete">
         <label>
 
-            <input type="checkbox" disabled
+            <input class="completed_checkbox" type="checkbox" disabled
                    @if($lesson_progress && $lesson_progress->progress >= 90)
                        checked
                 @endif
@@ -123,7 +123,9 @@
         });
 
         let maxProgress = 0;
-        let sent = false;
+        let completedcheckbox = document.querySelector('.completed_checkbox');
+        let sent = completedcheckbox.checked;
+
 
         window.addEventListener('scroll', () => {
             const scrollTop = window.scrollY+document.getElementById('progress-input').value;
