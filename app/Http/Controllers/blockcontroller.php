@@ -9,6 +9,7 @@ use App\Models\lesson;
 use App\Models\exercisesolution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\lesson_progress;
 
 
 class blockcontroller extends Controller
@@ -50,6 +51,8 @@ class blockcontroller extends Controller
                     'email'
                 ))->fragment('main-content');
             }
+
+
 
 
         return view('pages.admin.chapters', compact(
@@ -105,7 +108,7 @@ class blockcontroller extends Controller
                 $number = $data['block_number'] ?? $block->block_number;
 
                 // Delete blocks with empty content (unless it's an exercise)
-                if ($content === '' && $type !== 'exercise') {
+                if ($content === '') {
                     $block->delete();
                     continue;
                 }

@@ -20,11 +20,35 @@
         <div class="chapters-container">
             <ol class="chapters">
                 @foreach($chapters as $chapter)
+
+
                     <li>
+                        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+
+                            <button type="submit">Reset chapter progress</button>
+                        </form>
                         <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
+
+                        <div class="chapter-progress-bar">
+                            <div class="chapter-progress-fill"
+                                 data-progress="{{ $chapter->progressForUser($id) }}">
+                            </div>
+                        </div>
+
                         <ol class="lessons">
                             @foreach($chapter->lessons as $lesson)
-                                <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                @if($lesson->status=='published')
+
+                                    @if($lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90)
+
+                                        <li><a style="color: #2ecc71" href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @else
+                                        <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                    @endif
+
+                                @endif
                             @endforeach
                         </ol>
                     </li>
@@ -52,9 +76,19 @@
                 let lesson_number= lesson.querySelector(':scope >a');
                 lesson.insertAdjacentText('afterbegin',`${chapter_number}.` +`${j+1}`+' ');
 
-            })
-            }
-        )
+            });
+
+
+            let progressFill = chapter.querySelector('.chapter-progress-fill');
+            let progress = progressFill.dataset.progress;
+
+            setTimeout(() => {
+                progressFill.style.width = progress + '%';
+            }, 50);
+            });
+
+
+
 
 
     </script>

@@ -69,6 +69,7 @@ class previewcontroller extends Controller
 
 
 
+
         return view('pages.admin.preview.chapters',compact('course','chapters','year','name','email','id'));
     }
 
@@ -109,8 +110,11 @@ class previewcontroller extends Controller
             ->orderBy('lesson_number','asc')
             ->first();
 
+        $lesson_progress = $lesson->progressForUser($id);
 
-        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','blocks','year','name','email','id'));
+
+
+        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','blocks','year','name','email','id','lesson_progress'));
 
     }
 

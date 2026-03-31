@@ -3,12 +3,15 @@
 use App\Http\Controllers\admincontroller;
 use App\Http\Controllers\blockcontroller;
 use App\Http\Controllers\chaptercontroller;
+use App\Http\Controllers\chapterprogresscontroller;
 use App\Http\Controllers\coursecontroller;
+use App\Http\Controllers\courseprogresscontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
+use App\Http\Controllers\lessonprogresscontroller;
 use Illuminate\Support\Facades\Route;
 
 
@@ -92,5 +95,10 @@ Route::prefix('user')
             Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'user_loadblocks'])->name('preview.blocks');
 
         });
+
+        Route:: Resource('lesson.progress', lessonprogresscontroller::class);
+        Route:: Resource('chapter.progress', chapterprogresscontroller::class);
+        Route:: Resource('course.progress', courseprogresscontroller::class);
+
 
     });

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,4 +27,27 @@ class chapter extends Model
         return $this->hasMany(Lesson::class);
     }
 
+    public function progressForUser($userId)
+    {
+        $lessons = $this->lessons()->where('status', 'published')->get();
+
+        if ($lessons->count() === 0) {
+            return 0;
+        }
+
+        $completedLessons = 0;
+
+        foreach ($lessons as $lesson) {
+            $progress = $lesson->progressForUser($userId);
+
+            if ($progress && $progress->progress >= 90) {
+                $completedLessons++;
+            }
+        }
+
+        return ($completedLessons / $lessons->count()) * 100;
+    }
+
+
 }
+
