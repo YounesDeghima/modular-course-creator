@@ -23,7 +23,7 @@
 
 
                     <li>
-                        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" style="display:inline;">
+                        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" onsubmit="return confirmReset()" style="display:inline;">
                             @csrf
                             @method('DELETE')
 
@@ -86,6 +86,10 @@
                 progressFill.style.width = progress + '%';
             }, 50);
             });
+
+        function confirmReset() {
+            return confirm("Are you sure you want to reset this chapter's progress? This action cannot be undone.");
+        }
 
 
 
