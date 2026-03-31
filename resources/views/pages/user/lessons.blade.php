@@ -1,7 +1,7 @@
 @extends('layouts.user-base')
 @section('css')
 
-    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
 @section('navigation')
@@ -19,6 +19,7 @@
 
         <h1>{{$chapter->title}}</h1>
         <div class="prev-lessons">
+
             @foreach($lessons as $lesson)
 
                 <a href={{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>

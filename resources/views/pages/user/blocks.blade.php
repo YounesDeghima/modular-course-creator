@@ -1,13 +1,16 @@
 @extends('layouts.user-base')
 
 @section('css')
-    <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
+    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/block-page.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
 @endsection
 
 @section('navigation')
+
+
     <div class="navigation">
+
         <a href="{{route('user.preview.years')}}">home</a>
         <a>--></a>
         <a href="{{route('user.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
@@ -16,13 +19,26 @@
         <a>---></a>
         <a href="{{route('user.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
     </div>
+    <div class="lesson-complete">
+        <label>
+
+            <input class="completed_checkbox" type="checkbox" disabled
+                   @if($lesson_progress && $lesson_progress->progress >= 90)
+                       checked
+                @endif
+            >
+            Lesson Completed
+        </label>
+    </div>
 
 @endsection
 
 @section('main')
+    <div id="scroll-progress"></div>
     <div class="lesson-wrapper">
+
         @if($prevlesson)
-            <div class="nav-button"><a href={{route('user.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
+            <div class="nav-button"><a href={{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
         @endif
         <div class="blocks-container" id="blocks-container">
 
@@ -62,9 +78,17 @@
 
         </div>
         @if($nextlesson)
-            <div class="nav-button"><a href={{route('user.preview.blocks',['year','course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
+            <div class="nav-button"><a href={{route('user.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
         @endif
     </div>
+    <form id="progress-form" method="POST" action="{{ route('user.lesson.progress.store',['lesson'=>$lesson])}}" style="display: none;">
+        @csrf
+
+        <input type="hidden" name="lesson_id" value="{{ $lesson->id ?? '' }}">
+
+        <input type="hidden" name="progress" id="progress-input" value="{{$lesson_progress ? $lesson_progress->progress : 0}}">
+        <button type="submit">Send</button>
+    </form>
 
 @endsection
 
@@ -96,6 +120,33 @@
                 button.textContent = ishidden ? 'hide solution' : 'show solution';
             });
 
+        });
+
+        let maxProgress = 0;
+        let completedcheckbox = document.querySelector('.completed_checkbox');
+        let sent = completedcheckbox.checked;
+
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY+document.getElementById('progress-input').value;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+            const progress = (scrollTop / docHeight) * 100;
+
+            // update visual bar (optional)
+            if (progress > maxProgress) {
+                maxProgress = progress;
+                document.getElementById('scroll-progress').style.width = maxProgress + '%';
+            }
+
+            // ✅ trigger when > 90%
+            if (maxProgress >= 90 && !sent) {
+                sent = true;
+
+                document.getElementById('progress-input').value = Math.round(maxProgress);
+
+                document.getElementById('progress-form').submit();
+            }
         });
 
 
