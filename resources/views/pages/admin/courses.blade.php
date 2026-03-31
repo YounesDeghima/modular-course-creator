@@ -34,7 +34,7 @@
                     <textarea class="value-input" name="description" required></textarea>
 
                     <label>Initial Status:</label>
-                    
+
                     <select name="status" class="year-input">
                         <option value="draft" selected>Draft (Hidden)</option>
                         <option value="published">Published (Live)</option>
@@ -144,43 +144,27 @@
 @section('js')
     <script>
 
-        const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
-        const closeBtn = document.getElementById('close-popup');
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
-        });
+        document.querySelectorAll('.update-form').forEach(form => {
+            const year = form.querySelector('.year-input');
+            const branch = form.querySelector('.branch-input');
+            const label = form.querySelector('.branch-label');
 
-        closeBtn.addEventListener('click', () => {
-            adder.style.visibility = 'hidden';
-            adder.style.opacity = 0;
-        });
-
-        let years = Array.from(document.getElementsByClassName('year-input'));
-        let branchs = Array.from(document.getElementsByClassName('branch-input'));
-        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
-
-        function togglebranch(year, i) {
-            console.log(i);
-            if (parseInt(year.value) > 1) {
-                branchs[i].style.visibility = 'visible';
-                branchlabels[i].style.visibility = 'visible';
-
-            } else {
-                branchs[i].style.visibility = 'hidden';
-                branchlabels[i].style.visibility = 'hidden';
-
+            function toggleBranch() {
+                if (parseInt(year.value) > 1) {
+                    branch.style.visibility = 'visible';
+                    label.style.visibility = 'visible';
+                } else {
+                    branch.style.visibility = 'hidden';
+                    label.style.visibility = 'hidden';
+                }
             }
-        }
 
-        years.forEach((year, i) => {
-            year.addEventListener('change', () => togglebranch(year, i));
+            year.addEventListener('change', toggleBranch);
 
+            // run once on load
+            toggleBranch();
         });
-
-        years.forEach((year, i) => togglebranch(year, i));
 
 
         // Get all update forms

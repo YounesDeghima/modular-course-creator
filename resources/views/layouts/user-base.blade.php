@@ -49,7 +49,7 @@
         <div class="options">
             <ul class="menuItems">
 
-                <li><a href='{{route('user.main')}}' data-item='Home'>Home</a></li>
+                <li><a href='{{route('user.preview.courses')}}' data-item='Home'>Home</a></li>
 
 
 

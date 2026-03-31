@@ -6,11 +6,10 @@
 @endsection
 @section('navigation')
     <div class="navigation">
-        <a href="{{route('admin.preview.years')}}">home</a>
-        <a>--></a>
-        <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+
+        <a href="{{route('admin.preview.courses')}}">{{$course->year}}-{{$course->branch}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+        <a href="{{route('admin.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
     </div>
 @endsection
 @section('main')
@@ -22,7 +21,7 @@
 
             @foreach($lessons as $lesson)
 
-                <a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
+                <a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
 
             @endforeach
         </div>

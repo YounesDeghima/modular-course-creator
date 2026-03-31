@@ -1,4 +1,4 @@
-@extends('layouts.admin-base')
+@extends('layouts.user-base')
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
@@ -11,7 +11,7 @@
 @endsection
 @section('main')
     <div class="search">
-        <form class="filter-form" method="GET" action="{{ route('admin.preview.courses') }}">
+        <form class="filter-form" method="GET" action="{{ route('user.preview.courses') }}">
 
             <select name="year" class="year-input">
                 <option value="">All Years</option>
@@ -64,7 +64,7 @@
                             <textarea name="description" class="value-input description" style="height: 200px" readonly>{{$course->description}}</textarea>
                         </div>
 
-                        <a href="{{route('admin.preview.chapters',['course'=>$course->id])}}">view chapters</a>
+                        <a href="{{route('user.preview.chapters',['course'=>$course->id])}}">view chapters</a>
 
                     </div>
 

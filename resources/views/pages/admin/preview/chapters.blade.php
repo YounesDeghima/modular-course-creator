@@ -7,9 +7,8 @@
 
 @section('navigation')
     <div class="navigation">
-        <a href="{{route('admin.preview.years')}}">home</a>
-        <a>--></a>
-        <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+
+        <a href="{{route('admin.preview.courses')}}">{{$course->year}}-{{$course->branch}}</a>
     </div>
 @endsection
 @section('main')
@@ -29,7 +28,7 @@
 
                             <button type="submit">Reset chapter progress</button>
                         </form>
-                        <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
+                        <a href="{{route('admin.preview.lessons',['course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
 
                         <div class="chapter-progress-bar">
                             <div class="chapter-progress-fill"
@@ -43,9 +42,9 @@
 
                                     @if($lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90)
 
-                                        <li><a style="color: #2ecc71" href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                        <li><a style="color: #2ecc71" href="{{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
                                     @else
-                                        <li><a href="{{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
+                                        <li><a href="{{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
                                     @endif
 
                                 @endif

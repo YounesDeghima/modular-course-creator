@@ -11,13 +11,12 @@
 
     <div class="navigation">
 
-        <a href="{{route('admin.preview.years')}}">home</a>
-        <a>--></a>
-        <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+
+        <a href="{{route('admin.preview.courses')}}">{{$course->year}}{{$course->branch}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+        <a href="{{route('admin.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
+        <a href="{{route('admin.preview.lessons',['course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
     </div>
     <div class="lesson-complete">
         <label>
@@ -38,7 +37,7 @@
     <div class="lesson-wrapper">
 
         @if($prevlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
+            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
         @endif
         <div class="blocks-container" id="blocks-container">
 
@@ -78,7 +77,7 @@
 
         </div>
         @if($nextlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
+            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
         @endif
     </div>
     <form id="progress-form" method="POST" action="{{ route('user.lesson.progress.store',['lesson'=>$lesson])}}" style="display: none;">

@@ -27,7 +27,7 @@
         <a href='{{route('admin.main')}}' data-item='Home'>Home</a>
         <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
         <a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a>
-        <a href="{{route('admin.preview.years')}}" data-item='preview'>preview</a>
+        <a href="{{route('admin.preview.courses')}}" data-item='preview'>preview</a>
 
 
         <div class="right-side" id="right-side">

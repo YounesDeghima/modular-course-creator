@@ -1,4 +1,4 @@
-@extends('layouts.admin-base')
+@extends('layouts.user-base')
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
@@ -7,9 +7,9 @@
 @section('navigation')
     <div class="navigation">
 
-        <a href="{{route('admin.preview.courses')}}">{{$course->year}}-{{$course->branch}}</a>
+        <a href="{{route('user.preview.courses')}}">{{$course->year}}-{{$course->branch}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
+        <a href="{{route('user.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
     </div>
 @endsection
 @section('main')
@@ -21,7 +21,7 @@
 
             @foreach($lessons as $lesson)
 
-                <a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
+                <a href={{route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}>{{$lesson->title}}</a>
 
             @endforeach
         </div>
