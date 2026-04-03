@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @yield('css')
 
 
@@ -70,6 +71,7 @@
 
 
 </body>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 @yield('js')
 
 </html>

@@ -162,6 +162,8 @@
             </button>
         </form>
     </div>
+
+    @if($chapters)
         @foreach($chapters as $chapter)
             <div class="chapter-group" >
 
@@ -248,7 +250,9 @@
                                 <form action="{{ route('admin.courses.chapters.lessons.destroy', [$course, $chapter, $lesson]) }}" method="POST" class="delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-delete" onclick="return confirm('Delete lesson?')">Delete</button>
+                                    <button type="button"
+                                            class="btn-delete"
+                                            onclick="deleteLesson('{{ $course->id }}','{{ $chapter->id }}','{{ $lesson->id }}')">Delete</button>
                                 </form>
                             </div>
                         </div>
@@ -327,12 +331,28 @@
                         <form action="{{ route('admin.courses.chapters.destroy', [$course, $chapter]) }}" method="POST" class="delete-form">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn-delete" onclick="return confirm('Delete chapter?')">Delete</button>
+                            <button type="button"
+                                    class="btn-delete"
+                                    onclick="deleteChapter(event, this)"
+                                    data-url="{{ route('admin.courses.chapters.destroy', [$course, $chapter]) }}"
+                                    data-chapter-id="{{ $chapter->id }}">
+                                Delete
+                            </button>
                         </form>
                     </div>
                 </div>
 
             </div> @endforeach
+    @else
+        <div class="chapter-header" onclick="toggleLessons('{{$chapter->id}}')">
+            <div class="header-left">
+                no chapters yet
+            </div>
+
+
+        </div>
+    @endif
+
 
             <div class="chapter-group add-chapter-trigger">
                 <div class="chapter-header add-header" onclick="openModal('add-chapter-modal')">
@@ -560,27 +580,15 @@
             updateButtonUI(btn, newStatus);
 
             // 2. Send to Server
-            fetch(`/admin/courses/${courseId}/chapters/${chapterId}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-HTTP-Method-Override': 'PUT' // Since it's a PUT request
-                },
-                body: JSON.stringify({
-                    status: newStatus,
-                    // Pass existing title/description so validation doesn't fail
-                    title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
-                    description: "Updated via toggle"
-                })
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}`, {
+                status: newStatus,
+                title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
+                description: "Updated via toggle",
             })
-                .then(response => {
-                    if (!response.ok) throw new Error('Update failed');
-                    checkMasterToggle(); // Update the "All" button state
+                .then(() => {
+                    checkMasterToggle();
                 })
-                .catch(error => {
-                    // Revert UI if server fails
+                .catch(() => {
                     updateButtonUI(btn, currentStatus);
                     alert('Failed to update status');
                 });
@@ -644,29 +652,21 @@
             const lessonId = btn.dataset.lessonId;
             const chapterId = btn.dataset.chapterId;
             const currentStatus = btn.dataset.status;
-            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const newStatus = currentStatus === 'published' ? 'draft' : 'published';
             const courseId = "{{ $course->id }}";
 
-            // 1. UI Update
             updateButtonUI(btn, newStatus);
 
-            // 2. Fetch
-            fetch(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-HTTP-Method-Override': 'PUT'
-                },
-                body: JSON.stringify({
-                    status: newStatus,
-                    title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
-                    lesson_number: 1, // You might need to pull the actual number or adjust your validation
-                    description: "Status update"
-                })
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
+                status: newStatus,
+                title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
+                lesson_number: 1,
+                description: "Status update"
             })
-                .catch(error => {
+                .then(() => {
+                    // sync UI if needed
+                })
+                .catch(() => {
                     updateButtonUI(btn, currentStatus);
                     alert('Sync failed');
                 });
@@ -674,6 +674,58 @@
 
         // If you use the AJAX toggle from the previous step,
         // make sure to call updateMasterButtonUI() inside the .then() block!
+
+        function closeModal() {
+            document.querySelector('.modal').classList.remove('active');
+        }
+        function closeLessonModal() {
+            document.querySelector('.modal-overlay').classList.remove('active');
+        }
+
+        function deleteLesson(courseId, chapterId, lessonId) {
+
+            const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
+
+            axios.delete(url)
+                .then(() => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+                })
+                .catch(() => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+                });
+        }
+
+        function deleteChapter(event, btn) {
+            event.stopPropagation();
+            const url = btn.dataset.url;
+            const chapterId = btn.dataset.chapterId;
+
+            axios.delete(url)
+                .then(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                })
+                .catch(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                });
+        }
 
 
     </script>
