@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">
+{{--    <link rel="stylesheet" href="{{asset('css/admin-page.css')}}">--}}
+    <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
     @yield('css')
 
 
@@ -14,45 +15,52 @@
 <body>
 <header>
     <nav>
-        <div class="left-side">
-            <img src="#" class="logo">
-
-
-            <a href="{{route('login_page')}}">logout</a>
+        <div class="nav-left">
+            <img src="#" class="logo" alt="logo">
+            <a href='{{route('admin.main')}}' data-item='Home'>Home</a>
+            <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
+            <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>
+            <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
         </div>
-        <div class="right-side" id="right-side">
-            <p>user :
-                {{$id}}
-            </p>
-            <div class="popup" id="popup">
 
-                <p>name :
-                    {{$name}}
+        <div class="nav-right">
 
-                </p>
 
-                <p>email :
-                    {{$email}}
-                </p>
 
-                <form action="" method="post">
-                    <input type="submit" value="delete-user" name="delete-user" id="delete-user">
-                </form>
+            <div class="user-badge" id="right-side">
+                <div class="user-avatar">{{substr($name, 0, 1)}}</div>
+                <span class="user-id">{{ $name }}</span>
 
+                <div class="popup" id="popup">
+                    <p><span>Name</span> {{ $name }}</p>
+                    <p><span>Email</span> {{ $email }}</p>
+                    <p><span>ID</span> {{ $id }}</p>
+                    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
+                    <form action="" method="post">
+                        <input type="submit" value="Delete user" name="delete-user" id="delete-user">
+                    </form>
+                    <a href="{{route('login_page')}}" class="logout-btn">Logout</a>
+                </div>
             </div>
         </div>
     </nav>
 </header>
 <div class="middle">
     <div class="side-bar">
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+
 
         <div class="options">
             <ul class="menuItems">
-
-                <li><a href='{{route('admin.main')}}' data-item='Home'>Home</a></li>
-                <li><a href='{{route('admin.dashboard')}}' data-item='About'>Users</a></li>
-                <li><a href='{{route('admin.courses.index')}}' data-item='Projects'>modular site</a></li>
-                <li><a href="{{route('admin.preview.courses')}}" data-item='preview'>preview</a></li>
 
             </ul>
             @yield('back-button')
@@ -69,5 +77,58 @@
 
 </body>
 @yield('js')
+
+
+<script>
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarContent = document.querySelector('.sidebar-content');
+    const sidebar = document.querySelector('.side-bar');
+
+    // Set correct initial state on load
+    sidebarContent.style.display = 'flex';
+
+    sidebarToggle.addEventListener('click', () => {
+        const isCollapsed = sidebar.classList.toggle('collapsed');
+
+        if (isCollapsed) {
+            sidebarContent.style.display = 'none';
+        } else {
+            sidebarContent.style.display = 'flex';
+        }
+    });
+
+    const userBadge = document.getElementById('right-side');
+    const popup = document.getElementById('popup');
+
+    userBadge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        popup.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+        popup.classList.remove('open');
+    });
+
+
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    // Restore saved preference
+    if (localStorage.getItem('theme') === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = html.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    });
+</script>
+
 
 </html>

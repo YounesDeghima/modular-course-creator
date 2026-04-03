@@ -188,8 +188,7 @@ class blockcontroller extends Controller
 
         $block=block::create($validated);
 
-        if($block->type == 'exercise'){
-            $block->solutions()->create([
+        if($block->type == 'exercise'){            $block->solutions()->create([
                 'solution_number'=>1,
                 'block_id'=>$block->id,
                 'content'=>'nothing here yet',
