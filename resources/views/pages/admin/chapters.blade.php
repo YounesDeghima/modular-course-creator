@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
 
 
+{{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
+    <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
+
 @endsection
 
 @section('back-button')
