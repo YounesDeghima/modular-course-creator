@@ -33,7 +33,7 @@
             </div>
 
             {{-- Single form wrapper for bulk saving --}}
-            <form class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
+            <form onsubmit="saveAllBlocks(event, this)" class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -85,7 +85,7 @@
                             <div class="block-controls">
                                 <div class="control-group">
                                     <span class="control-icon" onclick="toggleTypeSelect('{{ $block->id }}')">✏️</span>
-                                    <select name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
+                                    <select  onchange="updateBlockType(this)" name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
                                         <option value="header" {{ $block->type == 'header' ? 'selected' : '' }}>H1</option>
                                         <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>Text</option>
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
@@ -225,7 +225,7 @@
                                 <span class="close-btn" onclick="closeModal('lesson-modal-{{$lesson->id}}')">&times;</span>
                                 <h3>Edit Lesson: {{ $lesson->lesson_number }}</h3>
 
-                                <form action="{{ route('admin.courses.chapters.lessons.update', [$course->id, $chapter->id, $lesson->id]) }}" method="POST" class="lesson-form">
+                                <form onsubmit="updateLesson(event, this)" action="{{ route('admin.courses.chapters.lessons.update', [$course->id, $chapter->id, $lesson->id]) }}" method="POST" class="lesson-form">
                                     @csrf
                                     @method('PUT')
                                     <div class="form-title">
@@ -255,7 +255,7 @@
                                     @method('DELETE')
                                     <button type="button"
                                             class="btn-delete"
-                                            onclick="deleteLesson('{{ $course->id }}','{{ $chapter->id }}','{{ $lesson->id }}')">Delete</button>
+                                            onclick="deleteLesson(event, '{{ $course->id }}','{{ $chapter->id }}','{{ $lesson->id }}')">Delete</button>
                                 </form>
                             </div>
                         </div>
@@ -303,7 +303,7 @@
                         <span class="close-btn" onclick="closeModal('chapter-modal-{{$chapter->id}}')">&times;</span>
                         <h3>Edit Chapter</h3>
 
-                        <form action="{{ route('admin.courses.chapters.update', [$course->id, $chapter->id]) }}" method="POST">
+                        <form onsubmit="updateChapter(event, this)" action="{{ route('admin.courses.chapters.update', [$course->id, $chapter->id]) }}" method="POST">
                             @csrf
                             @method('PUT')
                             <div class="form-group">
@@ -592,8 +592,7 @@
                     checkMasterToggle();
                 })
                 .catch(() => {
-                    updateButtonUI(btn, currentStatus);
-                    alert('Failed to update status');
+                    checkMasterToggle();
                 });
         }
 
@@ -670,22 +669,20 @@
                     // sync UI if needed
                 })
                 .catch(() => {
-                    updateButtonUI(btn, currentStatus);
-                    alert('Sync failed');
+
                 });
         }
 
         // If you use the AJAX toggle from the previous step,
         // make sure to call updateMasterButtonUI() inside the .then() block!
 
-        function closeModal() {
-            document.querySelector('.modal').classList.remove('active');
-        }
-        function closeLessonModal() {
-            document.querySelector('.modal-overlay').classList.remove('active');
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.style.display = 'none';
         }
 
-        function deleteLesson(courseId, chapterId, lessonId) {
+        function deleteLesson(event, courseId, chapterId, lessonId) {
+            event.stopPropagation(); // 🔥 critical
 
             const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
 
@@ -697,12 +694,13 @@
 
                     closeModal(`lesson-modal-${lessonId}`);
                 })
-                .catch(() => {
+                .catch((error) => {
                     document.querySelector(`[data-lesson-id="${lessonId}"]`)
                         ?.closest('.lesson-row')
                         ?.remove();
 
                     closeModal(`lesson-modal-${lessonId}`);
+
                 });
         }
 
@@ -728,6 +726,222 @@
 
                     closeModal('chapter-modal-' + chapterId);
                 });
+        }
+
+        function updateChapter(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const chapterId = url.match(/chapters\/(\d+)/)[1]; // 🔥 reliable extraction
+
+            axios.put(url, data)
+                .then(() => {
+                    // Find the correct chapter in the sidebar
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                })
+                .catch(() => {
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                });
+        }
+
+        function updateLesson(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.put(url, data)
+                .then(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                })
+                .catch(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                });
+        }
+
+        function saveAllBlocks(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+
+            const saveBtn = form.querySelector('.btn-save-all');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerText = 'Saving...';
+            }
+
+            axios.post(url, formData, {
+                headers: {
+                    'X-HTTP-Method-Override': 'PUT',
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+                .then(() => {
+                    if (saveBtn) {
+                        saveBtn.innerText = 'Saved ✓';
+                        setTimeout(() => {
+                            saveBtn.innerText = 'Save All Changes';
+                            saveBtn.disabled = false;
+                        }, 1500);
+                    }
+                })
+                .catch(() => {
+                    if (saveBtn) {
+                        saveBtn.innerText = 'Save Failed';
+                        saveBtn.disabled = false;
+                    }
+
+                    alert('Failed to save changes');
+                });
+        }
+
+        function updateBlockType(select) {
+            const blockRow = select.closest('.block-row');
+            if (!blockRow) return;
+
+            const blockId = blockRow.querySelector('input[name*="[id]"]').value;
+            const newType = select.value;
+
+            const mainContent = blockRow.querySelector('.block-main-content');
+
+            // Update class
+            blockRow.classList.remove(
+                'type-header',
+                'type-description',
+                'type-note',
+                'type-code',
+                'type-exercise'
+            );
+            blockRow.classList.add(`type-${newType}`);
+
+            // --------------------------------
+            // SWITCH → EXERCISE
+            // --------------------------------
+            if (newType === 'exercise') {
+
+                // 1. Extract existing content BEFORE deleting
+                const oldTextarea = mainContent.querySelector('textarea[name*="[content]"]');
+                const previousQuestionValue = oldTextarea ? oldTextarea.value : '';
+
+                // 2. Clear entire container
+                mainContent.innerHTML = '';
+
+                // 3. Create new exercise container
+                const exerciseContainer = document.createElement('div');
+                exerciseContainer.classList.add('exercise-container');
+
+                // Question label
+                const labelQ = document.createElement('label');
+                labelQ.innerText = 'Question:';
+
+                // Question textarea (with preserved value)
+                const question = document.createElement('textarea');
+                question.name = `blocks[${blockId}][content]`;
+                question.classList.add('input-ghost', 'content-style');
+                question.rows = 1;
+                question.value = previousQuestionValue; // ✅ PRESERVED VALUE
+
+                question.oninput = function () {
+                    this.style.height = '';
+                    this.style.height = this.scrollHeight + 'px';
+                };
+
+                // Append question
+                exerciseContainer.appendChild(labelQ);
+                exerciseContainer.appendChild(question);
+
+                // Solution (initial state)
+                const labelS = document.createElement('label');
+                labelS.innerText = 'Solution';
+
+                const solution = document.createElement('textarea');
+                solution.name = `blocks[${blockId}][solutions][new]`;
+                solution.placeholder = 'nothing here yet';
+
+                // Append solution (same container)
+                exerciseContainer.appendChild(labelS);
+                exerciseContainer.appendChild(solution);
+
+                // Add to DOM
+                mainContent.appendChild(exerciseContainer);
+            }
+
+                // --------------------------------
+                // SWITCH → NON-EXERCISE
+            // --------------------------------
+            else {
+
+                // Extract current content before removing
+                const oldTextarea = mainContent.querySelector('textarea[name*="[content]"]');
+                const previousValue = oldTextarea ? oldTextarea.value : '';
+
+                // Clear everything
+                mainContent.innerHTML = '';
+
+                // Recreate normal textarea
+                const textarea = document.createElement('textarea');
+                textarea.name = `blocks[${blockId}][content]`;
+                textarea.classList.add('input-ghost', 'content-style');
+                textarea.rows = 1;
+                textarea.value = previousValue; // preserve value
+
+                textarea.oninput = function () {
+                    this.style.height = '';
+                    this.style.height = this.scrollHeight + 'px';
+                };
+
+                mainContent.appendChild(textarea);
+            }
+
+            // Send update
+            axios.put(`/admin/blocks/${blockId}`, { type: newType })
+                .then(() => console.log('Updated'))
+                .catch(() => console.error('Error'));
         }
 
 

@@ -73,6 +73,7 @@
 
 
 @yield('js')
+
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarContent = document.querySelector('.sidebar-content');

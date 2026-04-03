@@ -122,28 +122,25 @@
         });
 
         let maxProgress = 0;
-        let completedcheckbox = document.querySelector('.completed_checkbox');
-        let sent = completedcheckbox.checked;
-
+        let sent = false;
 
         window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY+document.getElementById('progress-input').value;
+            const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            if (docHeight <= 0) return;
 
             const progress = (scrollTop / docHeight) * 100;
 
-            // update visual bar (optional)
+
             if (progress > maxProgress) {
                 maxProgress = progress;
                 document.getElementById('scroll-progress').style.width = maxProgress + '%';
             }
 
-            // ✅ trigger when > 90%
             if (maxProgress >= 90 && !sent) {
                 sent = true;
 
                 document.getElementById('progress-input').value = Math.round(maxProgress);
-
                 document.getElementById('progress-form').submit();
             }
         });
