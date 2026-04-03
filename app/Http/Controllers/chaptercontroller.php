@@ -25,11 +25,41 @@ class chaptercontroller extends Controller
 
         // 2. Logic to prevent the "Undefined Variable" crash:
         // We grab the first chapter and its first lesson so the main part has something to show.
-        $chapter = $chapters->first();
-        $lesson = $chapter ? $chapter->lessons()->orderBy('lesson_number', 'asc')->first() : null;
+        $chapter = chapter::where('course_id', $course->id)
+            ->orderBy('chapter_number', 'asc')
+            ->first();
 
-        // 3. Get the blocks for that default lesson (if they exist)
-        $blocks = $lesson ? $lesson->blocks()->orderBy('block_number', 'asc')->get() : collect();
+        $lesson = null;
+
+        if ($chapter) {
+            $lesson = $chapter->lessons()
+                ->orderBy('lesson_number', 'asc')
+                ->first();
+        }
+
+        $blocks = $lesson
+            ? $lesson->blocks()->orderBy('block_number', 'asc')->get()
+            : collect();
+
+        $chapter = Chapter::where('course_id', $course->id)
+            ->orderBy('chapter_number', 'asc')
+            ->first();
+
+        if (!$chapter) {
+            $chapter = Chapter::create([
+                'course_id' => $course->id,
+                'title' => 'Enter chapter title here',
+                'chapter_number' => 1
+            ]);
+        }
+        if (!$lesson) {
+            $lesson = Lesson::create([
+                'chapter_id' => $chapter->id,
+                'title' => 'Enter lesson title here',
+                'content' => '',
+                'lesson_number' => 1,
+            ]);
+        }
 
         // 4. Other data you need
         $chapter_count = $chapters->count();
@@ -73,9 +103,11 @@ class chaptercontroller extends Controller
         ]);
 
         $validated['course_id'] = $course->id;
-        chapter::create($validated);
+        $chapter = chapter::create($validated);
 
-        return redirect()->back()->with('success', 'Chapter created successfully');
+        return response()->json([
+            'chapter' => $chapter
+        ]);
     }
 
 
@@ -140,7 +172,6 @@ class chaptercontroller extends Controller
      */
     public function destroy(course $course ,chapter $chapter)
     {
-        $chapter = chapter::findOrFail($chapter->id);
         $chapter->delete();
 
         return redirect()->back()->with('success', 'chapter deleted');

@@ -270,7 +270,7 @@
                             <span class="close-btn" onclick="closeModal('add-lesson-modal-{{$chapter->id}}')">&times;</span>
                             <h3>New Lesson for {{ $chapter->title }}</h3>
 
-                            <form action="{{ route('admin.courses.chapters.lessons.store', [$course->id, $chapter->id]) }}" method="POST">
+                            <form onsubmit="createLesson(event, this)" action="{{ route('admin.courses.chapters.lessons.store', [$course->id, $chapter->id]) }}" method="POST">
                                 @csrf
                                 <div class="form-group">
                                     <label>Title</label>
@@ -371,7 +371,7 @@
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('add-chapter-modal')">&times;</span>
             <h3>Create New Chapter</h3>
-            <form id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store', $course)}}">
+            <form onsubmit="createChapter(event, this)" id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store', $course)}}">
                 @csrf
                 <div class="form-group">
                     <label>Title:</label>
@@ -405,6 +405,76 @@
         document.addEventListener('DOMContentLoaded', function() {
 
             // --- 1. CORE UTILITIES ---
+            const COURSE_ID = "{{ $course->id }}";
+            const savedUrl = localStorage.getItem('activeLessonUrl');
+
+            const SIDEBAR_SCROLL_KEY = `sidebarScroll_${COURSE_ID}`;
+
+            const sidebar = document.querySelector('.sidebar-content'); // adjust selector if needed
+            console.log(sidebar)
+            if (sidebar) {
+                // Restore
+
+                const savedSidebarScroll = localStorage.getItem(SIDEBAR_SCROLL_KEY);
+
+                if (savedSidebarScroll !== null) {
+                    requestAnimationFrame(() => {
+                        sidebar.scrollTop = parseInt(savedSidebarScroll, 10);
+                    });
+                }
+
+                // Save
+                sidebar.addEventListener('scroll', () => {
+                    localStorage.setItem(SIDEBAR_SCROLL_KEY, sidebar.scrollTop);
+                });
+            }
+
+            const MAIN_SCROLL_KEY = `mainScroll_${COURSE_ID}`;
+            const mainContainer = document.querySelector('main');
+
+// Restore
+            const savedMainScroll = localStorage.getItem(MAIN_SCROLL_KEY);
+            if (savedMainScroll !== null && mainContainer) {
+                mainContainer.scrollTop = parseInt(savedMainScroll, 10);
+            }
+
+// Save
+            if (mainContainer) {
+                mainContainer.addEventListener('scroll', () => {
+                    localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+                });
+            }
+
+            if (savedUrl) {
+                // 🔒 Ensure the saved lesson belongs to this course
+                if (!savedUrl.includes(`/courses/${COURSE_ID}/`)) {
+                    localStorage.removeItem('activeLessonUrl');
+                } else {
+                    fetch(savedUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(res => {
+                            if (!res.ok) throw new Error();
+                            loadLesson(savedUrl);
+                        })
+                        .catch(() => {
+                            localStorage.removeItem('activeLessonUrl');
+                        });
+                }
+            }
+
+            const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
+
+            openChapters.forEach(id => {
+                const container = document.getElementById('lessons-container-' + id);
+                const arrow = document.getElementById('arrow-' + id);
+
+                if (container) {
+                    container.style.display = 'flex';
+                }
+
+                if (arrow) {
+                    arrow.style.transform = 'rotate(90deg)';
+                }
+            });
 
             // Auto-resize textareas based on content
             function initAutoResize() {
@@ -428,35 +498,45 @@
             }
 
             // --- 2. AJAX LESSON LOADING ---
-            document.querySelectorAll('.lesson-row').forEach(row => {
-                row.addEventListener('click', e => {
-                    if (e.target.closest('.pen-icon')) return; // ignore edit button
-                    const url = row.dataset.href;
-                    if (!url) return;
-                    e.preventDefault();
-                    loadLesson(url);
-                });
+            document.addEventListener('click', function(e) {
+                const row = e.target.closest('.lesson-row');
+                if (!row) return;
+
+                if (e.target.closest('.pen-icon')) return;
+
+                const url = row.dataset.href;
+                if (!url) return;
+
+                e.preventDefault();
+                localStorage.setItem('activeLessonUrl', url);
+
+                loadLesson(url);
             });
 
 
             function loadLesson(url) {
+                const COURSE_ID = "{{ $course->id }}";
                 const mainContainer = document.querySelector('main');
                 mainContainer.style.opacity = '0.5';
 
                 fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Invalid lesson URL');
+                        }
+                        return response.text();
+                    })
                     .then(html => {
                         mainContainer.innerHTML = html;
                         mainContainer.style.opacity = '1';
                         history.pushState(null, '', url);
-
-                        // Re-run setup for the new HTML content
-                        initBlockEditor();
-
-                        initBlockReordering();
                     })
-                    .catch(error => {
-                        console.error('Error:', error);
+                    .catch(() => {
+                        console.warn('Invalid saved lesson. Clearing storage.');
+
+                        // 🔥 IMPORTANT: clear broken state
+                        localStorage.removeItem('activeLessonUrl');
+
                         mainContainer.style.opacity = '1';
                     });
             }
@@ -470,9 +550,25 @@
                 if (!container) return;
 
                 const isHidden = container.style.display === "none" || container.style.display === "";
+
                 container.style.display = isHidden ? "flex" : "none";
                 if (arrow) arrow.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
-            }
+
+                // ✅ NEW: persist state
+                let openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
+
+                if (isHidden) {
+                    // add
+                    if (!openChapters.includes(id)) {
+                        openChapters.push(id);
+                    }
+                } else {
+                    // remove
+                    openChapters = openChapters.filter(chId => chId !== id);
+                }
+
+                localStorage.setItem('openChapters', JSON.stringify(openChapters));
+            };
 
             // Open/Close Modals
             window.openModal = function(id) {
@@ -501,6 +597,8 @@
             // --- 4. INITIALIZATION ---
             initBlockEditor();
             window.onpopstate = () => loadLesson(window.location.href);
+
+
         });
 
         function updateBlockNumbers() {
@@ -942,6 +1040,168 @@
             axios.put(`/admin/blocks/${blockId}`, { type: newType })
                 .then(() => console.log('Updated'))
                 .catch(() => console.error('Error'));
+        }
+
+        function createChapter(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.post(url, data)
+                .then((response) => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+                })
+                .catch(() => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+
+                });
+        }
+
+        function createLesson(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.post(url, data)
+                .then((response) => {
+                    const lesson = response.data.lesson;
+                    const chapterId = response.data.chapter_id;
+                    const courseId = "{{ $course->id }}";
+
+                    const container = document.getElementById(`lessons-container-${chapterId}`);
+
+                    const newLesson = document.createElement('div');
+                    newLesson.classList.add('lesson-row');
+                    newLesson.dataset.href = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`;
+
+                    newLesson.innerHTML = `
+            <div class="lesson-content">
+                <span class="bullet">•</span>
+                <a class="lesson-link">${lesson.title}</a>
+
+                <button type="button"
+                    class="status-toggle-btn lesson-status ${lesson.status}"
+                    data-lesson-id="${lesson.id}"
+                    data-chapter-id="${chapterId}"
+                    data-status="${lesson.status}"
+                    onclick="toggleSingleLesson(this, event)">
+                    ${lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
+                </button>
+            </div>
+            <span class="pen-icon lesson-pen">✏️</span>
+        `;
+
+                    const addRow = container.querySelector('.add-lesson-row');
+                    container.insertBefore(newLesson, addRow);
+
+                    closeModal(`add-lesson-modal-${chapterId}`);
+
+                    form.reset();
+                    window.location.reload();
+                })
+                .catch((error) => {
+
+
+
+                    const lesson = response.data.lesson;
+                    const chapterId = response.data.chapter_id;
+                    const courseId = "{{ $course->id }}";
+
+                    const container = document.getElementById(`lessons-container-${chapterId}`);
+
+                    const newLesson = document.createElement('div');
+                    newLesson.classList.add('lesson-row');
+                    newLesson.dataset.href = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`;
+
+                    newLesson.innerHTML = `
+            <div class="lesson-content">
+                <span class="bullet">•</span>
+                <a class="lesson-link">${lesson.title}</a>
+
+                <button type="button"
+                    class="status-toggle-btn lesson-status ${lesson.status}"
+                    data-lesson-id="${lesson.id}"
+                    data-chapter-id="${chapterId}"
+                    data-status="${lesson.status}"
+                    onclick="toggleSingleLesson(this, event)">
+                    ${lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
+                </button>
+            </div>
+            <span class="pen-icon lesson-pen">✏️</span>
+        `;
+
+                    container.appendChild(newLesson);
+
+                    closeModal(`add-lesson-modal-${chapterId}`);
+                    form.reset();
+                    window.location.reload();
+                });
         }
 
 
