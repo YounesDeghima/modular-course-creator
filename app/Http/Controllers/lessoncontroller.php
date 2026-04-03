@@ -53,9 +53,12 @@ class lessoncontroller extends Controller
         ]);
 
         $validated['chapter_id'] = $chapter->id;
-        lesson::create($validated);
+        $lesson = lesson::create($validated);
 
-        return redirect()->back()->with('success', 'Lesson created');
+        return response()->json([
+            'lesson' => $lesson,
+            'chapter_id' => $chapter->id
+        ]);
     }
 
 

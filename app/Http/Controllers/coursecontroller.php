@@ -105,8 +105,15 @@ class coursecontroller extends Controller
      */
     public function destroy($id)
     {
+
         $course = Course::findOrFail($id);
+
         $course->delete();
+        if (request()->ajax()) {
+            return response()->json([
+                'message' => 'Course deleted successfully'
+            ], 200);
+        }
 
         return redirect()->back()->with('success', 'Course deleted');
     }

@@ -18,7 +18,7 @@ class usercontroller extends Controller
             $name = $user->name;
             $email = $user->email;
 
-            return view('pages.user.main' ,compact( 'name', 'email','id'));
+            return (redirect()->route('user.preview.courses'));
         }else{
             if($user->role=='admin'){
             $id = $user->id;

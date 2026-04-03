@@ -1,4 +1,4 @@
-@extends('layouts.admin-base')
+@extends('layouts.edditor')
 
 @section('css')
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
@@ -11,13 +11,12 @@
 
     <div class="navigation">
 
-        <a href="{{route('admin.preview.years')}}">home</a>
-        <a>--></a>
-        <a href="{{route('admin.preview.backcourses',['year'=>$year,'branch'=>$course->branch])}}">{{$year}}-{{$course->branch}}</a>
+
+        <a href="{{route('admin.preview.courses')}}">{{$course->year}}{{$course->branch}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.chapters',['year'=>$year,'course'=>$course])}}">{{$chapter->title}}</a>
+        <a href="{{route('admin.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
         <a>---></a>
-        <a href="{{route('admin.preview.lessons',['year'=>$year,'course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
+        <a href="{{route('admin.preview.lessons',['course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
     </div>
     <div class="lesson-complete">
         <label>
@@ -38,7 +37,7 @@
     <div class="lesson-wrapper">
 
         @if($prevlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
+            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
         @endif
         <div class="blocks-container" id="blocks-container">
 
@@ -78,7 +77,7 @@
 
         </div>
         @if($nextlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['year'=>$year,'course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
+            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
         @endif
     </div>
     <form id="progress-form" method="POST" action="{{ route('user.lesson.progress.store',['lesson'=>$lesson])}}" style="display: none;">
@@ -123,28 +122,25 @@
         });
 
         let maxProgress = 0;
-        let completedcheckbox = document.querySelector('.completed_checkbox');
-        let sent = completedcheckbox.checked;
-
+        let sent = false;
 
         window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY+document.getElementById('progress-input').value;
+            const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            if (docHeight <= 0) return;
 
             const progress = (scrollTop / docHeight) * 100;
 
-            // update visual bar (optional)
+
             if (progress > maxProgress) {
                 maxProgress = progress;
                 document.getElementById('scroll-progress').style.width = maxProgress + '%';
             }
 
-            // ✅ trigger when > 90%
             if (maxProgress >= 90 && !sent) {
                 sent = true;
 
                 document.getElementById('progress-input').value = Math.round(maxProgress);
-
                 document.getElementById('progress-form').submit();
             }
         });

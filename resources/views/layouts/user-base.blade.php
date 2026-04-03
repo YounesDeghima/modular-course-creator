@@ -49,7 +49,7 @@
         <div class="options">
             <ul class="menuItems">
 
-                <li><a href='{{route('user.main')}}' data-item='Home'>Home</a></li>
+                <li><a href='{{route('user.preview.courses')}}' data-item='Home'>Home</a></li>
 
 
 
@@ -67,6 +67,7 @@
 
 
 </body>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 @yield('js')
 
 </html>

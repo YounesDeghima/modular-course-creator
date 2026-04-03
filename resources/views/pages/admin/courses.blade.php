@@ -1,6 +1,6 @@
-@extends('layouts.admin-base')
+@extends('layouts.edditor')
 @section('css')
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
 @endsection
 @section('main')
@@ -34,7 +34,7 @@
                     <textarea class="value-input" name="description" required></textarea>
 
                     <label>Initial Status:</label>
-                    
+
                     <select name="status" class="year-input">
                         <option value="draft" selected>Draft (Hidden)</option>
                         <option value="published">Published (Live)</option>
@@ -124,7 +124,11 @@
                         <form action="{{route('admin.courses.destroy',$course->id)}}" method="post">
                             @csrf
                             @method('DELETE')
-                            <input type="submit" name="course-delete" class="block-delete" value="delete">
+                            <input type="button"
+                                   name="course-delete"
+                                   class="block-delete"
+                                   onclick="deleteCourse({{ $course->id }}, this)"
+                                   value="delete">
                         </form>
 
                         <a href="{{route('admin.courses.chapters.index',$course)}}">manage chapters</a>
@@ -144,43 +148,31 @@
 @section('js')
     <script>
 
-        const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('block-adder');
-        const closeBtn = document.getElementById('close-popup');
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
-        });
+        axios.defaults.headers.common['X-CSRF-TOKEN'] =
+            document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        closeBtn.addEventListener('click', () => {
-            adder.style.visibility = 'hidden';
-            adder.style.opacity = 0;
-        });
 
-        let years = Array.from(document.getElementsByClassName('year-input'));
-        let branchs = Array.from(document.getElementsByClassName('branch-input'));
-        let branchlabels = Array.from(document.getElementsByClassName('branch-label'));
+        document.querySelectorAll('.update-form').forEach(form => {
+            const year = form.querySelector('.year-input');
+            const branch = form.querySelector('.branch-input');
+            const label = form.querySelector('.branch-label');
 
-        function togglebranch(year, i) {
-            console.log(i);
-            if (parseInt(year.value) > 1) {
-                branchs[i].style.visibility = 'visible';
-                branchlabels[i].style.visibility = 'visible';
-
-            } else {
-                branchs[i].style.visibility = 'hidden';
-                branchlabels[i].style.visibility = 'hidden';
-
+            function toggleBranch() {
+                if (parseInt(year.value) > 1) {
+                    branch.style.visibility = 'visible';
+                    label.style.visibility = 'visible';
+                } else {
+                    branch.style.visibility = 'hidden';
+                    label.style.visibility = 'hidden';
+                }
             }
-        }
 
-        years.forEach((year, i) => {
-            year.addEventListener('change', () => togglebranch(year, i));
+            year.addEventListener('change', toggleBranch);
 
+            // run once on load
+            toggleBranch();
         });
-
-        years.forEach((year, i) => togglebranch(year, i));
 
 
         // Get all update forms
@@ -229,39 +221,39 @@
             });
         });
 
+
+        //AXIOS
         function toggleSingleCourse(btn, event) {
+
+
+            console.log('CLICKED');
+            console.log(btn.dataset);
+
             if (event) event.stopPropagation();
 
             const courseId = btn.dataset.courseId;
             const currentStatus = btn.dataset.status;
             const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
 
-            // 1. UI Update
+            // UI update
             updateButtonUI(btn, newStatus);
 
-            // Update the hidden input in the form
-            btn.closest('form').querySelector('input[name="status"]').value = newStatus;
+            const form = btn.closest('.update-form');
 
-            // 2. AJAX Fetch
-            fetch(`/admin/courses/${courseId}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-HTTP-Method-Override': 'PUT'
-                },
-                body: JSON.stringify({
-                    status: newStatus,
-                    title: btn.closest('.update-form').querySelector('input[name="title"]').value,
-                    year: btn.closest('.update-form').querySelector('.year-input').value,
-                    branch: btn.closest('.update-form').querySelector('.branch-input').value,
-                    description: btn.closest('.update-form').querySelector('textarea').value
-                })
-            }).catch(err => {
-                updateButtonUI(btn, currentStatus);
-                alert('Sync failed');
-            });
+            const payload = {
+                status: newStatus,
+                title: form.querySelector('input[name="title"]').value,
+                year: form.querySelector('.year-input').value,
+                branch: form.querySelector('.branch-input').value,
+                description: form.querySelector('textarea').value
+            };
+
+            const url = `/admin/courses/${courseId}`;
+            console.log("PUT URL:", url);
+
+            axios.put(url, payload)
+
+
         }
         // Function to handle the visual flip of the buttons
         function updateButtonUI(btn, status) {
@@ -272,7 +264,73 @@
             btn.classList.remove('published', 'draft');
             btn.classList.add(status);
         }
+        // Function for deleting courses
+        function deleteCourse(courseId, btn) {
+            if (!confirm("Are you sure you want to delete this course?")) return;
 
+            const block = btn.closest('.block'); // Find it before the request
+            const url = `/admin/courses/${courseId}`;
+
+            axios.delete(url)
+                .then(response => {
+                    block.remove();
+                    refreshGlobalUI();
+                    updateGlobalButtonUI();
+                })
+                .catch(error => {
+                    // Even if Laravel throws a 404/Error, if the course is gone,
+                    // we should remove it from the UI.
+                    console.error("DELETE ERROR (but removing UI anyway):", error);
+                    block.remove();
+                    refreshGlobalUI();
+                    updateGlobalButtonUI();
+                });
+        }
+
+        function refreshGlobalUI() {
+            const blocks = document.querySelectorAll('.block');
+
+            const statusButtons = document.querySelectorAll('.status-toggle-btn');
+
+            // 1. Count courses
+            const totalCourses = blocks.length;
+
+            // 2. Count drafts / published
+            let draftCount = 0;
+            let publishedCount = 0;
+
+            statusButtons.forEach(btn => {
+                const status = btn.dataset.status;
+
+                if (status === 'draft') draftCount++;
+                if (status === 'published') publishedCount++;
+            });
+
+            // 3. Update global toggle button
+            const globalBtn = document.querySelector('.btn-global-toggle');
+
+            if (globalBtn) {
+                if (draftCount > 0) {
+                    globalBtn.innerText = `🚀 Publish All (${draftCount} drafts)`;
+                    globalBtn.style.background = "#34495e";
+                } else {
+                    globalBtn.innerText = `📂 Move All to Draft (${publishedCount} published)`;
+                    globalBtn.style.background = "#27ae60";
+                }
+            }
+
+            // 4. Update counters (if you add them in UI)
+            const totalEl = document.querySelector('#total-courses');
+            if (totalEl) totalEl.innerText = totalCourses;
+
+            const draftEl = document.querySelector('#draft-count');
+            if (draftEl) draftEl.innerText = draftCount;
+
+            const publishedEl = document.querySelector('#published-count');
+            if (publishedEl) publishedEl.innerText = publishedCount;
+
+            updateGlobalButtonUI();
+        }
         // Global UI helper to sync the "Big Switch" (Optional but good for consistency)
         function updateGlobalButtonUI() {
             const globalBtn = document.querySelector('.btn-global-toggle');
@@ -293,6 +351,10 @@
 
         // Run it on load to set the initial state of the Big Switch
         document.addEventListener('DOMContentLoaded', updateGlobalButtonUI);
+
+
+
+
 
     </script>
 @endsection

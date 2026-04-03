@@ -61,20 +61,20 @@ Route::prefix('admin')
         });
 
         Route::get('preview', function () {
-            return (redirect()->route('admin.preview.years'));
+            return (redirect()->route('admin.preview.courses'));
         });
         Route::scopeBindings()->group(function () {
-            Route::get('preview/years', [previewcontroller::class, 'loadyears'])->name('preview.years');
-            Route::get('preview/years/{year}/courses', [previewcontroller::class, 'loadcourses'])->name('preview.courses');
-            Route::get('preview/years/{year}/branch/{branch}/courses', [previewcontroller::class, 'loadbackcourses'])->name('preview.backcourses');
-            Route::get('preview/years/{year}/courses/{course}/chapters', [previewcontroller::class, 'loadchapters'])->name('preview.chapters');
-            Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'loadlessons'])->name('preview.lessons');
-            Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'loadblocks'])->name('preview.blocks');
+
+            Route::get('preview/courses', [previewcontroller::class, 'loadcourses'])->name('preview.courses');
+            Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'loadbackcourses'])->name('preview.backcourses');
+            Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'loadchapters'])->name('preview.chapters');
+            Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'loadlessons'])->name('preview.lessons');
+            Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'loadblocks'])->name('preview.blocks');
 
         });
 
-        route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
-        route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+        route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
+        route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
     });
 
 
@@ -84,15 +84,15 @@ Route::prefix('user')
         Route::get('/main',[usercontroller::class,'main'])->name('main');
 
         Route::get('preview', function () {
-            return (redirect()->route('user.preview.years'));
+            return (redirect()->route('user.preview.courses'));
         });
         Route::scopeBindings()->group(function () {
-            Route::get('preview/years', [previewcontroller::class, 'user_loadyears'])->name('preview.years');
-            Route::get('preview/years/{year}/courses', [previewcontroller::class, 'user_loadcourses'])->name('preview.courses');
-            Route::get('preview/years/{year}/branch/{branch}/courses', [previewcontroller::class, 'user_loadbackcourses'])->name('preview.backcourses');
-            Route::get('preview/years/{year}/courses/{course}/chapters', [previewcontroller::class, 'user_loadchapters'])->name('preview.chapters');
-            Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'user_loadlessons'])->name('preview.lessons');
-            Route::get('preview/years/{year}/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'user_loadblocks'])->name('preview.blocks');
+            Route::get('preview', [previewcontroller::class, 'user_loadyears'])->name('preview.years');
+            Route::get('preview/courses', [previewcontroller::class, 'user_loadcourses'])->name('preview.courses');
+            Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'user_loadbackcourses'])->name('preview.backcourses');
+            Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'user_loadchapters'])->name('preview.chapters');
+            Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'user_loadlessons'])->name('preview.lessons');
+            Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'user_loadblocks'])->name('preview.blocks');
 
         });
 
