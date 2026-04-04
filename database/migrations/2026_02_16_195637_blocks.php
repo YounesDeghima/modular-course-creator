@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('lesson_id')->constrained()->onDelete('cascade');
 
-
-            $table->string('content')->nullable();
+            $table->text('content')->nullable();
             $table->integer('block_number');
             $table->enum('type',['header','description','note','code','exercise']);
 

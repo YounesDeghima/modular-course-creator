@@ -28,6 +28,14 @@
 }
 
 /* ── Navigation ── */
+
+.nav-box{
+
+    padding: 20px;
+    display: flex;
+
+    flex-direction: column;
+}
 .navigation {
     display: flex;
     align-items: center;
@@ -36,6 +44,7 @@
     color: var(--text-muted);
     margin-bottom: 20px;
     flex-wrap: wrap;
+
 }
 
 .navigation a {

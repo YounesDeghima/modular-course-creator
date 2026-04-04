@@ -13,7 +13,7 @@
 
 <body>
 <header>
-    <nav style="justify-content: space-between;">
+    <nav style="justify-content: space-between">
         <div class="nav-left">
             <img src="#" class="logo" alt="logo">
             <a href='{{route('admin.main')}}' data-item='Home'>Home</a>
@@ -38,7 +38,9 @@
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
                     </button>
-
+                    <form action="" method="post">
+                        <input type="submit" value="Delete user" name="delete-user" id="delete-user">
+                    </form>
                     <a href="{{route('login_page')}}" class="logout-btn">Logout</a>
                 </div>
             </div>
