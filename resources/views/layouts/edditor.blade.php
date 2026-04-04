@@ -73,13 +73,14 @@
 
 
 @yield('js')
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarContent = document.querySelector('.sidebar-content');
     const sidebar = document.querySelector('.side-bar');
 
     // Set correct initial state on load
-    sidebarContent.style.display = 'flex';
+
 
     sidebarToggle.addEventListener('click', () => {
         const isCollapsed = sidebar.classList.toggle('collapsed');
