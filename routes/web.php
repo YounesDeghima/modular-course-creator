@@ -37,6 +37,10 @@ Route::prefix('admin')
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
+        Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
+        Route::put('/users/{user}',    [admincontroller::class, 'updateUser'])->name('users.update');
+        Route::delete('/users/{user}', [admincontroller::class, 'destroyUser'])->name('users.destroy');
+
         Route::put('courses/toggle-everything', [coursecontroller::class, 'toggleEverything'])
             ->name('courses.toggle-everything');
 
@@ -81,6 +85,9 @@ Route::prefix('admin')
 Route::prefix('user')
     ->name('user.')
     ->group(function () {
+
+        Route::get('/home', [usercontroller::class, 'home'])->name('home');
+
         Route::get('/main',[usercontroller::class,'main'])->name('main');
 
         Route::get('preview', function () {
@@ -102,3 +109,4 @@ Route::prefix('user')
 
 
     });
+

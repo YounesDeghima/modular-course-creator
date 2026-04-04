@@ -125,7 +125,6 @@
     font-size: 15px;
     color: var(--text);
     line-height: 1.85;
-    white-space: pre-wrap;
 }
 
 /* ── Note block ── */

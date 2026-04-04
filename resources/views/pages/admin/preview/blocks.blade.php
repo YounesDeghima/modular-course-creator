@@ -1,186 +1,216 @@
 @extends('layouts.edditor')
 
 @section('css')
-    <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
-    <link rel="stylesheet" href="{{asset('css/block-page.css')}}">
-    <link rel="stylesheet" href="{{asset('css/preview.css')}}">
+    <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
+@endsection
+
+@section('sidebar-elements')
+    <div class="sb-course-head">
+        <div class="sb-course-label">Chapter</div>
+        <div class="sb-chapter-name">{{ $chapter->title }}</div>
+        <div class="sb-ch-progress">
+            <div class="sb-ch-prog-label">
+                <span>Chapter progress</span>
+                <span>{{ $chapter->progressForUser($id) }}%</span>
+            </div>
+            <div class="sb-ch-bar">
+                <div class="sb-ch-fill" style="width: {{ $chapter->progressForUser($id) }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="lesson-nav-list">
+        @foreach($chapter->lessons as $i => $lesson_item)
+            @if($lesson_item->status === 'published')
+                @php
+                    $lp = $lesson_item->progressForUser($id);
+                    $isDone = $lp && $lp->progress >= 90;
+                @endphp
+                <a class="lesson-nav-item {{ $lesson_item->id === $lesson->id ? 'active' : '' }}"
+                   href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson_item]) }}">
+                    <span class="lesson-nav-num">{{ $chapter->chapter_number }}.{{ $i+1 }}</span>
+                    <span class="lesson-nav-title">{{ $lesson_item->title }}</span>
+                    <span class="lesson-nav-check {{ $isDone ? 'lnc-done' : 'lnc-none' }}">
+                {{ $isDone ? '✓' : '' }}
+            </span>
+                </a>
+            @endif
+        @endforeach
+    </nav>
+
+    <div class="sb-lesson-nav">
+        @if($prevlesson)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">
+                ‹ Prev
+            </a>
+        @else
+            <span class="sb-nav-btn disabled">‹ Prev</span>
+        @endif
+
+        @if($nextlesson)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
+                Next ›
+            </a>
+        @else
+            <span class="sb-nav-btn disabled">Next ›</span>
+        @endif
+    </div>
 @endsection
 
 @section('navigation')
-
-
     <div class="navigation">
-
-
-        <a href="{{route('admin.preview.courses')}}">{{$course->year}}{{$course->branch}}</a>
-        <a>---></a>
-        <a href="{{route('admin.preview.chapters',['course'=>$course])}}">{{$chapter->title}}</a>
-        <a>---></a>
-        <a href="{{route('admin.preview.lessons',['course'=>$course,'chapter'=>$chapter])}}">{{$lesson->title}}</a>
+        <a href="{{ route('user.preview.courses') }}">{{ $course->year }}-{{ $course->branch }}</a>
+        <span>›</span>
+        <a href="{{ route('user.preview.chapters', ['course'=>$course]) }}">{{ $chapter->title }}</a>
+        <span>›</span>
+        <span style="color:var(--text);font-weight:500;">{{ $lesson->title }}</span>
     </div>
+
     <div class="lesson-complete">
         <label>
-
             <input class="completed_checkbox" type="checkbox" disabled
-                   @if($lesson_progress && $lesson_progress->progress >= 90)
-                       checked
-                @endif
-            >
-            Lesson Completed
+                   @if($lesson_progress && $lesson_progress->progress >= 90) checked @endif>
+            {{ ($lesson_progress && $lesson_progress->progress >= 90) ? 'Lesson completed ✓' : 'Complete by scrolling to the end' }}
         </label>
     </div>
-
 @endsection
 
 @section('main')
     <div id="scroll-progress"></div>
+
     <div class="lesson-wrapper">
-
         @if($prevlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson])}}><</a></div>
+            <div class="nav-button">
+                <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
+            </div>
         @endif
-        <div class="blocks-container" id="blocks-container">
 
-
+        <div class="blocks-container">
             <div class="preview" id="preview">
                 @foreach($blocks as $block)
                     @switch($block->type)
                         @case('header')
-                            <h1>{{$block->content}}</h1>
+                            <h1>{{ $block->content }}</h1>
                             @break
+
                         @case('description')
-                            <p>{{$block->content}}</p>
+                            <p>{{ $block->content }}</p>
                             @break
-                        @case('code')
-                            <pre><code >{{$block->content}}</code></pre>
-                            @break
+
                         @case('note')
-                            <div class="note">{{$block->content}}</div>
+                            <div class="note">{{ $block->content }}</div>
                             @break
+
+                        @case('code')
+                            <pre><code>{{ $block->content }}</code></pre>
+                            @break
+
                         @case('exercise')
                             <div class="exercise">
-                                <strong>Q: {{$block->content}}</strong>
-                                <button class="toggle-solution" data-blockid="{{$block->id}}">show solution</button>
-
-                                @if(count($block->solutions)==0)
-                                    <div class="solution solution-{{$block->id}}" >there is nothing here yet</div>
+                                <strong>{{ $block->content }}</strong>
+                                <button class="toggle-solution" data-blockid="{{ $block->id }}">
+                                    Show solution
+                                </button>
+                                @if(count($block->solutions) === 0)
+                                    <div class="solution solution-{{ $block->id }}">No solution added yet.</div>
                                 @else
                                     @foreach($block->solutions as $solution)
-                                        <div class="solution solution-{{$block->id}}">{{$solution->content}}</div>
+                                        <div class="solution solution-{{ $block->id }}">{{ $solution->content }}</div>
                                     @endforeach
                                 @endif
-
                             </div>
+                            @break
                     @endswitch
                 @endforeach
             </div>
-
         </div>
+
         @if($nextlesson)
-            <div class="nav-button"><a href={{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson])}}>></a></div>
+            <div class="nav-button">
+                <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">›</a>
+            </div>
         @endif
     </div>
-    <form id="progress-form" method="POST" action="{{ route('user.lesson.progress.store',['lesson'=>$lesson])}}" style="display: none;">
+
+    <form id="progress-form" method="POST"
+          action="{{ route('user.lesson.progress.store', ['lesson'=>$lesson]) }}"
+          style="display:none;">
         @csrf
-
-        <input type="hidden" name="lesson_id" value="{{ $lesson->id ?? '' }}">
-
-        <input type="hidden" name="progress" id="progress-input" value="{{$lesson_progress ? $lesson_progress->progress : 0}}">
+        <input type="hidden" name="lesson_id" value="{{ $lesson->id }}">
+        <input type="hidden" name="progress" id="progress-input"
+               value="{{ $lesson_progress ? $lesson_progress->progress : 0 }}">
         <button type="submit">Send</button>
     </form>
-
 @endsection
-
 
 @section('js')
     <script>
+        // ── Solution toggle ──
+        document.querySelectorAll('.toggle-solution').forEach(btn => {
+            const blockId   = btn.dataset.blockid;
+            const solutions = document.querySelectorAll(`.solution-${blockId}`);
+            solutions.forEach(s => s.style.display = 'none');
 
-
-        let solutionbuttons = document.querySelectorAll('.toggle-solution');
-        solutionbuttons.forEach(button => {
-            let blockid = button.dataset.blockid;
-            let solutions = document.querySelectorAll(`.solution-${blockid}`);
-
-            solutions.forEach(solution => {
-                    solution.style.display = 'none';
-                }
-            )
-
-            button.addEventListener('click', () => {
-                let first_solution = solutions[0];
-                let ishidden = first_solution.style.display === 'none';
-                let display = ishidden ? 'block' : 'none';
-
-                console.log(solutions);
-
-                solutions.forEach(solution => {
-                    solution.style.display = display;
-                });
-                button.textContent = ishidden ? 'hide solution' : 'show solution';
+            btn.addEventListener('click', () => {
+                const hidden = solutions[0].style.display === 'none';
+                solutions.forEach(s => s.style.display = hidden ? 'block' : 'none');
+                btn.textContent = hidden ? 'Hide solution' : 'Show solution';
+                btn.classList.toggle('revealed', hidden);
             });
-
         });
 
-        let maxProgress = 0;
-        let completedcheckbox = document.querySelector('.completed_checkbox');
-        let sent = completedcheckbox.checked;
-
-        let main = document.querySelector('main')
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const COURSE_ID = "{{ $course->id }}";
-            const LESSON_ID = "{{ $lesson->id }}";
-            const MAIN_SCROLL_KEY = `mainScroll_${COURSE_ID}_${LESSON_ID}`;
-            const mainContainer = document.querySelector('main');
-
-            // Restore
-            const savedMainScroll = localStorage.getItem(MAIN_SCROLL_KEY);
-            if (savedMainScroll !== null && mainContainer) {
-                mainContainer.scrollTop = parseInt(savedMainScroll, 10);
-            }
-
-            // Save
-            if (mainContainer) {
-                mainContainer.addEventListener('scroll', () => {
-                    localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+        // ── Copy code buttons ──
+        document.querySelectorAll('.preview pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-code-btn';
+            btn.textContent = 'Copy';
+            pre.style.position = 'relative';
+            pre.appendChild(btn);
+            btn.addEventListener('click', () => {
+                const code = pre.querySelector('code');
+                navigator.clipboard.writeText(code.innerText).then(() => {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy', 2000);
                 });
-            }
+            });
+        });
 
-        })
-
-
-
+        // ── Scroll progress + lesson completion ──
+        let maxProgress = 0;
+        let sent = document.querySelector('.completed_checkbox').checked;
+        const main = document.querySelector('main');
 
         main.addEventListener('scroll', () => {
-            const scrollTop = main.scrollTop;
-            const scrollHeight = main.scrollHeight;
-            const clientHeight = main.clientHeight;
-
-            const scrollable = scrollHeight - clientHeight;
-
+            const scrollable = main.scrollHeight - main.clientHeight;
             if (scrollable <= 0) return;
 
-            const progress = (scrollTop / scrollable) * 100;
+            const progress = (main.scrollTop / scrollable) * 100;
 
-            console.log(progress.toFixed(2) + '%');
-
-            // update progress bar
             if (progress > maxProgress) {
                 maxProgress = progress;
                 document.getElementById('scroll-progress').style.width = maxProgress + '%';
             }
 
-            // send when reaching 90%
             if (maxProgress >= 90 && !sent) {
                 sent = true;
-
                 document.getElementById('progress-input').value = Math.round(maxProgress);
                 document.getElementById('progress-form').submit();
             }
         });
 
-
-
+        // ── Restore scroll position ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const key   = `lessonScroll_{{ $lesson->id }}`;
+            const saved = localStorage.getItem(key);
+            if (saved && main) main.scrollTop = parseInt(saved);
+            if (main) {
+                main.addEventListener('scroll', () => {
+                    localStorage.setItem(key, main.scrollTop);
+                });
+            }
+        });
     </script>
 @endsection
-
