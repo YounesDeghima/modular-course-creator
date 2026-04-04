@@ -58,7 +58,7 @@ class usercontroller extends Controller
             elseif ($progress > 0) $inProgress++;
         }
 
-        return view('pages.admin.preview.homepage', [
+        return view('pages.user.homepage', [
             'name'       => $user->name,
             'last_name'  => $user->last_name,
             'email'      => $user->email,

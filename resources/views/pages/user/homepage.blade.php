@@ -1,4 +1,4 @@
-@extends('layouts.edditor')
+@extends('layouts.user-base')
 
 @section('css')
     <style>
@@ -179,7 +179,7 @@
         <div>
             <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px;">Navigate</div>
             <div style="display:flex;flex-direction:column;gap:3px;">
-                <a href="{{ route('admin.preview.courses') }}"
+                <a href="{{ route('user.preview.courses') }}"
                    style="padding:7px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:background .13s;"
                    onmouseover="this.style.background='var(--bg-hover)'"
                    onmouseout="this.style.background=''">
@@ -222,7 +222,7 @@
         <span class="section-title">Quick access</span>
     </div>
     <div class="feature-grid">
-        <a class="feature-card" href="{{ route('admin.preview.courses') }}">
+        <a class="feature-card" href="{{ route('user.preview.courses') }}">
             <div class="feat-icon" style="background:#EEEDFE;">📚</div>
             <div class="feat-title">Courses</div>
             <div class="feat-desc">Browse all published courses</div>
@@ -252,7 +252,7 @@
     {{-- Course cards --}}
     <div class="section-head" style="margin-top:8px;">
         <span class="section-title">Continue learning</span>
-        <a class="see-all" href="{{ route('admin.preview.courses') }}">See all ›</a>
+        <a class="see-all" href="{{ route('user.preview.courses') }}">See all ›</a>
     </div>
 
     <div class="course-grid">
@@ -262,7 +262,7 @@
                 $isDone   = $progress == 100;
             @endphp
             <a class="course-card"
-               href="{{ route('admin.preview.chapters', ['course' => $course->id]) }}">
+               href="{{ route('user.preview.chapters', ['course' => $course->id]) }}">
                 <div class="cc-top">
                     <span class="cc-title">{{ $course->title }}</span>
                     <span class="y-badge year-{{ $course->year }}">Y{{ $course->year }}</span>
