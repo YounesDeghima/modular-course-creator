@@ -10,18 +10,18 @@ use App\Models\Lesson;
 
 class admincontroller extends Controller
 {
-    public function dashboard()
-    {
-        $admin = Auth::user();
-        $users = User::all();
-
-        return view('pages.admin.dashboard', [
-            'users' => $users,
-            'name'  => $admin->name,
-            'email' => $admin->email,
-            'id'    => $admin->id,
-        ]);
-    }
+//    public function dashboard()
+//    {
+//        $admin = Auth::user();
+//        $users = User::all();
+//
+//        return view('pages.admin.dashboard', [
+//            'users' => $users,
+//            'name'  => $admin->name,
+//            'email' => $admin->email,
+//            'id'    => $admin->id,
+//        ]);
+//    }
 
     public function main()
     {
@@ -43,4 +43,20 @@ class admincontroller extends Controller
             'recentUsers'  => User::latest()->take(5)->get(),
         ]);
     }
+    public function dashboard()
+    {
+        $admin = Auth::user();
+        $users = User::orderBy('created_at', 'desc')->get();
+
+        return view('pages.admin.dashboard', [
+            'users'      => $users,
+            'name'       => $admin->name,
+            'email'      => $admin->email,
+            'id'         => $admin->id,
+            'totalUsers' => $users->count(),
+            'totalAdmins'=> $users->where('role', 'admin')->count(),
+            'totalStudents' => $users->where('role', 'user')->count(),
+        ]);
+    }
+
 }
