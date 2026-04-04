@@ -1,18 +1,5 @@
-main{
-    display: flex;
 
-}
-.nav-button
-{
-    position: sticky;
-}
-main{
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    margin-left: 220px;
 
-}
 
 .navigation{
     align-self: flex-start;
