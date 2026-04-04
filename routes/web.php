@@ -81,6 +81,9 @@ Route::prefix('admin')
 Route::prefix('user')
     ->name('user.')
     ->group(function () {
+
+        Route::get('/home', [usercontroller::class, 'home'])->name('home');
+
         Route::get('/main',[usercontroller::class,'main'])->name('main');
 
         Route::get('preview', function () {
@@ -102,3 +105,4 @@ Route::prefix('user')
 
 
     });
+
