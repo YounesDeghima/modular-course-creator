@@ -164,6 +164,14 @@
     overflow-x: auto;
     white-space: pre;
     tab-size: 4;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    /* Ensures standard wrapping behavior */
+    white-space: normal;
+
+    /* Hides the horizontal scroll if it tries to appear */
+    overflow-x: hidden;
 }
 
 /* Code block header */
