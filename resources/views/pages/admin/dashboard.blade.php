@@ -287,6 +287,7 @@
 @endsection
 
 @section('js')
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] =
             document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -373,7 +374,7 @@
         });
 
         // ── Role filter ──
-        document.querySelectorAll('[data-role]').forEach(btn => {
+        document.querySelectorAll('.sb-filter-btn[data-role]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');

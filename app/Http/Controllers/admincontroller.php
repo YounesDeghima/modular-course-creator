@@ -59,4 +59,44 @@ class admincontroller extends Controller
         ]);
     }
 
+    public function storeUser(Request $request)
+    {
+        $request->validate([
+            'name'      => 'required|string',
+            'last_name' => 'required|string',
+            'email'     => 'required|email|unique:users',
+            'password'  => 'required|min:6',
+            'role'      => 'required|in:admin,user',
+        ]);
+
+        $user = User::create([
+            'name'      => $request->name,
+            'last_name' => $request->last_name,
+            'email'     => $request->email,
+            'password'  => bcrypt($request->password),
+            'role'      => $request->role,
+        ]);
+
+        return response()->json($user);
+    }
+
+    public function updateUser(Request $request, User $user)
+    {
+        $request->validate([
+            'name'      => 'required|string',
+            'last_name' => 'required|string',
+            'email'     => 'required|email|unique:users,email,' . $user->id,
+            'role'      => 'required|in:admin,user',
+        ]);
+
+        $user->update($request->only('name', 'last_name', 'email', 'role'));
+        return response()->json($user);
+    }
+
+    public function destroyUser(User $user)
+    {
+        $user->delete();
+        return response()->json(['ok' => true]);
+    }
+
 }
