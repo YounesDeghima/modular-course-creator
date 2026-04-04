@@ -312,6 +312,7 @@
 
                             <div class="form-group">
                                 <label >Chapter Number</label>
+
                                 <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
                             </div>
 
@@ -718,6 +719,9 @@
             const courseId = "{{ $course->id }}"; // Blade variable
 
             // 1. Immediate UI Feedback (Oogabooga speed)
+            const chapterNumber = btn.closest('.chapter-group')
+                .querySelector('input[name="chapter_number"]')?.value;
+
             updateButtonUI(btn, newStatus);
 
             // 2. Send to Server
@@ -725,6 +729,7 @@
                 status: newStatus,
                 title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
                 description: "Updated via toggle",
+                chapter_number: chapterNumber
             })
                 .then(() => {
                     checkMasterToggle();
