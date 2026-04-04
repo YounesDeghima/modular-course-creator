@@ -153,6 +153,28 @@
             document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 
+        const addBtn = document.getElementById('block-adder');
+        const popup = document.getElementById('block-popup');
+        const closeBtn = document.getElementById('close-popup');
+
+        // Show popup
+        addBtn.addEventListener('click', () => {
+            popup.style.display = 'block';
+        });
+
+        // Hide popup
+        closeBtn.addEventListener('click', () => {
+            popup.style.display = 'none';
+        });
+
+        // Optional: click outside to close
+        window.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                popup.style.display = 'none';
+            }
+        });
+
+
         document.querySelectorAll('.update-form').forEach(form => {
             const year = form.querySelector('.year-input');
             const branch = form.querySelector('.branch-input');
