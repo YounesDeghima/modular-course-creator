@@ -310,7 +310,7 @@
                                 <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
                             </div>
 
-                            <div class="form-group" style="visibility: hidden">
+                            <div class="form-group">
                                 <label >Chapter Number</label>
                                 <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
                             </div>
