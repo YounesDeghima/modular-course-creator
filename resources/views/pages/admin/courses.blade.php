@@ -186,9 +186,19 @@
 @endsection
 
 @section('js')
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] =
             document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        const adder = document.getElementById('block-popup');
+        const openBtn = document.getElementById('open-popup-btn');
+        const closeBtn = document.getElementById('close-popup');
+
+        openBtn.addEventListener('click', () => {
+            adder.style.visibility = 'visible';
+            adder.style.opacity = 1;
+        });
 
         // ── Branch visibility per form ──
         document.querySelectorAll('.update-form').forEach(form => {

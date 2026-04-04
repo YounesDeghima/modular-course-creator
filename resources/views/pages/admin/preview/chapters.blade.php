@@ -19,6 +19,12 @@
     </div>
 
     @foreach($chapters as $i => $chapter)
+        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" onsubmit="return confirmReset()" style="display:inline;">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit">Reset chapter progress</button>
+        </form>
         <div style="margin-bottom: 32px;">
             <div class="ch-main-header">
                 <h2 class="ch-main-title">Chapter {{ $i+1 }} — {{ $chapter->title }}</h2>
@@ -53,7 +59,7 @@
         <div class="sb-overall-progress">
             <div class="sb-progress-label">
                 <span>Overall progress</span>
-                <span id="overall-pct">0%</span>
+                <span id="overall-pct">{{$chapter->progressForUser($id)}}%</span>
             </div>
             <div class="sb-progress-bar">
                 <div class="sb-progress-fill" id="overall-fill"></div>

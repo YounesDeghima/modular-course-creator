@@ -481,10 +481,11 @@
             // Auto-resize textareas based on content
             function initAutoResize() {
                 document.querySelectorAll('textarea.input-ghost').forEach(el => {
-                    // Force recalculation AFTER render
                     requestAnimationFrame(() => {
-                        el.style.height = 'auto';
-                        el.style.height = el.scrollHeight + 'px';
+                        requestAnimationFrame(() => {
+                            el.style.height = 'auto';
+                            el.style.height = el.scrollHeight + 'px';
+                        });
                     });
                 });
             }

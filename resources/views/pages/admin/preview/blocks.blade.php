@@ -129,7 +129,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const COURSE_ID = "{{ $course->id }}";
-            const MAIN_SCROLL_KEY = `mainScroll_${COURSE_ID}`;
+            const LESSON_ID = "{{ $lesson->id }}";
+            const MAIN_SCROLL_KEY = `mainScroll_${COURSE_ID}_${LESSON_ID}`;
             const mainContainer = document.querySelector('main');
 
             // Restore
