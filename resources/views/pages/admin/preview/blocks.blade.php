@@ -124,9 +124,12 @@
         let maxProgress = 0;
         let sent = false;
 
-        window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+        const main = document.querySelector('main');
+        main.addEventListener('scroll', () => {
+
+            const scrollTop = main.scrollY;
+            const docHeight = document.documentElement.scrollHeight - main.innerHeight;
             if (docHeight <= 0) return;
 
             const progress = (scrollTop / docHeight) * 100;

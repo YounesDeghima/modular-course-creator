@@ -1,0 +1,330 @@
+/* ══ Admin courses page ══ */
+
+.admin-sb-section {
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-sb-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-faint);
+    padding: 0 4px;
+    margin-bottom: 2px;
+}
+
+.admin-sb-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+}
+
+/* Stat items */
+.admin-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    color: var(--text-muted);
+}
+
+.admin-stat-val { font-weight: 500; color: var(--text); }
+
+/* Sidebar filter buttons */
+.admin-filter-btn {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    background: none;
+    border: 0.5px solid transparent;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .13s, color .13s;
+}
+
+.admin-filter-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+.admin-filter-btn.active {
+    background: var(--bg-hover);
+    color: var(--text);
+    font-weight: 500;
+    border-color: var(--border);
+}
+
+/* New course button in sidebar */
+.admin-new-btn {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+    text-align: center;
+}
+
+.admin-new-btn:hover { background: var(--accent-hover); }
+
+/* Global toggle */
+.btn-global-toggle {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: none;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background .15s;
+    text-align: left;
+}
+
+.btn-global-toggle:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ── Admin main area ── */
+.admin-main-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.admin-main-top h2 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* Course cards grid */
+.blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color .15s;
+}
+
+.block:hover { border-color: var(--accent); }
+
+/* Info rows */
+.info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.info-row label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-faint);
+}
+
+.value-input {
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 9px;
+    width: 100%;
+    font-family: inherit;
+    resize: none;
+    transition: border-color .15s;
+}
+
+.value-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg);
+}
+
+input[type="submit"].value-input {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    cursor: pointer;
+    font-weight: 500;
+    visibility: hidden; /* shown by JS when changed */
+}
+
+input[type="submit"].value-input:hover { background: var(--accent-hover); }
+
+.year-input, .branch-input {
+    font-size: 12px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-subtle);
+    color: var(--text);
+    cursor: pointer;
+    width: 100%;
+    font-family: inherit;
+}
+
+/* Card top meta row */
+.block-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* Status toggle pill */
+.status-toggle-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    transition: filter .15s;
+    flex-shrink: 0;
+}
+
+.status-toggle-btn.published { background: #d1fae5; color: #065f46; }
+.status-toggle-btn.draft     { background: #f3f4f6; color: #6b7280; }
+.status-toggle-btn:hover     { filter: brightness(.93); }
+
+[data-theme="dark"] .status-toggle-btn.published { background: #064e3b; color: #6ee7b7; }
+[data-theme="dark"] .status-toggle-btn.draft     { background: #2a2a2a; color: #9ca3af; }
+
+/* Card actions footer */
+.block-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-card-action {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background .13s, color .13s;
+    text-decoration: none;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.btn-card-action:hover { background: var(--bg-hover); color: var(--text); }
+
+.btn-card-action.danger { color: #ef4444; border-color: #fca5a5; }
+.btn-card-action.danger:hover { background: #fff5f5; }
+
+[data-theme="dark"] .btn-card-action.danger { color: #f87171; border-color: #7f1d1d; }
+[data-theme="dark"] .btn-card-action.danger:hover { background: #2a0f0f; }
+
+/* New course popup/modal */
+.block-adder { margin-bottom: 20px; }
+
+#block-popup {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 440px;
+    box-shadow: 0 8px 24px var(--shadow);
+    margin-top: 10px;
+}
+
+#block-popup.open { display: flex; }
+
+#block-popup label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-faint);
+    display: block;
+    margin-bottom: 4px;
+}
+
+#block-popup input,
+#block-popup textarea,
+#block-popup select {
+    width: 100%;
+    font-size: 13px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg-subtle);
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+    resize: none;
+}
+
+#block-popup input:focus,
+#block-popup textarea:focus,
+#block-popup select:focus { border-color: var(--accent); background: var(--bg); }
+
+#block-popup button[type="submit"] {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+#block-popup button[type="submit"]:hover { background: var(--accent-hover); }
+
+#block-popup #close-popup {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+#block-popup #close-popup:hover { background: var(--bg-hover); }

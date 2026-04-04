@@ -12,51 +12,80 @@
     </div>
 @endsection
 @section('main')
-
-    <div class="blocks-container" id="blocks-container">
-
-
-        <div class="chapters-container">
-            <ol class="chapters">
-                @foreach($chapters as $chapter)
-
-
-                    <li>
-                        <form action="{{ route('user.chapter.progress.destroy',['chapter'=>$chapter,'progress'=>$chapter->progressForUser($id)]) }}" method="POST" onsubmit="return confirmReset()" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-
-                            <button type="submit">Reset chapter progress</button>
-                        </form>
-                        <a href="{{route('admin.preview.lessons',['course'=>$course,'chapter'=>$chapter])}}">{{$chapter->title}}</a>
-
-                        <div class="chapter-progress-bar">
-                            <div class="chapter-progress-fill"
-                                 data-progress="{{ $chapter->progressForUser($id) }}">
-                            </div>
-                        </div>
-
-                        <ol class="lessons">
-                            @foreach($chapter->lessons as $lesson)
-                                @if($lesson->status=='published')
-
-                                    @if($lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90)
-
-                                        <li><a style="color: #2ecc71" href="{{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
-                                    @else
-                                        <li><a href="{{route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson])}}">{{$lesson->title}}</a></li>
-                                    @endif
-
-                                @endif
-                            @endforeach
-                        </ol>
-                    </li>
-                @endforeach
-            </ol>
-        </div>
-
+    <div class="breadcrumb">
+        <a href="{{ route('admin.preview.courses') }}">Courses</a>
+        <span class="sep">›</span>
+        <span class="current">{{ $course->year }}-{{ $course->branch }}</span>
     </div>
 
+    @foreach($chapters as $i => $chapter)
+        <div style="margin-bottom: 32px;">
+            <div class="ch-main-header">
+                <h2 class="ch-main-title">Chapter {{ $i+1 }} — {{ $chapter->title }}</h2>
+                <span class="ch-progress-badge" id="ch-badge-{{ $chapter->id }}">
+            {{ $chapter->progressForUser($id) }}% complete
+        </span>
+            </div>
+
+            <div class="lessons-grid">
+                @foreach($chapter->lessons as $j => $lesson)
+                    @if($lesson->status == 'published')
+                        @php $done = $lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90; @endphp
+                        <a class="lesson-card {{ $done ? 'done' : '' }}"
+                           href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
+                            <span class="lc-num">{{ ($i+1) }}.{{ ($j+1) }}</span>
+                            <span class="lc-title">{{ $lesson->title }}</span>
+                            <span class="lc-check {{ $done ? 'check-done' : 'check-none' }}">
+                    {{ $done ? '✓' : '' }}
+                </span>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+@endsection
+
+@section('sidebar-elements')
+    <div class="sb-course-head">
+        <div class="sb-course-label">Course</div>
+        <div class="sb-course-name">{{ $course->title }}</div>
+        <div class="sb-overall-progress">
+            <div class="sb-progress-label">
+                <span>Overall progress</span>
+                <span id="overall-pct">0%</span>
+            </div>
+            <div class="sb-progress-bar">
+                <div class="sb-progress-fill" id="overall-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="chapters-nav">
+        @foreach($chapters as $i => $chapter)
+            <div class="ch-nav-item">
+                <a class="ch-nav-row {{ request()->route('chapter') == $chapter->id ? 'active' : '' }}"
+                   href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$chapter]) }}">
+                    <span class="ch-nav-num">{{ str_pad($i+1, 2, '0', STR_PAD_LEFT) }}</span>
+                    <span class="ch-nav-title">{{ $chapter->title }}</span>
+                    <span class="ch-nav-dot
+                {{ $chapter->progressForUser($id) == 100 ? 'dot-done' :
+                  ($chapter->progressForUser($id) > 0 ? 'dot-partial' : 'dot-none') }}">
+            </span>
+                </a>
+                <div class="ls-nav-list">
+                    @foreach($chapter->lessons as $j => $lesson)
+                        @if($lesson->status == 'published')
+                            <a class="ls-nav-item {{ $lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90 ? 'done' : '' }}"
+                               href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
+                                {{ ($i+1) }}.{{ ($j+1) }} {{ $lesson->title }}
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @endforeach
+    </nav>
 @endsection
 
 
