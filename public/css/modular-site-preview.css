@@ -239,126 +239,155 @@
 
 /* Sidebar course info */
 .sb-course-head {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
+    padding: 20px 16px;
+    background: linear-gradient(to bottom, var(--bg-subtle), transparent);
+    border-bottom: 1px solid var(--border-mid);
     flex-shrink: 0;
+    margin-bottom: 10px;
 }
 
+/* Add a small "University" or "E-Learning" icon style label */
 .sb-course-label {
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 9px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--text-faint);
-    margin-bottom: 3px;
+    letter-spacing: 0.1em;
+    color: var(--accent); /* Use your theme color for the label */
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sb-course-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
 }
 
 .sb-course-name {
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px; /* Bigger and bolder */
+    font-weight: 600;
     color: var(--text);
-    white-space: nowrap;
+    line-height: 1.4;
+    white-space: normal; /* Allow it to wrap to 2 lines if needed */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
+/* Overall Progress Section */
 .sb-overall-progress {
-    margin-top: 10px;
+    margin-top: 16px;
+    padding: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .sb-progress-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-faint);
-    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+#overall-pct {
+    color: var(--text);
+    font-family: monospace; /* Makes numbers look "pro" */
 }
 
 .sb-progress-bar {
-    height: 4px;
-    background: var(--border);
-    border-radius: 999px;
-    overflow: hidden;
+    height: 6px; /* Slightly thicker */
+    background: var(--border-mid);
+    margin-top: 6px;
 }
 
+/* Add a glow to the progress fill */
 .sb-progress-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: var(--accent);
-    transition: width .6s ease;
+    box-shadow: 0 0 8px var(--accent);
+    position: relative;
 }
 
+/* Optional: Add a subtle shine effect to the bar */
+.sb-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
 /* Chapter list in sidebar */
-.chapters-nav { overflow-y: auto; flex: 1; }
+/* --- 1. Container Fix (The Sidebar) --- */
+.chapters-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* Forces children to fill full width */
+    width: 100%;
+    overflow-y: auto;
+    flex: 1;
+    padding: 0;
+}
 
+/* --- 2. Shared Row Styles (Chapters & Lessons) --- */
+.ch-nav-row, .ls-nav-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box; /* Padding won't break the width */
+    text-decoration: none;
+    transition: background 0.13s;
+    min-width: 0; /* CRITICAL: Allows flex children to shrink for ellipsis */
+}
+
+/* --- 3. Chapter Row Specifics --- */
 .ch-nav-item { border-bottom: 1px solid var(--border-mid); }
 
 .ch-nav-row {
-    display: flex;
-    align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    cursor: pointer;
-    transition: background .13s;
-    text-decoration: none;
-}
-
-.ch-nav-row:hover { background: var(--bg-hover); }
-.ch-nav-row.active { background: var(--bg-hover); }
-
-.ch-nav-num {
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-faint);
-    width: 18px;
-    flex-shrink: 0;
+    padding: 8px 12px;
 }
 
 .ch-nav-title {
+    flex: 1;             /* Take all available space */
     font-size: 12.5px;
     color: var(--text);
-    flex: 1;
     white-space: nowrap;
-    overflow: hidden;
+    overflow: hidden;    /* Fix: Change 'auto' to 'hidden' for ellipsis to work */
     text-overflow: ellipsis;
+    min-width: 0;        /* Required for the ellipsis trigger */
 }
 
-.ch-nav-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.dot-done    { background: #639922; }
-.dot-partial { background: var(--accent); }
-.dot-none    { background: var(--border); }
-
-/* Lessons nested in sidebar */
+/* --- 4. Lesson List Specifics --- */
 .ls-nav-list {
-    padding: 0 0 4px 30px;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    padding-left: 20px; /* Indent lessons */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ls-nav-item {
+    padding: 6px 12px;
     font-size: 11.5px;
-    padding: 4px 8px;
-    border-radius: 5px;
     color: var(--text-muted);
-    cursor: pointer;
-    transition: background .1s;
-    text-decoration: none;
-    display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;      /* Keep as flex for alignment */
+    align-items: center;
 }
 
-.ls-nav-item:hover { background: var(--bg-hover); color: var(--text); }
-.ls-nav-item.done  { color: #3B6D11; }
-.ls-nav-item.active { background: var(--bg-hover); color: var(--text); font-weight: 500; }
+/* --- 5. States --- */
+.ch-nav-row:hover, .ls-nav-item:hover, .active {
+    background: var(--bg-hover);
+}
+.ls-nav-item.active { color: var(--text); font-weight: 500; }
+.ls-nav-item.done { color: #3B6D11; }
 
 [data-theme="dark"] .ls-nav-item.done { color: #86efac; }
 
@@ -467,14 +496,14 @@
 .breadcrumb a:hover { color: var(--accent-hover); }
 .breadcrumb .sep { color: var(--text-faint); }
 .breadcrumb .current { color: var(--text); font-weight: 500; }
-.ch-nav-row,
-.ls-nav-list,
-.ch-nav-title,
-.ls-nav-item,
-.sb-course-name {
-    min-width: 0;
-    max-width: 100%;
-}
+/*.ch-nav-row,*/
+/*.ls-nav-list,*/
+/*.ch-nav-title,*/
+/*.ls-nav-item,*/
+/*.sb-course-name {*/
+/*    min-width: 0;*/
+/*    max-width: 100%;*/
+/*}*/
 
 .chapters-nav {
     overflow-y: auto;
@@ -494,3 +523,102 @@
 }
 
 #block-popup.open { display: flex; }
+
+/* --- Chapter Tiles --- */
+.ch-nav-item {
+    border-bottom: none; /* Remove the old line */
+    margin-bottom: 8px;   /* Space between tiles */
+}
+
+.ch-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;   /* Increased padding for "Bigger" feel */
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;   /* Rounded tile corners */
+    transition: all 0.2s ease;
+}
+
+.ch-nav-row:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.ch-nav-row.active {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Lesson Tiles --- */
+.ls-nav-list {
+    padding: 8px 0 8px 24px; /* More indent and vertical space */
+    gap: 6px;               /* Space between lesson tiles */
+}
+
+.ls-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border-mid);
+    border-radius: 6px;
+    font-size: 13px;        /* Slightly bigger text */
+    color: var(--text-muted);
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.15s;
+}
+
+.ls-nav-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.ls-nav-item.active {
+    background: var(--accent); /* A very light version of your accent color */
+    border-color: var(--accent);
+    color: var(--text);
+    font-weight: 600;
+}
+.ch-nav-title, .ls-nav-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0; /* Keeps the flex-box from expanding */
+}
+
+/* --- Custom Scrollbar Styling --- */
+
+/* 1. The width of the scrollbar */
+.chapters-nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+/* 2. The background (track) */
+.chapters-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* 3. The draggable handle (thumb) */
+.chapters-nav::-webkit-scrollbar-thumb {
+    background: var(--border-mid); /* Or use var(--accent) for a colored look */
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+/* 4. Handle on hover */
+.chapters-nav::-webkit-scrollbar-thumb:hover {
+    background: var(--text-faint);
+}
+
+/* Firefox Support */
+.chapters-nav {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-mid) transparent;
+}
