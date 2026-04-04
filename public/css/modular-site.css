@@ -12,6 +12,7 @@ body, main, .side-bar {
 .side-bar {
     width: 300px;
     min-width: 300px;
+
 }
 
 .side-bar.collapsed {
@@ -333,8 +334,8 @@ body, main, .side-bar {
     font-family: inherit;
     line-height: 1.65;
     color: var(--text);
-    min-height: 28px;
-    overflow: hidden;
+
+
 }
 
 .input-ghost::placeholder { color: var(--text-faint); }

@@ -75,6 +75,7 @@ class previewcontroller extends Controller
 
         $lessons = lesson::where('status','=','published')
             ->where('chapter_id','=',$chapter->id)
+            ->orderBy('lesson_number','asc')
             ->get();
 
         return view('pages.admin.preview.lessons',compact('course','chapter','lessons','name','email','id'));
@@ -98,10 +99,10 @@ class previewcontroller extends Controller
 
 
         $nextlesson = lesson::where('chapter_id','=',$chapter->id)
-            ->where('lesson_number','>',$lesson->lesson_number)
             ->where('status','=','published')
-            ->orderBy('lesson_number','asc')
+            ->orderBy('lesson_number','asc')->where('lesson_number','>',$lesson->lesson_number)
             ->first();
+
 
         $lesson_progress = $lesson->progressForUser($id);
 
@@ -165,6 +166,7 @@ class previewcontroller extends Controller
 
         $lessons = lesson::where('status','=','published')
             ->where('chapter_id','=',$chapter->id)
+            ->orderBy('lesson_number','asc')
             ->get();
 
         return view('pages.user.lessons',compact('course','chapter','lessons','name','email','id'));

@@ -177,7 +177,6 @@ class blockcontroller extends Controller
     {
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
             'type' => 'required|in:header,description,note,exercise,code',
             'content' => 'required|string',
             'block_number'=>'required|integer',
@@ -270,7 +269,7 @@ class blockcontroller extends Controller
 
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+
             'type' => 'required|in:header,description,note,exercise,code',
             'block_number'=>'required|integer',
             'content' => 'required|string',

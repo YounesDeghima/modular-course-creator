@@ -67,7 +67,9 @@
 
                                             @foreach($block->solutions as $solution)
                                                 <label>Solution</label>
-                                                <textarea name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
+                                                <textarea class="input-ghost content-style"
+                                                          oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"
+                                                          name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
                                             @endforeach
                                         </div>
 
@@ -123,10 +125,7 @@
                 <h3>Add New Content Block</h3>
                 <form method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}">
                     @csrf
-                    <div class="form-group">
-                        <label>Internal Name</label>
-                        <input class="modal-input" type="text" name="title" required>
-                    </div>
+
                     <div class="form-group">
                         <label>Block Type</label>
                         <select name="type" class="modal-input">
@@ -439,11 +438,14 @@
             }
 
 // Save
-            if (mainContainer) {
-                mainContainer.addEventListener('scroll', () => {
+            mainContainer.addEventListener('scroll', () => {
+                const now = Date.now();
+
+                if (now - lastSave > 50) { // every 50ms
                     localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
-                });
-            }
+                    lastSave = now;
+                }
+            });
 
             if (savedUrl) {
                 // 🔒 Ensure the saved lesson belongs to this course
@@ -479,8 +481,11 @@
             // Auto-resize textareas based on content
             function initAutoResize() {
                 document.querySelectorAll('textarea.input-ghost').forEach(el => {
-                    el.style.height = 'auto'; // Reset first
-                    el.style.height = el.scrollHeight + 'px';
+                    // Force recalculation AFTER render
+                    requestAnimationFrame(() => {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                    });
                 });
             }
 
@@ -515,7 +520,6 @@
 
 
             function loadLesson(url) {
-                const COURSE_ID = "{{ $course->id }}";
                 const mainContainer = document.querySelector('main');
                 mainContainer.style.opacity = '0.5';
 
@@ -530,13 +534,12 @@
                         mainContainer.innerHTML = html;
                         mainContainer.style.opacity = '1';
                         history.pushState(null, '', url);
+
+                        // ✅ FIX: reinitialize after DOM replacement
+                        initBlockEditor();   // this calls initAutoResize()
                     })
                     .catch(() => {
-                        console.warn('Invalid saved lesson. Clearing storage.');
-
-                        // 🔥 IMPORTANT: clear broken state
                         localStorage.removeItem('activeLessonUrl');
-
                         mainContainer.style.opacity = '1';
                     });
             }
@@ -597,6 +600,42 @@
             // --- 4. INITIALIZATION ---
             initBlockEditor();
             window.onpopstate = () => loadLesson(window.location.href);
+
+
+
+            document.addEventListener('click', function(e) {
+                const row = e.target.closest('.lesson-row');
+                if (!row) return;
+
+                const mainContainer = document.querySelector('main');
+
+                // ✅ FORCE save BEFORE navigation
+                if (mainContainer) {
+                    localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+                }
+            });
+
+            window.addEventListener('beforeunload', () => {
+                const mainContainer = document.querySelector('main');
+                if (mainContainer) {
+                    localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+                }
+
+                const sidebar = document.querySelector('.sidebar-content');
+                if (sidebar) {
+                    localStorage.setItem(SIDEBAR_SCROLL_KEY, sidebar.scrollTop);
+                }
+            });
+
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    const mainContainer = document.querySelector('main');
+                    if (mainContainer) {
+                        localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+                    }
+                }
+            });
 
 
         });
@@ -980,7 +1019,7 @@
                 // Question textarea (with preserved value)
                 const question = document.createElement('textarea');
                 question.name = `blocks[${blockId}][content]`;
-                question.classList.add('input-ghost', 'content-style');
+                question.classList.add('input-ghost','content-style');
                 question.rows = 1;
                 question.value = previousQuestionValue; // ✅ PRESERVED VALUE
 
