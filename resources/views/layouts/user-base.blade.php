@@ -13,13 +13,16 @@
 
 <body>
 <header>
-    <nav>
+    <nav style="justify-content: space-between;">
         <div class="nav-left">
             <img src="#" class="logo" alt="logo">
 
 
 
-            <a href="{{route('login_page')}}">logout</a>
+            {{--            <a href="{{route('login_page')}}">logout</a>--}}
+
+
+            <a href='{{route('user.home')}}' data-item='Home'>Home</a>
         </div>
 
         <div class="nav-right">
