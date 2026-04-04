@@ -122,21 +122,54 @@
         });
 
         let maxProgress = 0;
-        let sent = false;
+        let completedcheckbox = document.querySelector('.completed_checkbox');
+        let sent = completedcheckbox.checked;
 
-        window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            if (docHeight <= 0) return;
+        let main = document.querySelector('main')
 
-            const progress = (scrollTop / docHeight) * 100;
+        document.addEventListener('DOMContentLoaded', function() {
+            const COURSE_ID = "{{ $course->id }}";
+            const MAIN_SCROLL_KEY = `mainScroll_${COURSE_ID}`;
+            const mainContainer = document.querySelector('main');
+
+            // Restore
+            const savedMainScroll = localStorage.getItem(MAIN_SCROLL_KEY);
+            if (savedMainScroll !== null && mainContainer) {
+                mainContainer.scrollTop = parseInt(savedMainScroll, 10);
+            }
+
+            // Save
+            if (mainContainer) {
+                mainContainer.addEventListener('scroll', () => {
+                    localStorage.setItem(MAIN_SCROLL_KEY, mainContainer.scrollTop);
+                });
+            }
+
+        })
 
 
+
+
+        main.addEventListener('scroll', () => {
+            const scrollTop = main.scrollTop;
+            const scrollHeight = main.scrollHeight;
+            const clientHeight = main.clientHeight;
+
+            const scrollable = scrollHeight - clientHeight;
+
+            if (scrollable <= 0) return;
+
+            const progress = (scrollTop / scrollable) * 100;
+
+            console.log(progress.toFixed(2) + '%');
+
+            // update progress bar
             if (progress > maxProgress) {
                 maxProgress = progress;
                 document.getElementById('scroll-progress').style.width = maxProgress + '%';
             }
 
+            // send when reaching 90%
             if (maxProgress >= 90 && !sent) {
                 sent = true;
 

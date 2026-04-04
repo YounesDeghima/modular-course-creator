@@ -24,7 +24,8 @@ class chapter extends Model
 
     public function lessons()
     {
-        return $this->hasMany(Lesson::class);
+        return $this->hasMany(Lesson::class)
+            ->orderBy('lesson_number', 'asc');
     }
 
     public function progressForUser($userId)
