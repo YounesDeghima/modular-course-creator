@@ -61,24 +61,29 @@
 @endsection
 
 @section('navigation')
-    <div class="navigation">
-        <a href="{{ route('user.preview.courses') }}">{{ $course->year }}-{{ $course->branch }}</a>
-        <span>›</span>
-        <a href="{{ route('user.preview.chapters', ['course'=>$course]) }}">{{ $chapter->title }}</a>
-        <span>›</span>
-        <span style="color:var(--text);font-weight:500;">{{ $lesson->title }}</span>
-    </div>
+    <div class="nav-box">
 
-    <div class="lesson-complete">
-        <label>
-            <input class="completed_checkbox" type="checkbox" disabled
-                   @if($lesson_progress && $lesson_progress->progress >= 90) checked @endif>
-            {{ ($lesson_progress && $lesson_progress->progress >= 90) ? 'Lesson completed ✓' : 'Complete by scrolling to the end' }}
-        </label>
+
+        <div class="navigation">
+            <a href="{{ route('user.preview.courses') }}">{{ $course->year }}-{{ $course->branch }}</a>
+            <span>›</span>
+            <a href="{{ route('user.preview.chapters', ['course'=>$course]) }}">{{ $chapter->title }}</a>
+            <span>›</span>
+            <span style="color:var(--text);font-weight:500;">{{ $lesson->title }}</span>
+        </div>
+
+        <div class="lesson-complete">
+            <label>
+                <input class="completed_checkbox" type="checkbox" disabled
+                       @if($lesson_progress && $lesson_progress->progress >= 90) checked @endif>
+                {{ ($lesson_progress && $lesson_progress->progress >= 90) ? 'Lesson completed ✓' : 'Complete by scrolling to the end' }}
+            </label>
+        </div>
     </div>
 @endsection
 
 @section('main')
+
     <div id="scroll-progress"></div>
 
     <div class="lesson-wrapper">
