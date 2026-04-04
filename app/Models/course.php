@@ -45,6 +45,6 @@ class course extends Model
             }
         }
 
-        return ($completedLessons / $lessons->count()) * 100;
+        return round(($completedLessons / $lessons->count()) * 100);
     }
 }

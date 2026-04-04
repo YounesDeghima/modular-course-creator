@@ -1,0 +1,1332 @@
+{
+    "title": "AI",
+    "year": 3,
+    "branch": "mi",
+    "description": "AI",
+    "status": "published",
+    "chapters": [
+        {
+            "title": "Machine Learning",
+            "description": "Updated via toggle",
+            "chapter_number": 11,
+            "status": "published",
+            "lessons": [
+                {
+                    "title": "ML intro",
+                    "description": "Status update",
+                    "lesson_number": 1,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Machine Learning",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Machine Learning is a subfield of Artificial intelligence\r\n\r\n\"Learning machines to imitate human intelligence\"",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Machine Learning (ML)",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Traditional programming uses algorithms to produce results from data:",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Data + Algorithms = Results",
+                            "block_number": 5,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Neural Networks (NN)",
+                            "block_number": 6,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Neural Networks is:\r\n\r\n-A programming technique\r\n-A method used in machine learning\r\n-A software that learns from mistakes",
+                            "block_number": 7,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Neural Networks are based on how the human brain works:\r\nNeurons are sending messages to each other. While the neurons are trying to solve a problem (over and over again), it is strengthening the connections that lead to success and diminishing the connections that lead to failure.",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Perceptrons",
+                            "block_number": 9,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The Perceptron defines the first step into Neural Networks.",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "It represents a single neuron with only one input layer, and no hidden layers.",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Neural Networks",
+                            "block_number": 12,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Neural Networks are Multi-Layer Perceptrons.",
+                            "block_number": 13,
+                            "type": "description"
+                        },
+                        {
+                            "content": "In its simplest form, a neural network is made up from:\r\n\r\nAn input layer (yellow)\r\nA hidden layer (blue)\r\nAn output layer (red)",
+                            "block_number": 14,
+                            "type": "description"
+                        },
+                        {
+                            "content": "In the Neural Network Model, input data (yellow) are processed against a hidden layer (blue) before producing the final output (red).\r\n\r\nThe First Layer:\r\nThe yellow perceptrons are making simple decisions based on the input. Each single decision is sent to the perceptrons in the next layer.\r\n\r\nThe Second Layer:\r\nThe blue perceptrons are making decisions by weighing the results from the first layer. This layer make more complex decisions at a more abstract level than the first layer.",
+                            "block_number": 15,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Deep Neural Networks",
+                            "block_number": 16,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Deep Neural Networks are made up of several hidden layers of neural networks that perform complex operations on massive amounts of data.\r\n\r\nEach successive layer uses the preceding layer as input.\r\n\r\nFor instance, optical reading uses low layers to identify edges, and higher layers to identify letters.",
+                            "block_number": 17,
+                            "type": "description"
+                        },
+                        {
+                            "content": "In the Deep Neural Network Model, input data (yellow) are processed against a hidden layer (blue) and modified against more hidden layers (green) to produce the final output (red).\r\n\r\nThe First Layer:\r\nThe yellow perceptrons are making simple decisions based on the input. Each single decision is sent to the perceptrons in the next layer.\r\n\r\nThe Second Layer:\r\nThe blue perceptrons are making decisions by weighing the results from the first layer. This layer make more complex decisions at a more abstract level than the first layer.\r\n\r\nThe Third Layer:\r\nEven more complex decisions are made by the green perceptrons.",
+                            "block_number": 18,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Deep Learning (DL)",
+                            "block_number": 19,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Deep Learning is a subset of Machine Learning.\r\n\r\nDeep Learning is responsible for the AI boom of the last years.\r\n\r\nDeep learning is an advanced type of ML that handles complex tasks like image recognition.",
+                            "block_number": 20,
+                            "type": "description"
+                        }
+                    ]
+                },
+                {
+                    "title": "ML and AI",
+                    "description": "Status update",
+                    "lesson_number": 2,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Artificial Intelligence",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Artificial Intelligence\r\nIs a Contrast to\r\nHuman Intelligence",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "What is Artificial Intelligence?",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Artificial Intelligence suggest that machines can mimic humans in:\r\n\r\n-Talking\r\n-Thinking\r\n-Learning\r\n-Planning\r\n-Understanding\r\n\r\nArtificial Intelligence is also called Machine Intelligence and Computer Intelligence.",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Arthur Samuel 1959:\r\n\"Machine Learning is a subfield of computer science that gives computers the ability to learn without being programmed\"\r\n\r\nArthur Samuel, IBM Journal of Research and Development, Vol. 3, 1959.",
+                            "block_number": 5,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Wikipedia 2022:\r\nArtificial intelligence is intelligence demonstrated by machines. Unlike natural intelligence displayed by humans and animals, which involves consciousness and emotionality.",
+                            "block_number": 6,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Investopedia 2022:\r\nArtificial intelligence refers to the simulation of human intelligence in machines that are programmed to think like humans and mimic their actions.",
+                            "block_number": 7,
+                            "type": "note"
+                        },
+                        {
+                            "content": "IBM 2022:\r\nArtificial intelligence leverages computers and machines to mimic the problem-solving and decision-making capabilities of the human mind.",
+                            "block_number": 8,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Britannica 2022:\r\nArtificial intelligence is the ability of a digital computer or computer-controlled robot to perform tasks commonly associated with intelligent beings, .... such as the ability to reason, discover meaning, generalize, or learn from past experience.",
+                            "block_number": 9,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Artificial Intelligence (AI)",
+                            "block_number": 10,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Artificial Intelligence is a scientific discipline embracing several Data Science fields ranging from narrow AI to strong AI, including machine learning, deep learning, big data and data mining.",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Narrow AI",
+                            "block_number": 12,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Narrow Artificial Intelligence is limited to narrow (specific) areas like most of the AI we have around us today:\r\n\r\n-Email spam Filters\r\n-Text to Speech\r\n-Speech Recognition\r\n-Self Driving Cars\r\n-E-Payment\r\n-Google Maps\r\n-Text Autocorrect\r\n-Automated Translation\r\n-Chatbots\r\n-Social Media\r\n-Face Detection\r\n-Visual Perception\r\n-Search Algorithms\r\n-Robots\r\n-Automated Investment\r\n-NLP - Natural Language Processing\r\n-Flying Drones\r\n-IBM's Dr. Watson\r\n-Apple's Siri\r\n-Microsoft's Cortana\r\n-Amazon's Alexa\r\n-Netflix's Recommendations",
+                            "block_number": 13,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Narrow AI is also called Weak AI.\r\n\r\nWeak AI: Built to simulate human intelligence.\r\n\r\nStrong AI: Built to copy human intelligence.",
+                            "block_number": 14,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Strong AI",
+                            "block_number": 15,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Strong Artificial Intelligence is the type of AI that mimics human intelligence.\r\n\r\nStrong AI indicates the ability to think, plan, learn, and communicate.\r\n\r\nStrong AI is the theoretical next level of AI: True Intelligence.\r\n\r\nStrong AI moves towards machines with self-awareness, consciousness, and objective thoughts.",
+                            "block_number": 16,
+                            "type": "description"
+                        },
+                        {
+                            "content": "\u2714 One need not decide if a machine can \"think\".\r\nOne need only decide if a machine can act as intelligently as a human.\r\n\r\nAlan Turing",
+                            "block_number": 17,
+                            "type": "description"
+                        }
+                    ]
+                },
+                {
+                    "title": "ML Languages",
+                    "description": "Status update",
+                    "lesson_number": 3,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Machine Learning Languages",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Programming languages involved in Machine Learning and Artificial Intelligence are:\r\n\r\nLISP\r\nR\r\nPython\r\nC++\r\nJava\r\nJavaScript\r\nSQL",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "LISP",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "LISP is the second oldest programming language in the world (1958), one year younger than Fortran (1957).\r\n\r\nThe term Artificial Intelligence was made up by John McCarthy who invented LISP.\r\n\r\nLISP was founded on the theory of Recursive Functions (self modifying functions), and this is very suitable for Machine Learning programs where \"self-learning\" is an important part of the program.",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "The R Language",
+                            "block_number": 5,
+                            "type": "header"
+                        },
+                        {
+                            "content": "R is a programming language for Graphics and Statistical computing.\r\n\r\nR is supported by the R Foundation for Statistical Computing.\r\n\r\nR comes with a wide set of statistical and graphical techniques for:\r\n\r\nLinear Modeling\r\nNonlinear Modeling\r\nStatistical Tests\r\nTime-series Analysis\r\nClassification\r\nClustering",
+                            "block_number": 6,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Python",
+                            "block_number": 7,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Python is a general-purpose coding language. It can be used for all types of programming and software development.\r\n\r\nPython is typically used for server development, like building web apps for web servers.\r\n\r\nPython is also typically used in Data Science.\r\n\r\nAn advantage for using Python is that it comes with some very suitable libraries:\r\n\r\n-NumPy (Library for working with Arrays)\r\n-SciPy (Library for Statistical Science)\r\n-Matplotlib (Graph Plotting Library)\r\n-NLTK (Natural Language Toolkit)\r\n-TensorFlow (Machine Learning)",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "C++",
+                            "block_number": 9,
+                            "type": "header"
+                        },
+                        {
+                            "content": "C++ holds the title: \"The worlds fastest programming language\".\r\n\r\nBecause of the speed, C++ is a preferred language when programming Computer Games.\r\n\r\nIt provides faster execution and has less response time which is applied in search engines and development of computer games.\r\n\r\nGoogle uses C++ in Artificial Intelligence and Machine Learning programs for SEO (Search Engine Optimization).\r\n\r\nSHARK is a super-fast C++ library with support for supervised learning algorithms, linear regression, neural networks, and clustering.\r\n\r\nMLPACK is also a super-fast machine learning library for C++.",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "C++ holds the title: \"The worlds fastest programming language\".\r\n\r\nBecause of the speed, C++ is a preferred language when programming Computer Games.\r\n\r\nIt provides faster execution and has less response time which is applied in search engines and development of computer games.\r\n\r\nGoogle uses C++ in Artificial Intelligence and Machine Learning programs for SEO (Search Engine Optimization).\r\n\r\nSHARK is a super-fast C++ library with support for supervised learning algorithms, linear regression, neural networks, and clustering.\r\n\r\nMLPACK is also a super-fast machine learning library for C++.",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Java",
+                            "block_number": 12,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Java is another general-purpose coding language that can be used for all types of software development.\r\n\r\nFor Machine Learning, Java is mostly used to create algorithms, and neural networks.",
+                            "block_number": 13,
+                            "type": "description"
+                        },
+                        {
+                            "content": "SQL",
+                            "block_number": 14,
+                            "type": "header"
+                        },
+                        {
+                            "content": "SQL (Structured Query Language) is the most popular language for managing data.\r\n\r\nKnowledge of SQL databases, tables and queries helps data scientists when dealing with data.\r\n\r\nSQL is very convenient for storing, manipulating, and retrieving data in databases.",
+                            "block_number": 15,
+                            "type": "description"
+                        }
+                    ]
+                },
+                {
+                    "title": "ML JavaScript",
+                    "description": "Machine Learning in JavaScript",
+                    "lesson_number": 4,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Machine Learning in JavaScript",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Traditionally, Machine Learning applications are using R or Python.\r\n\r\nBut JavaScript has a great future as a Machine Learning language:\r\n\r\n-JavaScript is well known. All developers can use it.\r\n-Security is built in. JavaScript cannot access your files.\r\n-JavaScript is faster than Python.\r\n-JavaScript can use hardware acceleration.\r\n-JavaScript runs in the browser",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "JavaScript is Good for Machine Learning",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Machine Learning can be math-heavy. The nature of neural networks is highly technical, and the jargon that goes along with it tends to scare people away.\r\n\r\nThis is where JavaScript comes to help, with easy to understand software to simplifying the process of creating and training neural networks.\r\n\r\nWith new Machine Learning libraries, JavaScript developers can add Machine Learning and Artificial Intelligence to web applications.",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "JavaScript Machine Learning Libraries",
+                            "block_number": 5,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Machine Learning in the Browser means:\r\n\r\nMachine Learning in JavaScript\r\nMachine Learning for the Web\r\nMachine Learning for Everyone\r\nMachine Learning on more Platforms",
+                            "block_number": 6,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Advantages:",
+                            "block_number": 7,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Easy to use. Nothing to install.\r\nPowerful graphics. Browsers support WebGL.\r\nBetter privacy. Data can stay on the client.\r\nMore platforms. JavaScript runs on mobile devices.",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Brain.js",
+                            "block_number": 9,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Brain.js is a JavaScript library that makes it easy to understand Neural Networks because it hides the complexity of the mathematics.\r\n\r\nBrain.js is simple to use. You do not need to know neural networks in details to work with Brain.js.\r\n\r\nBrain.js provides multiple neural network implementations as different neural nets can be trained to do different things well.",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "ml5.js",
+                            "block_number": 11,
+                            "type": "header"
+                        },
+                        {
+                            "content": "ml5.js is trying to make machine learning more accessible to a wider audience.\r\n\r\nThe ml5 team is working to wrap machine learning functionality in friendlier ways.\r\n\r\nThe example below uses only three lines of code to classify an image:",
+                            "block_number": 12,
+                            "type": "description"
+                        },
+                        {
+                            "content": "<img id=\"myImage\" src=\"pic1.jpg\" width=\"100%\">\r\n\r\n<script>\r\nconst classifier = ml5.imageClassifier('MobileNet');\r\nclassifier.classify(document.getElementById(\"myImage\"), gotResult);\r\nfunction gotResult(error, results)\r\n{ ... }\r\n<\/script>",
+                            "block_number": 13,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Try substitute pic1.jpg with pic2.jpg, pic3.jpg and pic4.jpg.",
+                            "block_number": 14,
+                            "type": "description"
+                        },
+                        {
+                            "content": "TensorFlow",
+                            "block_number": 15,
+                            "type": "header"
+                        },
+                        {
+                            "content": "TensorFlow Playground is a web application written in d3.js.\r\n\r\nWith TensorFlow Playground you can learn about Neural Networks (NN) without math.\r\n\r\nIn your own Web Browser you can create a Neural Network and see the result.\r\n\r\nTensorFlow.js was previously called Tf.js and Deeplearn.js.",
+                            "block_number": 16,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Math in the Browser",
+                            "block_number": 17,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Math.js is an extensive math library for JavaScript and Node.js.\r\n\r\nMath.js is powerful and easy to use. It comes with a large set of built-in functions, a flexible expression parser, and solutions to work with many data types like numbers, big numbers, complex numbers, fractions, units, arrays, and matrices",
+                            "block_number": 18,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Plotting in the Browser",
+                            "block_number": 19,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Here is a list of some JavaScript libraries to use for both Machine Learning graphs and other HTML charts:\r\n\r\nHTML Canvas\r\nPlotly.js\r\nChart.js\r\nGoogle Chart\r\nD3.js",
+                            "block_number": 20,
+                            "type": "description"
+                        },
+                        {
+                            "content": "WebGL API",
+                            "block_number": 21,
+                            "type": "header"
+                        },
+                        {
+                            "content": "WebGL is a JavaScript API for rendering 2d and 3D graphics in any browser.\r\n\r\nWebGL can run on both integrated and standalone graphic cards in any PC.\r\n\r\nWebGL brings 3D graphics to the web browser. Major browser vendors Apple (Safari), Google (Chrome), Microsoft (Edge), and Mozilla (Firefox) are members of the WebGL Working Group.",
+                            "block_number": 22,
+                            "type": "description"
+                        }
+                    ]
+                },
+                {
+                    "title": "ML Perceptrons",
+                    "description": "ML Perceptrons",
+                    "lesson_number": 5,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Perceptrons",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A Perceptron is an Artificial Neuron.\r\n\r\nIt is the simplest possible Neural Network.\r\n\r\nNeural Networks are the building blocks of Machine Learning.",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Frank Rosenblatt",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Frank Rosenblatt (1928 \u2013 1971) was an American psychologist notable in the field of Artificial Intelligence.\r\n\r\nIn 1957 he started something really big. He \"invented\" a Perceptron program, on an IBM 704 computer at Cornell Aeronautical Laboratory.\r\n\r\nScientists had discovered that brain cells (Neurons) receive input from our senses by electrical signals.\r\n\r\nThe Neurons, then again, use electrical signals to store information, and to make decisions based on previous input.\r\n\r\nFrank had the idea that Perceptrons could simulate brain principles, with the ability to learn and make decisions.",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "The Perceptron",
+                            "block_number": 5,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The original Perceptron was designed to take a number of binary inputs, and produce one binary output (0 or 1).\r\n\r\nThe idea was to use different weights to represent the importance of each input, and that the sum of the values should be greater than a threshold value before making a decision like yes or no (true or false) (0 or 1).",
+                            "block_number": 6,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Perceptron Example",
+                            "block_number": 7,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Imagine a perceptron (in your brain).\r\n\r\nThe perceptron tries to decide if you should go to a concert.\r\n\r\nIs the artist good? Is the weather good?\r\n\r\nWhat weights should these facts have?",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Criteria\t                    Input\t          Weight\r\nArtists is Good\t   x1 = 0 or 1\t  w1 = 0.7\r\nWeather is Good\t   x2 = 0 or 1\t  w2 = 0.6\r\nFriend will Come\t   x3 = 0 or 1\t  w3 = 0.5\r\nFood is Served\t   x4 = 0 or 1\t  w4 = 0.3\r\nAlcohol is Serve      x5 = 0 or 1\t  w5 = 0.4",
+                            "block_number": 9,
+                            "type": "description"
+                        },
+                        {
+                            "content": "The Perceptron Algorithm",
+                            "block_number": 10,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Frank Rosenblatt suggested this algorithm:\r\n\r\n1-Set a threshold value\r\n2-Multiply all inputs with its weights\r\n3-Sum all the results\r\n4-Activate the output",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "1. Set a threshold value:\r\n\r\nThreshold = 1.5\r\n2. Multiply all inputs with its weights:\r\n\r\nx1 * w1 = 1 * 0.7 = 0.7\r\nx2 * w2 = 0 * 0.6 = 0\r\nx3 * w3 = 1 * 0.5 = 0.5\r\nx4 * w4 = 0 * 0.3 = 0\r\nx5 * w5 = 1 * 0.4 = 0.4\r\n3. Sum all the results:\r\n\r\n0.7 + 0 + 0.5 + 0 + 0.4 = 1.6 (The Weighted Sum)\r\n4. Activate the Output:\r\n\r\nReturn true if the sum > 1.5 (\"Yes I will go to the Concert\")",
+                            "block_number": 12,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Note\r\nIf the weather weight is 0.6 for you, it might be different for someone else. A higher weight means that the weather is more important to them.\r\n\r\nIf the threshold value is 1.5 for you, it might be different for someone else. A lower threshold means they are more wanting to go to any concert.",
+                            "block_number": 13,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 14,
+                            "type": "header"
+                        },
+                        {
+                            "content": "const threshold = 1.5;\r\nconst inputs = [1, 0, 1, 0, 1];\r\nconst weights = [0.7, 0.6, 0.5, 0.3, 0.4];\r\n\r\nlet sum = 0;\r\nfor (let i = 0; i < inputs.length; i++) {\r\n  sum += inputs[i] * weights[i];\r\n}\r\n\r\nconst activate = (sum > 1.5);",
+                            "block_number": 15,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Perceptron in AI",
+                            "block_number": 16,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A Perceptron is an Artificial Neuron.\r\n\r\nIt is inspired by the function of a Biological Neuron.\r\n\r\nIt plays a crucial role in Artificial Intelligence.\r\n\r\nIt is an important building block in Neural Networks.\r\n\r\nTo understand the theory behind it, we can break down its components:\r\n\r\n-Perceptron Inputs (nodes)\r\n-Node values (1, 0, 1, 0, 1)\r\n-Node Weights (0.7, 0.6, 0.5, 0.3, 0.4)\r\n-Summation\r\n-Treshold Value\r\n-Activation Function\r\n-Summation (sum > treshold)",
+                            "block_number": 17,
+                            "type": "description"
+                        },
+                        {
+                            "content": "1. Perceptron Inputs",
+                            "block_number": 18,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A perceptron receives one or more input.\r\n\r\nPerceptron inputs are called nodes.\r\n\r\nThe nodes have both a value and a weight.",
+                            "block_number": 19,
+                            "type": "description"
+                        },
+                        {
+                            "content": "2. Node Values (Input Values)",
+                            "block_number": 20,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Input nodes have a binary value of 1 or 0.\r\n\r\nThis can be interpreted as true or false \/ yes or no.\r\n\r\nThe values are: 1, 0, 1, 0, 1",
+                            "block_number": 21,
+                            "type": "description"
+                        },
+                        {
+                            "content": "3. Node Weights",
+                            "block_number": 22,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Weights are values assigned to each input.\r\n\r\nWeights shows the strength of each node.\r\n\r\nA higher value means that the input has a stronger influence on the output.\r\n\r\nThe weights are: 0.7, 0.6, 0.5, 0.3, 0.4",
+                            "block_number": 23,
+                            "type": "description"
+                        },
+                        {
+                            "content": "4. Summation",
+                            "block_number": 24,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The perceptron calculates the weighted sum of its inputs.\r\n\r\nIt multiplies each input by its corresponding weight and sums up the results.\r\n\r\nThe sum is: 0.7*1 + 0.6*0 + 0.5*1 + 0.3*0 + 0.4*1 = 1.6",
+                            "block_number": 25,
+                            "type": "description"
+                        },
+                        {
+                            "content": "5. The Activation Function",
+                            "block_number": 26,
+                            "type": "header"
+                        },
+                        {
+                            "content": "After the summation, the perceptron applies the activation function.\r\n\r\nThe purpose is to introduce non-linearity into the output. It determines whether the perceptron should fire or not based on the aggregated input.\r\n\r\nThe activation function is simple: (sum > treshold) == (1.6 > 1.5)",
+                            "block_number": 27,
+                            "type": "description"
+                        },
+                        {
+                            "content": "6. The Threshold",
+                            "block_number": 28,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The Threshold is the value needed for the perceptron to fire (outputs 1), otherwise it remains inactive (outputs 0).\r\n\r\nIn the example, the treshold value is: 1.5",
+                            "block_number": 29,
+                            "type": "description"
+                        },
+                        {
+                            "content": "The Output",
+                            "block_number": 30,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The final output of the perceptron is the result of the activation function.\r\n\r\nIt represents the perceptron's decision or prediction based on the input and the weights.\r\n\r\nThe activation function maps the the weighted sum into a binary value.\r\n\r\nThe binary 1 or 0 can be interpreted as true or false \/ yes or no.\r\n\r\nThe output is 1 because: (sum > treshold) == true.",
+                            "block_number": 31,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Perceptron Learning",
+                            "block_number": 32,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The perceptron can learn from examples through a process called training.\r\n\r\nDuring training, the perceptron adjusts its weights based on observed errors. This is typically done using a learning algorithm such as the perceptron learning rule or a backpropagation algorithm.\r\n\r\nThe learning process presents the perceptron with labeled examples, where the desired output is known. The perceptron compares its output with the desired output and adjusts its weights accordingly, aiming to minimize the error between the predicted and desired outputs.\r\n\r\nThe learning process allows the perceptron to learn the weights that enable it to make accurate predictions for new, unknown inputs.",
+                            "block_number": 33,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Note\r\nIt is obvious a decisions can NOT be made by One Neuron alone.\r\n\r\nOther neurons must provide more input:\r\n\r\nIs the artist good\r\nIs the weather good\r\n...\r\nMulti-Layer Perceptrons can be used for more sophisticated decision making.",
+                            "block_number": 34,
+                            "type": "note"
+                        },
+                        {
+                            "content": "It's important to note that while perceptrons were influential in the development of artificial neural networks, they are limited to learning linearly separable patterns.\r\n\r\nHowever, by stacking multiple perceptrons together in layers and incorporating non-linear activation functions, neural networks can overcome this limitation and learn more complex patterns.",
+                            "block_number": 35,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Neural Networks",
+                            "block_number": 36,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The Perceptron defines the first step into Neural Networks:",
+                            "block_number": 37,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Perceptrons are often used as the building blocks for more complex neural networks, such as multi-layer perceptrons (MLPs) or deep neural networks (DNNs).\r\n\r\nBy combining multiple perceptrons in layers and connecting them in a network structure, these models can learn and represent complex patterns and relationships in data, enabling tasks such as image recognition, natural language processing, and decision making.",
+                            "block_number": 38,
+                            "type": "description"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "TensorFlow",
+            "description": "Updated via toggle",
+            "chapter_number": 2,
+            "status": "published",
+            "lessons": [
+                {
+                    "title": "TFJS Tutorial",
+                    "description": "s",
+                    "lesson_number": 1,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "TensorFlow.js Tutorial",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "What is TensorFlow.js?\r\nTensorflow is popular JavaScript library for Machine Learning.\r\n\r\nTensorflow lets us train and deploy machine learning in the Browser.\r\n\r\nTensorflow lets us add machine learning functions to any Web Application.",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Using TensorFlow",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "To use TensorFlow.js, add the following script tag to your HTML file(s):",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "<script src=\"https:\/\/cdn.jsdelivr.net\/npm\/@tensorflow\/tfjs@3.6.0\/dist\/tf.min.js\"><\/script>",
+                            "block_number": 5,
+                            "type": "code"
+                        },
+                        {
+                            "content": "If you always want to use the latest version, drop the version number:",
+                            "block_number": 6,
+                            "type": "description"
+                        },
+                        {
+                            "content": "<script src=\"https:\/\/cdn.jsdelivr.net\/npm\/@tensorflow\/tfjs\"><\/script>",
+                            "block_number": 7,
+                            "type": "code"
+                        },
+                        {
+                            "content": "TensorFlow was developed by the Google Brain Team for internal Google use, but was released as open software in 2015.\r\n\r\nIn January 2019, Google developers released TensorFlow.js, the JavaScript Implementation of TensorFlow.\r\n\r\nTensorflow.js was designed to provide the same features as the original TensorFlow library written in Python.",
+                            "block_number": 8,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Tensors",
+                            "block_number": 9,
+                            "type": "header"
+                        },
+                        {
+                            "content": "TensorFlow.js is a JavaScript library to define and operate on Tensors.\r\n\r\nThe main data type in TensorFlow.js is the Tensor.\r\n\r\nA Tensor is much the same as a multidimensional array.\r\n\r\nA Tensor contains values in one or more dimensions:",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "A Tensor has the following main properties:\r\n\r\nProperty\tDescription\r\ndtype\t        The data type\r\nrank\t         The number of dimensions\r\nshape\t        The size of each dimension",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Sometimes in machine learning, the term \"dimension\" is used interchangeably with \"rank.\r\n\r\n[10, 5] is a 2-dimensional tensor or a 2-rank tensor.\r\n\r\nIn addition the term \"dimensionality\" can refer to the size of a one dimension.\r\n\r\nExample: In the 2-dimensional tensor [10, 5], the dimensionality of the first dimension is 10.",
+                            "block_number": 12,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Creating a Tensor",
+                            "block_number": 13,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The main data type in TensorFlow is the Tensor.\r\n\r\nA Tensor is created from any N-dimensional array with the tf.tensor() method:",
+                            "block_number": 14,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example 1",
+                            "block_number": 15,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2, 3, 4]];\r\nconst tensorA = tf.tensor(myArr);",
+                            "block_number": 16,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Example 2",
+                            "block_number": 17,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4]];\r\nconst tensorA = tf.tensor(myArr);",
+                            "block_number": 18,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Example 3",
+                            "block_number": 19,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4], [5, 6]];\r\nconst tensorA = tf.tensor(myArr);",
+                            "block_number": 20,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Shape",
+                            "block_number": 21,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A Tensor can also be created from an array and a shape parameter:",
+                            "block_number": 22,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example1",
+                            "block_number": 23,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [1, 2, 3, 4]:\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);",
+                            "block_number": 24,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Example2",
+                            "block_number": 25,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([1, 2, 3, 4], [2, 2]);",
+                            "block_number": 26,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Example3",
+                            "block_number": 27,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4]];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);",
+                            "block_number": 28,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Retrieve Tensor Values",
+                            "block_number": 29,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can get the data behind a tensor using tensor.data():",
+                            "block_number": 30,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 31,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4]];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\ntensorA.data().then(data => display(data));\r\n\r\nfunction display(data) {\r\n  document.getElementById(\"demo\").innerHTML = data;\r\n}",
+                            "block_number": 32,
+                            "type": "code"
+                        },
+                        {
+                            "content": "You can get the array behind a tensor using tensor.array():",
+                            "block_number": 33,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 34,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4]];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\ntensorA.array().then(array => display(array[0]));\r\n\r\nfunction display(data) {\r\n  document.getElementById(\"demo\").innerHTML = data;\r\n}",
+                            "block_number": 35,
+                            "type": "code"
+                        },
+                        {
+                            "content": "const myArr = [[1, 2], [3, 4]];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\ntensorA.array().then(array => display(array[1]));\r\n\r\nfunction display(data) {\r\n  document.getElementById(\"demo\").innerHTML = data;\r\n}",
+                            "block_number": 36,
+                            "type": "code"
+                        },
+                        {
+                            "content": "You can get the rank of a tensor using tensor.rank:",
+                            "block_number": 37,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 38,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [1, 2, 3, 4];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\n\r\ndocument.getElementById(\"demo\").innerHTML = tensorA.rank;",
+                            "block_number": 39,
+                            "type": "code"
+                        },
+                        {
+                            "content": "You can get the shape of a tensor using tensor.shape:",
+                            "block_number": 40,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 41,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [1, 2, 3, 4];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\n\r\ndocument.getElementById(\"demo\").innerHTML = tensorA.shape;",
+                            "block_number": 42,
+                            "type": "code"
+                        },
+                        {
+                            "content": "You can get the datatype of a tensor using tensor.dtype:",
+                            "block_number": 43,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [1, 2, 3, 4];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape);\r\n\r\ndocument.getElementById(\"demo\").innerHTML = tensorA.dtype;",
+                            "block_number": 44,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Data Types",
+                            "block_number": 45,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A Tensor can have the following data types:\r\n\r\n-bool\r\n-int32\r\n-float32 (default)\r\n-complex64\r\n-string\r\n\r\nWhen you create a tensor, you can specify the data type as the third parameter:",
+                            "block_number": 46,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 47,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const myArr = [1, 2, 3, 4];\r\nconst shape = [2, 2];\r\nconst tensorA = tf.tensor(myArr, shape, \"int32\");",
+                            "block_number": 48,
+                            "type": "code"
+                        }
+                    ]
+                },
+                {
+                    "title": "TFJS Operations",
+                    "description": "TFJS Operations",
+                    "lesson_number": 2,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "TensorFlow Operations",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "-Add\r\n-Subtract\r\n-Multiply\r\n-Divide\r\n-Square\r\n-Reshape",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Tensor Addition",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can add two tensors using tensorA.add(tensorB):",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 5,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([[1, 2], [3, 4], [5, 6]]);\r\nconst tensorB = tf.tensor([[1,-1], [2,-2], [3,-3]]);\r\n\r\n\/\/ Tensor Addition\r\nconst tensorNew = tensorA.add(tensorB);\r\n\r\n\/\/ Result: [ [2, 1], [5, 2], [8, 3] ]",
+                            "block_number": 6,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Subtraction",
+                            "block_number": 7,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can subtract two tensors using tensorA.sub(tensorB):",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 9,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([[1, 2], [3, 4], [5, 6]]);\r\nconst tensorB = tf.tensor([[1,-1], [2,-2], [3,-3]]);\r\n\r\n\/\/ Tensor Subtraction\r\nconst tensorNew = tensorA.sub(tensorB);\r\n\r\n\/\/ Result: [ [0, 3], [1, 6], [2, 9] ]",
+                            "block_number": 10,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Multiplication",
+                            "block_number": 11,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can multiply two tensors using tensorA.mul(tensorB):",
+                            "block_number": 12,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 13,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([1, 2, 3, 4]);\r\nconst tensorB = tf.tensor([4, 4, 2, 2]);\r\n\r\n\/\/ Tensor Multiplication\r\nconst tensorNew = tensorA.mul(tensorB);\r\n\r\n\/\/ Result: [ 4, 8, 6, 8 ]",
+                            "block_number": 14,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Division",
+                            "block_number": 15,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can divide two tensors using tensorA.div(tensorB):",
+                            "block_number": 16,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 17,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([2, 4, 6, 8]);\r\nconst tensorB = tf.tensor([1, 2, 2, 2]);\r\n\r\n\/\/ Tensor Division\r\nconst tensorNew = tensorA.div(tensorB);\r\n\r\n\/\/ Result: [ 2, 2, 3, 4 ]",
+                            "block_number": 18,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Square",
+                            "block_number": 19,
+                            "type": "header"
+                        },
+                        {
+                            "content": "You can square a tensor using tensor.square():",
+                            "block_number": 20,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 21,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([1, 2, 3, 4]);\r\n\r\n\/\/ Tensor Square\r\nconst tensorNew = tensorA.square();\r\n\r\n\/\/ Result [ 1, 4, 9, 16 ]",
+                            "block_number": 22,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensor Reshape",
+                            "block_number": 23,
+                            "type": "header"
+                        },
+                        {
+                            "content": "The number of elements in a tensor is the product of the sizes in the shape.\r\n\r\nSince there can be different shapes with the same size, it is often useful to reshape a tensor to other shapes with the same size.\r\n\r\nYou can reshape a tensor using tensor.reshape():",
+                            "block_number": 24,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 25,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const tensorA = tf.tensor([[1, 2], [3, 4]]);\r\nconst tensorB = tensorA.reshape([4, 1]);\r\n\r\n\/\/ Result: [ [1], [2], [3], [4] ]",
+                            "block_number": 26,
+                            "type": "code"
+                        }
+                    ]
+                },
+                {
+                    "title": "TFJS Models",
+                    "description": "TensorFlow Models",
+                    "lesson_number": 3,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "Tensorflow Models",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Models and Layers are important building blocks in Machine Learning.\r\n\r\nFor different Machine Learning tasks you must combine different types of Layers into a Model that can be trained with data to predict future values.\r\n\r\nTensorFlow.js is supporting different types of Models and different types of Layers.\r\n\r\nA TensorFlow Model is a Neural Network with one or more Layers.",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "A Tensorflow Project",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "A Tensorflow project has this typical workflow:\r\n\r\n-Collecting Data\r\n-Creating a Model\r\n-Adding Layers to the Model\r\n-Compiling the Model\r\n-Training the Model\r\n-Using the Model",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 5,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Suppose you knew a function that defined a strait line:\r\n\r\nY = 1.2X + 5\r\n\r\nThen you could calculate any y value with the JavaScript formula:",
+                            "block_number": 6,
+                            "type": "description"
+                        },
+                        {
+                            "content": "y = 1.2 * x + 5;",
+                            "block_number": 7,
+                            "type": "code"
+                        },
+                        {
+                            "content": "To demonstrate Tensorflow.js, we could train a Tensorflow.js model to predict Y values based on X inputs.",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Note\r\nThe TensorFlow model does not know the function.",
+                            "block_number": 9,
+                            "type": "note"
+                        },
+                        {
+                            "content": "\/\/ Create Training Data\r\nconst xs = tf.tensor([0, 1, 2, 3, 4]);\r\nconst ys = xs.mul(1.2).add(5);\r\n\r\n\/\/ Define a Linear Regression Model\r\nconst model = tf.sequential();\r\nmodel.add(tf.layers.dense({units:1, inputShape:[1]}));\r\n\r\n\/\/ Specify Loss and Optimizer\r\nmodel.compile({loss:'meanSquaredError', optimizer:'sgd'});\r\n\r\n\/\/ Train the Model\r\nmodel.fit(xs, ys, {epochs:500}).then(() => {myFunction()});\r\n\r\n\/\/ Use the Model\r\nfunction myFunction() {\r\n  const xMax = 10;\r\n  const xArr = [];\r\n  const yArr = [];\r\n  for (let x = 0; x <= xMax; x++) {\r\n    let result = model.predict(tf.tensor([Number(x)]));\r\n    result.data().then(y => {\r\n      xArr.push(x);\r\n      yArr.push(Number(y));\r\n      if (x == xMax) {plot(xArr, yArr)};\r\n    });\r\n  }\r\n}",
+                            "block_number": 10,
+                            "type": "code"
+                        },
+                        {
+                            "content": "The example is explained below:",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Collecting Data",
+                            "block_number": 12,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Create a tensor (xs) with 5 x values:",
+                            "block_number": 13,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const xs = tf.tensor([0, 1, 2, 3, 4]);",
+                            "block_number": 14,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Create a tensor (ys) with 5 correct y answers (multiply xs with 1.2 and add 5):",
+                            "block_number": 15,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const ys = xs.mul(1.2).add(5);",
+                            "block_number": 16,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Creating a Model",
+                            "block_number": 17,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Create a sequential mode:",
+                            "block_number": 18,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const model = tf.sequential();",
+                            "block_number": 19,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Note\r\nIn a sequential model, the output from one layer is the input to the next layer.",
+                            "block_number": 20,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Adding Layers",
+                            "block_number": 21,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Add one dense layer to the model.\r\n\r\nThe layer is only one unit (tensor) and the shape is 1 (one dimentional):",
+                            "block_number": 22,
+                            "type": "description"
+                        },
+                        {
+                            "content": "model.add(tf.layers.dense({units:1, inputShape:[1]}));",
+                            "block_number": 23,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Note\r\nin a dense the layer, every node is connected to every node in the preceding layer.",
+                            "block_number": 24,
+                            "type": "note"
+                        },
+                        {
+                            "content": "Compiling the Model",
+                            "block_number": 25,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Compile the model using meanSquaredError as loss function and sgd (stochastic gradient descent) as optimizer function:",
+                            "block_number": 26,
+                            "type": "description"
+                        },
+                        {
+                            "content": "model.compile({loss:'meanSquaredError', optimizer:'sgd'});",
+                            "block_number": 27,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Tensorflow Optimizers",
+                            "block_number": 28,
+                            "type": "header"
+                        },
+                        {
+                            "content": "-Adadelta -Implements the Adadelta algorithm.\r\n-Adagrad - Implements the Adagrad algorithm.\r\n-Adam - Implements the Adam algorithm.\r\n-Adamax - Implements the Adamax algorithm.\r\n-Ftrl - Implements the FTRL algorithm.\r\n-Nadam - Implements the NAdam algorithm.\r\n-Optimizer - Base class for Keras optimizers.\r\n-RMSprop - Implements the RMSprop algorithm.\r\n-SGD - Stochastic Gradient Descent Optimizer.",
+                            "block_number": 29,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Training the Model",
+                            "block_number": 30,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Train the model (using xs and ys) with 500 repeats (epochs):",
+                            "block_number": 31,
+                            "type": "description"
+                        },
+                        {
+                            "content": "model.fit(xs, ys, {epochs:500}).then(() => {myFunction()});",
+                            "block_number": 32,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Using the Model",
+                            "block_number": 33,
+                            "type": "header"
+                        },
+                        {
+                            "content": "After the model is trained, you can use it for many different purposes.\r\n\r\nThis example predicts 10 y values, given 10 x values, and calls a function to plot the predictions in a graph:",
+                            "block_number": 34,
+                            "type": "description"
+                        },
+                        {
+                            "content": "function myFunction() {\r\n  const xMax = 10;\r\n  const xArr = [];\r\n  const yArr = [];\r\n  for (let x = 0; x <= xMax; x++) {\r\n    let result = model.predict(tf.tensor([Number(x)]));\r\n    result.data().then(y => {\r\n      xArr.push(x);\r\n      yArr.push(Number(y));\r\n      if (x == xMax) {plot(xArr, yArr)};\r\n    });\r\n  }\r\n}",
+                            "block_number": 35,
+                            "type": "code"
+                        },
+                        {
+                            "content": "This example predicts 10 y values, given 10 x values, and calls a function to display the values:",
+                            "block_number": 36,
+                            "type": "description"
+                        },
+                        {
+                            "content": "function myFunction() {\r\n  const xMax = 10;\r\n  const xArr = [];\r\n  const yArr = [];\r\n  for (let x = 0; x <= xMax; x++) {\r\n    let result = model.predict(tf.tensor([Number(x)]));\r\n    result.data().then(y => {\r\n      xArr.push(x);\r\n      yArr.push(Number(y));\r\n      if (x == xMax) {display(xArr, yArr)};\r\n    });\r\n  }\r\n}",
+                            "block_number": 37,
+                            "type": "code"
+                        }
+                    ]
+                },
+                {
+                    "title": "TFJS Visor",
+                    "description": "TFJS Visor",
+                    "lesson_number": 4,
+                    "status": "published",
+                    "blocks": [
+                        {
+                            "content": "TensorFlow.js Visor",
+                            "block_number": 1,
+                            "type": "header"
+                        },
+                        {
+                            "content": "TensorFlow Visor is a graphic tools for visualizing Machine Learning\r\nIt contains functions for visualizing TensorFlow Models\r\nVisualizations can be organized in Visors (modal browser windows)\r\nCan be used with Custom Tools likes d3, Chart.js, and Plotly.js\r\nOften called tfjs-vis",
+                            "block_number": 2,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Using tfjs-vis",
+                            "block_number": 3,
+                            "type": "header"
+                        },
+                        {
+                            "content": "To use tfjs-vis, add the following script tag to your HTML file(s):",
+                            "block_number": 4,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 5,
+                            "type": "description"
+                        },
+                        {
+                            "content": "<script src=\"https:\/\/cdn.jsdelivr.net\/npm\/@tensorflow\/tfjs-vis\"><\/script>",
+                            "block_number": 6,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Scatter Plots",
+                            "block_number": 7,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 8,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const surface = document.getElementById('demo');\r\nconst series = ['First', 'Second'];\r\n\r\nconst serie1 = [];\r\nconst serie2 = [];\r\nfor (let i = 0; i < 100; i++) {\r\n  serie1[i] = {x:i, y:Math.random() * 100};\r\n  serie2[i] = {x:i, y:Math.random() * 100};\r\n}\r\n\r\nconst data = {values: [serie1, serie2], series}\r\n\r\ntfvis.render.scatterplot(surface, data);",
+                            "block_number": 9,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Visualizations can be organized in a Visor (a modal browser window):",
+                            "block_number": 10,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example with a Visor",
+                            "block_number": 11,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const series = ['First', 'Second'];\r\n\r\nconst serie1 = [];\r\nconst serie2 = [];\r\nfor (let i = 0; i < 100; i++) {\r\n  serie1[i] = {x:i, y:Math.random() * 100};\r\n  serie2[i] = {x:i, y:Math.random() * 100};\r\n}\r\n\r\nconst data = {values: [serie1, serie2], series}\r\n\r\ntfvis.render.scatterplot({name: \"my Plots\"}, data);",
+                            "block_number": 12,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Bar Graphs",
+                            "block_number": 13,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 14,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const surface = document.getElementById('demo');\r\nconst data = [\r\n  {index: 0, value: 100},\r\n  {index: 1, value: 200},\r\n  {index: 2, value: 150},\r\n  {index: 2, value: 250},\r\n];\r\n\r\ntfvis.render.barchart(surface, data);",
+                            "block_number": 15,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Visualizations can be organized in a Visor (a modal browser window):",
+                            "block_number": 16,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example with a Visor",
+                            "block_number": 17,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const data = [\r\n  {index: 0, value: 100},\r\n  {index: 1, value: 200},\r\n  {index: 2, value: 150},\r\n  {index: 2, value: 250},\r\n];\r\n\r\ntfvis.render.barchart({name:\"my Graphs\"}, data);",
+                            "block_number": 18,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Line Graphs",
+                            "block_number": 19,
+                            "type": "header"
+                        },
+                        {
+                            "content": "Example",
+                            "block_number": 20,
+                            "type": "description"
+                        },
+                        {
+                            "content": "const surface = document.getElementById('demo');\r\n\r\nlet values = [\r\n  {x: 1, y: 20},\r\n  {x: 2, y: 30},\r\n  {x: 3, y: 5},\r\n  {x: 4, y: 12}\r\n];\r\n\r\ntfvis.render.linechart(surface, {values});",
+                            "block_number": 21,
+                            "type": "code"
+                        },
+                        {
+                            "content": "Visualizations can be organized in a Visor (a modal browser window):",
+                            "block_number": 22,
+                            "type": "description"
+                        },
+                        {
+                            "content": "Example with a Visor",
+                            "block_number": 23,
+                            "type": "description"
+                        },
+                        {
+                            "content": "let values = [\r\n  {x: 1, y: 20},\r\n  {x: 2, y: 30},\r\n  {x: 3, y: 5},\r\n  {x: 4, y: 12}\r\n];\r\n\r\ntfvis.render.linechart({name: 'my Lines'}, {values});",
+                            "block_number": 24,
+                            "type": "code"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

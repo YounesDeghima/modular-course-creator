@@ -13,7 +13,7 @@
 
 <body>
 <header>
-    <nav>
+    <nav style="justify-content: space-between">
         <div class="nav-left">
             <img src="#" class="logo" alt="logo">
             <a href='{{route('admin.main')}}' data-item='Home'>Home</a>

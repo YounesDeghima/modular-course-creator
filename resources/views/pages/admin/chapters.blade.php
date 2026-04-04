@@ -310,7 +310,7 @@
                                 <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
                             </div>
 
-                            <div class="form-group" style="visibility: hidden">
+                            <div class="form-group">
                                 <label >Chapter Number</label>
                                 <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}" class="modal-input">
                             </div>
@@ -481,10 +481,11 @@
             // Auto-resize textareas based on content
             function initAutoResize() {
                 document.querySelectorAll('textarea.input-ghost').forEach(el => {
-                    // Force recalculation AFTER render
                     requestAnimationFrame(() => {
-                        el.style.height = 'auto';
-                        el.style.height = el.scrollHeight + 'px';
+                        requestAnimationFrame(() => {
+                            el.style.height = 'auto';
+                            el.style.height = el.scrollHeight + 'px';
+                        });
                     });
                 });
             }
