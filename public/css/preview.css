@@ -1,18 +1,7 @@
-main{
-    display: flex;
 
-}
 .nav-button
-{
-    position: sticky;
-}
-main{
-    display: flex;
-    flex-direction: column;
 
 
-
-}
 
 .navigation{
     align-self: flex-start;
