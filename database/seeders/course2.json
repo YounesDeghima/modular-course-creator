@@ -1000,6 +1000,363 @@
                 ]
             }
         ]
+    },
+    {
+        "title": "Algebra 3",
+        "year": 3,
+        "branch": "mi",
+        "description": "A rigorous and comprehensive course in Algebra 3 covering advanced algebraic structures, polynomial theory, abstract algebra, linear algebra extensions, field theory, and Galois theory. Designed for third-year mathematics students.",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Review & Foundations",
+                "description": "A thorough review of prerequisite algebra concepts needed to succeed in Algebra 3.",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Sets, Relations, and Functions",
+                        "description": "Rigorous review of sets, binary relations, equivalence relations, and functions.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Sets, Relations, and Functions", "block_number": 1, "type": "header" },
+                            { "content": "A set is a well-defined collection of distinct objects. Sets are the foundation of all of modern mathematics.\n\nNotation:\n- A = {1, 2, 3, 4}\n- B = {x ∈ ℤ | x > 0}\n- ∅ = empty set\n- ℕ = natural numbers, ℤ = integers, ℚ = rationals, ℝ = reals, ℂ = complex numbers\n\nSet Operations:\n- Union: A ∪ B = {x | x ∈ A or x ∈ B}\n- Intersection: A ∩ B = {x | x ∈ A and x ∈ B}\n- Difference: A \\ B = {x | x ∈ A and x ∉ B}\n- Complement: Aᶜ = {x ∈ U | x ∉ A}\n- Power Set: P(A) = set of all subsets of A. If |A| = n, then |P(A)| = 2ⁿ\n- Cartesian Product: A × B = {(a, b) | a ∈ A, b ∈ B}", "block_number": 2, "type": "description" },
+                            { "content": "Binary Relations", "block_number": 3, "type": "header" },
+                            { "content": "A binary relation R on set A is a subset of A × A.\n\nA relation R is:\n- Reflexive: ∀a ∈ A, (a, a) ∈ R\n- Symmetric: (a, b) ∈ R ⟹ (b, a) ∈ R\n- Antisymmetric: (a,b) ∈ R and (b,a) ∈ R ⟹ a = b\n- Transitive: (a,b) ∈ R and (b,c) ∈ R ⟹ (a,c) ∈ R\n\nAn Equivalence Relation is one that is Reflexive, Symmetric, and Transitive.\n\nExample: The relation ≡ (mod n) on ℤ is an equivalence relation.\n- Reflexive: a ≡ a (mod n) ✓\n- Symmetric: a ≡ b ⟹ b ≡ a ✓\n- Transitive: a ≡ b and b ≡ c ⟹ a ≡ c ✓\n\nEquivalence classes partition the set into disjoint subsets. The set of all equivalence classes is called the quotient set A/R.", "block_number": 4, "type": "description" },
+                            { "content": "Functions", "block_number": 5, "type": "header" },
+                            { "content": "A function f: A → B assigns each element of A exactly one element of B.\n\nTerminology:\n- Domain: A (inputs)\n- Codomain: B (possible outputs)\n- Range/Image: f(A) = {f(a) | a ∈ A} ⊆ B\n\nTypes of functions:\n- Injective (one-to-one): f(a) = f(b) ⟹ a = b. No two inputs give the same output.\n- Surjective (onto): ∀b ∈ B, ∃a ∈ A such that f(a) = b. Range = Codomain.\n- Bijective: Both injective and surjective. Has an inverse function f⁻¹: B → A.\n\nComposition: (g ∘ f)(x) = g(f(x))\nIdentity: idₐ: A → A, idₐ(x) = x\n\nTheorem: f is bijective ⟺ f has a two-sided inverse.", "block_number": 6, "type": "description" },
+                            { "content": "Example: Proving a Function is Bijective", "block_number": 7, "type": "header" },
+                            { "content": "Let f: ℝ → ℝ be defined by f(x) = 2x + 3.\n\nProof of Injectivity:\n  Assume f(a) = f(b)\n  ⟹ 2a + 3 = 2b + 3\n  ⟹ 2a = 2b\n  ⟹ a = b  ✓\n\nProof of Surjectivity:\n  Let b ∈ ℝ. We need to find a ∈ ℝ such that f(a) = b.\n  Set a = (b - 3) / 2. Then:\n  f(a) = 2·((b-3)/2) + 3 = (b - 3) + 3 = b  ✓\n\nConclusion: f is bijective, and f⁻¹(x) = (x - 3) / 2.", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Mathematical Induction & Proof Techniques",
+                        "description": "Formal proof strategies essential for abstract algebra.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Proof Techniques in Algebra", "block_number": 1, "type": "header" },
+                            { "content": "In higher algebra, we work with formal proofs. The main proof techniques are:\n\n1. Direct Proof: Assume hypothesis, deduce conclusion logically.\n2. Proof by Contradiction: Assume the negation of the conclusion, derive a contradiction.\n3. Proof by Contrapositive: Prove ¬Q ⟹ ¬P instead of P ⟹ Q.\n4. Mathematical Induction: Prove a statement for all natural numbers.\n5. Construction / Existence Proof: Explicitly build an object satisfying the required property.", "block_number": 2, "type": "description" },
+                            { "content": "Principle of Mathematical Induction", "block_number": 3, "type": "header" },
+                            { "content": "To prove P(n) is true for all n ≥ n₀:\n\nStep 1 — Base Case: Verify P(n₀) is true.\nStep 2 — Inductive Step: Assume P(k) is true (inductive hypothesis). Prove P(k+1) is true.\n\nConclusion: P(n) is true for all n ≥ n₀.\n\nStrong Induction: Assume P(n₀), P(n₀+1), ..., P(k) are all true to prove P(k+1).", "block_number": 4, "type": "description" },
+                            { "content": "Example: Sum of first n natural numbers", "block_number": 5, "type": "header" },
+                            { "content": "Claim: 1 + 2 + 3 + ... + n = n(n+1)/2 for all n ≥ 1.\n\nBase Case (n=1): LHS = 1. RHS = 1·2/2 = 1. ✓\n\nInductive Step:\n  Assume 1 + 2 + ... + k = k(k+1)/2.\n  Show: 1 + 2 + ... + k + (k+1) = (k+1)(k+2)/2.\n\n  LHS = k(k+1)/2 + (k+1)\n       = (k+1)[k/2 + 1]\n       = (k+1)(k+2)/2\n       = RHS  ✓\n\nConclusion: The formula holds for all n ≥ 1.", "block_number": 6, "type": "description" },
+                            { "content": "Example: Proving divisibility", "block_number": 7, "type": "header" },
+                            { "content": "Claim: 3 | (n³ - n) for all n ≥ 0.\n\nBase Case (n=0): 0³ - 0 = 0 = 3·0. ✓\n\nInductive Step:\n  Assume 3 | (k³ - k).\n  Show: 3 | ((k+1)³ - (k+1)).\n\n  (k+1)³ - (k+1)\n  = k³ + 3k² + 3k + 1 - k - 1\n  = (k³ - k) + 3k² + 3k\n  = (k³ - k) + 3k(k + 1)\n\n  By hypothesis, 3 | (k³ - k).\n  Clearly, 3 | 3k(k+1).\n  Therefore, 3 | ((k+1)³ - (k+1)).  ✓", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Group Theory",
+                "description": "The study of algebraic structures called groups — the backbone of abstract algebra.",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Introduction to Groups",
+                        "description": "Definition, examples, and basic properties of groups.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "What is a Group?", "block_number": 1, "type": "header" },
+                            { "content": "A group is an ordered pair (G, ★) where G is a set and ★ is a binary operation satisfying four axioms:\n\n1. Closure: ∀a, b ∈ G, a ★ b ∈ G\n2. Associativity: ∀a, b, c ∈ G, (a ★ b) ★ c = a ★ (b ★ c)\n3. Identity: ∃e ∈ G such that ∀a ∈ G, e ★ a = a ★ e = a\n4. Inverses: ∀a ∈ G, ∃a⁻¹ ∈ G such that a ★ a⁻¹ = a⁻¹ ★ a = e\n\nIf additionally the operation is commutative (a ★ b = b ★ a), the group is called Abelian (or commutative).\n\nThe order of a group G, written |G|, is the number of elements in G.", "block_number": 2, "type": "description" },
+                            { "content": "Fundamental Examples of Groups", "block_number": 3, "type": "header" },
+                            { "content": "1. (ℤ, +) — Integers under addition\n   - Identity: 0\n   - Inverse of n: -n\n   - Abelian: Yes\n   - Order: Infinite\n\n2. (ℝ \\ {0}, ×) — Nonzero reals under multiplication\n   - Identity: 1\n   - Inverse of x: 1/x\n   - Abelian: Yes\n   - Order: Infinite\n\n3. (ℤₙ, +) — Integers mod n under addition\n   - Example: ℤ₄ = {0, 1, 2, 3}\n   - Identity: 0\n   - Inverse of k: n - k\n   - Abelian: Yes\n   - Order: n\n\n4. (Sₙ, ∘) — Symmetric group of permutations on n elements\n   - Identity: identity permutation\n   - Abelian: No, for n ≥ 3\n   - Order: n!\n\n5. ({1, -1, i, -i}, ×) — Fourth roots of unity\n   - Abelian: Yes\n   - Order: 4", "block_number": 4, "type": "description" },
+                            { "content": "Basic Theorems about Groups", "block_number": 5, "type": "header" },
+                            { "content": "Theorem 1 (Uniqueness of Identity):\n  The identity element in a group is unique.\n  Proof: Suppose e and e' are both identities.\n    e = e ★ e' = e'  (since e' is identity, then e is identity)\n    ∴ e = e'  ✓\n\nTheorem 2 (Uniqueness of Inverses):\n  Each element has exactly one inverse.\n  Proof: Suppose b and c are both inverses of a.\n    b = b ★ e = b ★ (a ★ c) = (b ★ a) ★ c = e ★ c = c  ✓\n\nTheorem 3 (Cancellation Laws):\n  If a ★ b = a ★ c, then b = c (left cancellation)\n  If b ★ a = c ★ a, then b = c (right cancellation)\n\nTheorem 4 (Socks-Shoes Property):\n  (a ★ b)⁻¹ = b⁻¹ ★ a⁻¹", "block_number": 6, "type": "description" },
+                            { "content": "Cayley Table", "block_number": 7, "type": "header" },
+                            { "content": "A Cayley table (multiplication table) shows all results of the group operation.\n\nExample: ℤ₄ = ({0,1,2,3}, +₄)\n\n  + | 0  1  2  3\n  --+------------\n  0 | 0  1  2  3\n  1 | 1  2  3  0\n  2 | 2  3  0  1\n  3 | 3  0  1  2\n\nObservations:\n- Each row and column is a permutation of all elements (Latin square property)\n- The identity row/column mirrors the header\n- Symmetry along the diagonal ⟺ the group is Abelian", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Subgroups",
+                        "description": "Identifying and proving subgroups, cosets, and Lagrange's Theorem.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Subgroups", "block_number": 1, "type": "header" },
+                            { "content": "A subgroup H of a group G is a non-empty subset H ⊆ G that is itself a group under the same operation.\n\nSubgroup Test (Two-Step):\n  H ≤ G (H is a subgroup of G) if and only if:\n  1. H ≠ ∅\n  2. ∀a, b ∈ H, a ★ b⁻¹ ∈ H\n\nEquivalently (Three-Step):\n  1. e ∈ H (identity)\n  2. ∀a, b ∈ H, a ★ b ∈ H (closure)\n  3. ∀a ∈ H, a⁻¹ ∈ H (inverses)\n\nEvery group G has two trivial subgroups: {e} and G itself.\nAll other subgroups are called proper subgroups.", "block_number": 2, "type": "description" },
+                            { "content": "Example: Subgroups of ℤ", "block_number": 3, "type": "header" },
+                            { "content": "The subgroups of (ℤ, +) are exactly the sets of the form nℤ = {nk | k ∈ ℤ} for n ≥ 0.\n\nExamples:\n- 0ℤ = {0}  (trivial subgroup)\n- ℤ = 1ℤ   (the whole group)\n- 2ℤ = {..., -4, -2, 0, 2, 4, ...}  (even integers)\n- 3ℤ = {..., -6, -3, 0, 3, 6, ...}\n- 6ℤ ⊆ 3ℤ ⊆ ℤ\n\nFact: Every subgroup of a cyclic group is cyclic.", "block_number": 4, "type": "description" },
+                            { "content": "Cosets", "block_number": 5, "type": "header" },
+                            { "content": "Let H ≤ G and a ∈ G.\n\nLeft coset of H by a:   aH = {a ★ h | h ∈ H}\nRight coset of H by a: Ha = {h ★ a | h ∈ H}\n\nKey Properties of Cosets:\n1. Two cosets aH and bH are either identical or disjoint.\n2. Every element of G belongs to exactly one left coset.\n3. All cosets have the same size: |aH| = |H|\n4. The cosets of H partition G into equal-sized pieces.\n\nThe index [G : H] = number of distinct left cosets of H in G.", "block_number": 6, "type": "description" },
+                            { "content": "Lagrange's Theorem", "block_number": 7, "type": "header" },
+                            { "content": "Theorem (Lagrange): If G is a finite group and H ≤ G, then |H| divides |G|.\n\nMoreover: |G| = |H| · [G : H]\n\nProof Sketch:\n  The left cosets of H partition G into [G:H] disjoint sets, each of size |H|.\n  Therefore |G| = |H| · [G:H].  ✓\n\nImportant Corollaries:\n\n1. If |G| = p (prime), then G has no proper non-trivial subgroups, and G is cyclic.\n\n2. For any a ∈ G in a finite group: the order of a divides |G|.\n   (The order of a is the smallest positive integer m such that aᵐ = e.)\n\n3. For any a ∈ G: a^|G| = e  (Fermat-Euler generalization)", "block_number": 8, "type": "description" },
+                            { "content": "Example: Subgroups of S₃", "block_number": 9, "type": "header" },
+                            { "content": "S₃ = {e, (12), (13), (23), (123), (132)}, |S₃| = 6\n\nBy Lagrange, possible subgroup orders: 1, 2, 3, 6\n\nSubgroups:\n- Order 1: {e}\n- Order 2: {e, (12)}, {e, (13)}, {e, (23)}  (three subgroups)\n- Order 3: {e, (123), (132)}  (one subgroup — cyclic of order 3)\n- Order 6: S₃ itself\n\nNote: S₃ has no subgroup of order 4 or 5, consistent with Lagrange.\n\nLeft cosets of H = {e, (123), (132)} in S₃:\n  eH = {e, (123), (132)}\n  (12)H = {(12), (12)(123), (12)(132)} = {(12), (23), (13)}\n\n  These two cosets partition S₃.", "block_number": 10, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Normal Subgroups & Quotient Groups",
+                        "description": "Normal subgroups, quotient groups, and the first isomorphism theorem.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Normal Subgroups", "block_number": 1, "type": "header" },
+                            { "content": "A subgroup N ≤ G is normal (written N ⊲ G) if:\n\n  ∀g ∈ G, gN = Ng\n\nEquivalently: ∀g ∈ G, ∀n ∈ N, gng⁻¹ ∈ N\n(N is closed under conjugation)\n\nWhy normal subgroups matter:\nOnly normal subgroups allow us to define a group structure on the set of cosets.\n\nExamples:\n- Every subgroup of an abelian group is normal.\n- {e} and G are always normal in G.\n- In S₃: the subgroup A₃ = {e, (123), (132)} is normal, but {e, (12)} is not.\n- Aₙ (alternating group) is normal in Sₙ for all n.", "block_number": 2, "type": "description" },
+                            { "content": "Quotient Groups (Factor Groups)", "block_number": 3, "type": "header" },
+                            { "content": "If N ⊲ G, the quotient group G/N is the set of all cosets of N:\n  G/N = {gN | g ∈ G}\n\nwith the operation: (aN)(bN) = (ab)N\n\nThis operation is well-defined because N is normal.\n\nProperties:\n- |G/N| = |G| / |N| = [G : N]\n- The identity of G/N is the coset eN = N\n- The inverse of gN is g⁻¹N\n\nExample: G = ℤ, N = 3ℤ\n  G/N = ℤ/3ℤ = ℤ₃ = {{...,-3,0,3,...}, {...,-2,1,4,...}, {...,-1,2,5,...}}\n  = {0+3ℤ, 1+3ℤ, 2+3ℤ}\n  This is cyclic of order 3, isomorphic to ℤ₃.", "block_number": 4, "type": "description" },
+                            { "content": "Group Homomorphisms", "block_number": 5, "type": "header" },
+                            { "content": "A group homomorphism is a function φ: G → H between groups such that:\n\n  φ(a ★ b) = φ(a) ★ φ(b)   for all a, b ∈ G\n\nA homomorphism preserves group structure.\n\nImportant concepts:\n- Kernel: ker(φ) = {g ∈ G | φ(g) = eₕ}\n- Image: Im(φ) = {φ(g) | g ∈ G}\n\nTheorem: ker(φ) ⊲ G (kernel is always a normal subgroup)\nTheorem: Im(φ) ≤ H (image is always a subgroup)\n\nTypes:\n- Isomorphism: bijective homomorphism. G ≅ H means G and H are structurally identical.\n- Endomorphism: G → G\n- Automorphism: bijective endomorphism", "block_number": 6, "type": "description" },
+                            { "content": "The First Isomorphism Theorem", "block_number": 7, "type": "header" },
+                            { "content": "Theorem (First Isomorphism Theorem):\n  If φ: G → H is a group homomorphism, then:\n\n  G / ker(φ) ≅ Im(φ)\n\nThis is one of the most powerful theorems in algebra.\n\nProof Sketch:\n  Define φ̄: G/ker(φ) → Im(φ) by φ̄(gK) = φ(g) where K = ker(φ).\n  - Well-defined: if gK = g'K, then g'⁻¹g ∈ K, so φ(g) = φ(g').\n  - Homomorphism: φ̄(aK · bK) = φ̄(abK) = φ(ab) = φ(a)φ(b) = φ̄(aK)φ̄(bK).\n  - Injective: ker(φ̄) = {K} (trivial).\n  - Surjective: by definition of Im(φ).\n  ∴ φ̄ is an isomorphism.  ✓\n\nExample Application:\n  φ: ℤ → ℤₙ defined by φ(k) = k mod n.\n  ker(φ) = nℤ\n  Im(φ) = ℤₙ\n  First Isomorphism Theorem gives: ℤ/nℤ ≅ ℤₙ  ✓", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Cyclic Groups & Permutation Groups",
+                        "description": "Structure of cyclic groups, generators, and the symmetric group.",
+                        "lesson_number": 4,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Cyclic Groups", "block_number": 1, "type": "header" },
+                            { "content": "A group G is cyclic if there exists an element g ∈ G (a generator) such that:\n  G = ⟨g⟩ = {gⁿ | n ∈ ℤ}\n\nThe element g generates G by repeatedly applying the group operation.\n\nExamples:\n- ℤ = ⟨1⟩ = ⟨-1⟩ (infinite cyclic group)\n- ℤₙ = ⟨1⟩ = ⟨k⟩ whenever gcd(k, n) = 1\n- Every group of prime order is cyclic\n\nTheorem: Every cyclic group is abelian.\nProof: gᵐ ★ gⁿ = gᵐ⁺ⁿ = gⁿ ★ gᵐ  ✓", "block_number": 2, "type": "description" },
+                            { "content": "Generators of ℤₙ", "block_number": 3, "type": "header" },
+                            { "content": "In ℤₙ, the element k is a generator if and only if gcd(k, n) = 1.\n\nThe number of generators of ℤₙ = φ(n) (Euler's totient function)\nwhere φ(n) = |{k : 1 ≤ k ≤ n, gcd(k,n) = 1}|\n\nExample: ℤ₁₂\n  Generators: k where gcd(k, 12) = 1\n  k = 1, 5, 7, 11  →  φ(12) = 4 generators\n\nFormula for Euler's Totient:\n  If n = p₁^a₁ · p₂^a₂ · ... · pₖ^aₖ, then\n  φ(n) = n · ∏(1 - 1/pᵢ)\n\n  Example: φ(12) = φ(2²·3) = 12 · (1 - 1/2) · (1 - 1/3) = 12 · 1/2 · 2/3 = 4  ✓", "block_number": 4, "type": "description" },
+                            { "content": "Permutation Groups", "block_number": 5, "type": "header" },
+                            { "content": "A permutation of a set A is a bijection σ: A → A.\nThe symmetric group Sₙ consists of all permutations of {1, 2, ..., n}.\n\n|Sₙ| = n!\n\nPermutations are written in cycle notation:\n  σ = (1 3 5)(2 4) means:\n    1 → 3 → 5 → 1  (3-cycle)\n    2 → 4 → 2      (2-cycle = transposition)\n\nDisjoint cycles commute: (1 3 5)(2 4) = (2 4)(1 3 5)\n\nOrder of a permutation = LCM of cycle lengths\n  Example: order of (1 3 5)(2 4) = lcm(3, 2) = 6", "block_number": 6, "type": "description" },
+                            { "content": "Even and Odd Permutations", "block_number": 7, "type": "header" },
+                            { "content": "Every permutation can be written as a product of transpositions (2-cycles).\n\nA permutation is:\n- Even if it is a product of an even number of transpositions\n- Odd if it is a product of an odd number of transpositions\n\nThis is well-defined (the parity doesn't depend on the decomposition).\n\nThe sign (or signature) of σ: sgn(σ) = +1 if even, -1 if odd.\n\nExamples:\n  (1 2 3) = (1 3)(1 2)  — 2 transpositions → even\n  (1 2)   — 1 transposition → odd\n  (1 2 3 4) = (1 4)(1 3)(1 2) — 3 transpositions → odd\n\nThe alternating group Aₙ = set of all even permutations of Sₙ\n  |Aₙ| = n!/2\n  Aₙ ⊲ Sₙ (Aₙ is normal in Sₙ)", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Ring Theory",
+                "description": "Rings, ideals, ring homomorphisms, and integral domains.",
+                "chapter_number": 3,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Introduction to Rings",
+                        "description": "Axioms, examples, and basic properties of rings.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "What is a Ring?", "block_number": 1, "type": "header" },
+                            { "content": "A ring is a set R equipped with two binary operations + and · satisfying:\n\n(R, +) is an abelian group:\n  1. Closure under +\n  2. Associativity of +\n  3. Additive identity: 0\n  4. Additive inverses: -a\n  5. Commutativity: a + b = b + a\n\nMultiplication is associative:\n  6. (a · b) · c = a · (b · c)\n\nDistributive laws:\n  7. a · (b + c) = a·b + a·c\n  8. (a + b) · c = a·c + b·c\n\nOptional extras:\n  - Commutative ring: a · b = b · a for all a, b\n  - Ring with unity (unital ring): ∃ 1 ∈ R such that 1·a = a·1 = a\n  - Division ring: every non-zero element has a multiplicative inverse", "block_number": 2, "type": "description" },
+                            { "content": "Examples of Rings", "block_number": 3, "type": "header" },
+                            { "content": "1. (ℤ, +, ·) — Integers: commutative ring with unity. Not a field (no inverse for 2).\n\n2. (ℚ, +, ·), (ℝ, +, ·), (ℂ, +, ·) — Fields (commutative division rings).\n\n3. (ℤₙ, +, ·) — Integers mod n: commutative ring with unity.\n   - ℤₙ is a field ⟺ n is prime.\n\n4. (Mₙ(ℝ), +, ·) — n×n matrices over ℝ: non-commutative ring with unity.\n\n5. (ℤ[x], +, ·) — Polynomials with integer coefficients: commutative ring with unity.\n\n6. {0}: trivial ring where 0 = 1.\n\n7. 2ℤ = even integers: commutative ring without unity.", "block_number": 4, "type": "description" },
+                            { "content": "Basic Properties of Rings", "block_number": 5, "type": "header" },
+                            { "content": "Theorem: In any ring R:\n\n1. a · 0 = 0 · a = 0 for all a ∈ R.\n   Proof: a·0 = a·(0+0) = a·0 + a·0. Subtract a·0: 0 = a·0.  ✓\n\n2. a · (-b) = -(a · b) = (-a) · b\n   Proof: a·b + a·(-b) = a·(b + (-b)) = a·0 = 0. So a·(-b) = -(ab).  ✓\n\n3. (-a)·(-b) = a·b\n   Proof: (-a)(-b) = -(a(-b)) = -(-(ab)) = ab.  ✓\n\n4. If R has unity 1 and 1 = 0, then R = {0} (trivial ring).\n\nZero Divisors:\n  An element a ≠ 0 in R is a zero divisor if ∃b ≠ 0 such that ab = 0 or ba = 0.\n  Example: In ℤ₆: 2 · 3 = 6 ≡ 0 (mod 6), so 2 and 3 are zero divisors.", "block_number": 6, "type": "description" },
+                            { "content": "Integral Domains and Fields", "block_number": 7, "type": "header" },
+                            { "content": "An Integral Domain is a commutative ring with unity and no zero divisors.\n\nEquivalently: ab = 0 ⟹ a = 0 or b = 0 (cancellation law holds).\n\nExamples: ℤ, ℚ, ℝ, ℂ, ℤ[x], ℤₚ (p prime)\n\nNon-example: ℤ₆ (has zero divisors 2 and 3)\n\nA Field is a commutative ring with unity where every non-zero element has a multiplicative inverse.\n\nField ⟹ Integral Domain ⟹ Commutative Ring with Unity ⟹ Ring\n\nEvery finite integral domain is a field.\n\nExamples of fields: ℚ, ℝ, ℂ, ℤₚ (p prime), ℚ(√2) = {a + b√2 | a,b ∈ ℚ}", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Ideals & Quotient Rings",
+                        "description": "Ideals, ring homomorphisms, quotient rings, and isomorphism theorems.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Ideals", "block_number": 1, "type": "header" },
+                            { "content": "An ideal I of a ring R is a non-empty subset I ⊆ R satisfying:\n\n1. (I, +) is a subgroup of (R, +)\n2. For all r ∈ R and a ∈ I: r·a ∈ I and a·r ∈ I  (absorption property)\n\nTypes:\n- Left ideal: only r·a ∈ I required\n- Right ideal: only a·r ∈ I required\n- Two-sided ideal (ideal): both required\n\nIn commutative rings, left = right = two-sided.\n\nEvery ring R has two trivial ideals: {0} and R itself.\n\nPrincipal Ideal:\n  In a commutative ring R with unity, the ideal generated by a is:\n  ⟨a⟩ = aR = {ar | r ∈ R}\n\nExample in ℤ:\n  ⟨3⟩ = 3ℤ = {..., -6, -3, 0, 3, 6, ...}\n  ⟨6⟩ ⊆ ⟨3⟩ ⊆ ℤ\n  ⟨6⟩ + ⟨4⟩ = ⟨gcd(6,4)⟩ = ⟨2⟩", "block_number": 2, "type": "description" },
+                            { "content": "Quotient Rings", "block_number": 3, "type": "header" },
+                            { "content": "If I is an ideal of R, the quotient ring R/I consists of cosets:\n  R/I = {a + I | a ∈ R}\n\nWith operations:\n  (a + I) + (b + I) = (a + b) + I\n  (a + I) · (b + I) = (ab) + I\n\nThis is well-defined because I is an ideal.\n\nExamples:\n1. ℤ/nℤ ≅ ℤₙ\n   Cosets: {0+nℤ, 1+nℤ, ..., (n-1)+nℤ}\n\n2. ℝ[x]/⟨x²+1⟩ ≅ ℂ\n   Every polynomial reduces modulo (x²+1):\n   x² ≡ -1, so we get elements a + bx which behave like a + bi.\n   This is why ℂ is the algebraic closure of ℝ!", "block_number": 4, "type": "description" },
+                            { "content": "Ring Homomorphisms", "block_number": 5, "type": "header" },
+                            { "content": "A ring homomorphism is a function φ: R → S satisfying:\n  φ(a + b) = φ(a) + φ(b)\n  φ(a · b) = φ(a) · φ(b)\n  φ(1_R) = 1_S  (if both are unital rings)\n\nKernel: ker(φ) = {r ∈ R | φ(r) = 0_S}\nImage: Im(φ) = {φ(r) | r ∈ R}\n\nTheorem: ker(φ) is always an ideal of R.\nTheorem: Im(φ) is always a subring of S.\n\nFirst Isomorphism Theorem for Rings:\n  R / ker(φ) ≅ Im(φ)\n\nExample:\n  φ: ℤ → ℤₙ, φ(k) = k mod n\n  ker(φ) = nℤ\n  Im(φ) = ℤₙ\n  ℤ/nℤ ≅ ℤₙ  ✓", "block_number": 6, "type": "description" },
+                            { "content": "Prime and Maximal Ideals", "block_number": 7, "type": "header" },
+                            { "content": "Let R be a commutative ring with unity, and I a proper ideal of R (I ≠ R).\n\nPrime Ideal:\n  I is prime if: ab ∈ I ⟹ a ∈ I or b ∈ I\n  Equivalently: R/I is an integral domain.\n\nMaximal Ideal:\n  I is maximal if there is no ideal J with I ⊊ J ⊊ R\n  Equivalently: R/I is a field.\n\nRelationship: Every maximal ideal is prime. The converse is false in general.\n\nExamples in ℤ:\n  - ⟨p⟩ = pℤ is prime ⟺ p is prime.\n  - ⟨p⟩ is maximal ⟺ p is prime.  (ℤ is a PID, so maximal ⟺ prime here)\n  - ⟨0⟩ is prime (since ℤ is an integral domain) but not maximal.\n  - ⟨4⟩ is neither prime nor maximal (4 = 2·2, 2 ∉ ⟨4⟩).", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Polynomial Rings",
+                        "description": "R[x], polynomial division, irreducibility, and unique factorization.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Polynomial Rings", "block_number": 1, "type": "header" },
+                            { "content": "Given a ring R, the polynomial ring R[x] consists of all polynomials:\n  f(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀  where aᵢ ∈ R\n\n- The degree of f: deg(f) = n (index of leading nonzero coefficient)\n- If R is an integral domain: deg(fg) = deg(f) + deg(g)\n- R[x] is commutative if R is commutative\n- R[x] has unity if R has unity\n\nUnits in R[x]:\n  If R is an integral domain, the units of R[x] are exactly the units of R.", "block_number": 2, "type": "description" },
+                            { "content": "Division Algorithm for Polynomials", "block_number": 3, "type": "header" },
+                            { "content": "Theorem (Division Algorithm):\n  Let F be a field and f, g ∈ F[x] with g ≠ 0.\n  Then there exist unique q, r ∈ F[x] such that:\n    f = g · q + r  where  deg(r) < deg(g)  or  r = 0\n\nq is the quotient, r is the remainder.\n\nExample: Divide f(x) = 2x³ - 3x + 1 by g(x) = x - 2 in ℚ[x]\n\n  2x³ - 3x + 1 = (x - 2)(2x² + 4x + 5) + 11\n\n  Verify: (x-2)(2x²+4x+5) + 11\n  = 2x³ + 4x² + 5x - 4x² - 8x - 10 + 11\n  = 2x³ - 3x + 1  ✓\n\nRemainder Theorem:\n  The remainder when f(x) is divided by (x - a) is f(a).\n\nFactor Theorem:\n  (x - a) | f(x) ⟺ f(a) = 0  (a is a root of f)", "block_number": 4, "type": "description" },
+                            { "content": "Irreducible Polynomials", "block_number": 5, "type": "header" },
+                            { "content": "A non-constant polynomial p(x) ∈ F[x] is irreducible over F if:\n  p(x) = f(x) · g(x) ⟹ f(x) or g(x) is a constant (unit).\n\nIrreducibility depends on the field!\n  - x² + 1 is irreducible over ℝ, but factors as (x+i)(x-i) over ℂ\n  - x² - 2 is irreducible over ℚ, but factors as (x-√2)(x+√2) over ℝ\n\nTesting Irreducibility:\n1. Degree 2 or 3: irreducible over F ⟺ no roots in F.\n2. Eisenstein's Criterion: If p(x) = aₙxⁿ + ... + a₀ ∈ ℤ[x] and ∃ prime p such that:\n   - p | aᵢ for all i < n\n   - p ∤ aₙ\n   - p² ∤ a₀\n   Then p(x) is irreducible over ℚ.\n\nExample (Eisenstein): f(x) = x⁴ + 3x³ + 6x + 3\n  Take p = 3:\n  - 3 | 3 (coeff of x³), 3 | 6 (coeff of x), 3 | 3 (constant)  ✓\n  - 3 ∤ 1 (leading coeff)  ✓\n  - 9 ∤ 3 (constant)  ✓\n  ∴ f(x) is irreducible over ℚ.", "block_number": 6, "type": "description" },
+                            { "content": "Greatest Common Divisor of Polynomials", "block_number": 7, "type": "header" },
+                            { "content": "For polynomials f, g ∈ F[x] (not both zero), gcd(f, g) is the monic polynomial d of highest degree dividing both f and g.\n\nEuclidean Algorithm for Polynomials:\n  Works exactly like for integers, using polynomial division.\n\nExample: Find gcd(x³ - x, x² - 1) in ℚ[x]\n\n  Step 1: x³ - x = (x²-1)·x + (-x + x) — wait:\n    x³ - x ÷ (x²-1):\n    x³ - x = (x²-1)·x + 0\n    ⟹ remainder = 0\n\n  ∴ gcd(x³-x, x²-1) = x²-1\n\nBezout's Identity for Polynomials:\n  ∃ s(x), t(x) ∈ F[x] such that:\n  f·s + g·t = gcd(f, g)\n\nThis is the key to constructing inverses in F[x]/⟨p(x)⟩.", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Field Theory",
+                "description": "Field extensions, algebraic elements, splitting fields, and finite fields.",
+                "chapter_number": 4,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Field Extensions",
+                        "description": "Extending fields and the degree of an extension.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Field Extensions", "block_number": 1, "type": "header" },
+                            { "content": "If F ⊆ E are both fields and the operations of F are those of E restricted to F, then E is a field extension of F, written E/F.\n\nF is called the base field, E is the extension field.\n\nExamples:\n  ℝ/ℚ: reals over rationals\n  ℂ/ℝ: complex over reals\n  ℂ/ℚ: complex over rationals\n  ℚ(√2)/ℚ = {a + b√2 | a,b ∈ ℚ}\n\nE is a vector space over F! The dimension of this vector space is the degree:\n  [E : F] = dimₓ(E)\n\nExamples of degrees:\n  [ℂ : ℝ] = 2  (basis: {1, i})\n  [ℚ(√2) : ℚ] = 2  (basis: {1, √2})\n  [ℚ(∛2) : ℚ] = 3  (basis: {1, ∛2, ∛4})\n  [ℂ : ℚ] = ∞", "block_number": 2, "type": "description" },
+                            { "content": "The Tower Law", "block_number": 3, "type": "header" },
+                            { "content": "Theorem (Tower Law / Multiplicativity of Degree):\n  If F ⊆ K ⊆ E are fields, then:\n  [E : F] = [E : K] · [K : F]\n\nExample:\n  ℚ ⊆ ℚ(√2) ⊆ ℚ(√2, √3)\n  [ℚ(√2) : ℚ] = 2\n  [ℚ(√2, √3) : ℚ(√2)] = 2  (√3 ∉ ℚ(√2))\n  [ℚ(√2, √3) : ℚ] = 2 · 2 = 4\n  Basis of ℚ(√2, √3) over ℚ: {1, √2, √3, √6}\n\nApplication: If [E:F] is prime, then there are no intermediate fields.", "block_number": 4, "type": "description" },
+                            { "content": "Algebraic Elements", "block_number": 5, "type": "header" },
+                            { "content": "Let E/F be a field extension and α ∈ E.\n\nα is algebraic over F if ∃ non-zero polynomial f(x) ∈ F[x] such that f(α) = 0.\n\nα is transcendental over F if no such polynomial exists.\n\nExamples:\n  √2 is algebraic over ℚ: f(x) = x² - 2\n  i is algebraic over ℝ: f(x) = x² + 1\n  π and e are transcendental over ℚ (famous result)\n\nMinimal Polynomial:\n  The minimal polynomial of α over F is the monic polynomial of least degree in F[x] with α as root.\n  It is unique and irreducible.\n\n  Example: min poly of √2 over ℚ is x² - 2.\n  Example: min poly of ω = e^(2πi/3) over ℚ is x² + x + 1.", "block_number": 6, "type": "description" },
+                            { "content": "Simple Extensions", "block_number": 7, "type": "header" },
+                            { "content": "Given E/F and α ∈ E, the simple extension F(α) is the smallest subfield of E containing F and α.\n\nTheorem:\n  If α is algebraic over F with minimal polynomial p(x) of degree n, then:\n    F(α) ≅ F[x] / ⟨p(x)⟩\n  and  [F(α) : F] = n\n  and  {1, α, α², ..., αⁿ⁻¹} is a basis of F(α) over F.\n\nExample: ℚ(√2)\n  min poly of √2 over ℚ: x² - 2, degree 2\n  ℚ(√2) ≅ ℚ[x]/⟨x²-2⟩\n  Elements: a + b√2 where a, b ∈ ℚ\n  [ℚ(√2) : ℚ] = 2\n\nExample: ℚ(∛2)\n  min poly: x³ - 2, degree 3\n  Elements: a + b∛2 + c∛4 where a, b, c ∈ ℚ\n  [ℚ(∛2) : ℚ] = 3", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Splitting Fields & Algebraic Closure",
+                        "description": "Splitting fields, algebraic closures, and uniqueness theorems.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Splitting Fields", "block_number": 1, "type": "header" },
+                            { "content": "A splitting field of f(x) ∈ F[x] over F is the smallest extension of F over which f(x) splits (factors completely into linear factors).\n\nf(x) = c · (x - α₁)(x - α₂)···(x - αₙ)\n\nSplitting field: F(α₁, α₂, ..., αₙ)\n\nExamples:\n1. f(x) = x² - 2 over ℚ\n   Roots: ±√2\n   Splitting field: ℚ(√2)\n   [ℚ(√2) : ℚ] = 2\n\n2. f(x) = x³ - 2 over ℚ\n   Roots: ∛2, ω∛2, ω²∛2  where ω = e^(2πi/3)\n   Splitting field: ℚ(∛2, ω)\n   [ℚ(∛2, ω) : ℚ] = 6\n\n3. f(x) = x² + 1 over ℝ\n   Roots: ±i\n   Splitting field: ℝ(i) = ℂ\n   [ℂ : ℝ] = 2\n\nTheorem: Any two splitting fields of f over F are isomorphic.", "block_number": 2, "type": "description" },
+                            { "content": "Algebraic Closure", "block_number": 3, "type": "header" },
+                            { "content": "A field F̄ is an algebraic closure of F if:\n  1. F̄/F is algebraic (every element of F̄ is algebraic over F)\n  2. F̄ is algebraically closed: every non-constant polynomial in F̄[x] has a root in F̄\n\nTheorem (Steinitz): Every field has an algebraic closure, unique up to isomorphism.\n\nExamples:\n  - ℂ is the algebraic closure of ℝ  (Fundamental Theorem of Algebra!)\n  - ℚ̄ (algebraic numbers) is the algebraic closure of ℚ\n\nFundamental Theorem of Algebra:\n  Every non-constant polynomial in ℂ[x] has a root in ℂ.\n  Equivalently: ℂ is algebraically closed.\n\nNote: This is a theorem of complex analysis, not just algebra!", "block_number": 4, "type": "description" },
+                            { "content": "Finite Fields (Galois Fields)", "block_number": 5, "type": "header" },
+                            { "content": "Theorem (Classification of Finite Fields):\n  For every prime p and positive integer n, there exists a unique (up to isomorphism) field with pⁿ elements, denoted:\n    𝔽_{pⁿ}  or  GF(pⁿ)  (Galois Field)\n\n  Moreover, these are the only finite fields.\n\nConstruction of 𝔽_{pⁿ}:\n  𝔽_{pⁿ} ≅ 𝔽_p[x] / ⟨p(x)⟩\n  where p(x) is an irreducible polynomial of degree n over 𝔽_p.\n\nExample: 𝔽₄ = GF(4) = GF(2²)\n  Work over 𝔽₂ = {0, 1}\n  x² + x + 1 is irreducible over 𝔽₂ (no roots: f(0)=1, f(1)=1)\n  𝔽₄ = 𝔽₂[x]/⟨x²+x+1⟩ = {0, 1, x, x+1}\n  where x² = x + 1 (since x²+x+1 = 0 ⟹ x² = -x-1 = x+1 in char 2)\n\nAddition table of 𝔽₄:\n  + | 0    1    x    x+1\n  0 | 0    1    x    x+1\n  1 | 1    0    x+1  x\n  x | x    x+1  0    1\n  x+1|x+1  x    1    0", "block_number": 6, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Galois Theory",
+                "description": "Automorphisms of fields, Galois groups, and the insolvability of the quintic.",
+                "chapter_number": 5,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Field Automorphisms & Galois Groups",
+                        "description": "Automorphisms of field extensions and the Galois group.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Field Automorphisms", "block_number": 1, "type": "header" },
+                            { "content": "An automorphism of a field E is a bijective ring homomorphism φ: E → E.\n\nAn F-automorphism of E/F is an automorphism φ of E that fixes F:\n  φ(a) = a for all a ∈ F\n\nThe set of all F-automorphisms of E forms a group under composition, called the Galois group:\n  Gal(E/F) = Aut_F(E)\n\nExamples:\n1. Gal(ℂ/ℝ):\n   The automorphisms fixing ℝ are id and complex conjugation φ(a+bi) = a-bi.\n   Gal(ℂ/ℝ) ≅ ℤ₂\n\n2. Gal(ℚ(√2)/ℚ):\n   φ must fix ℚ, so it's determined by where it sends √2.\n   Since √2 is a root of x²-2, φ(√2) must be another root: ±√2.\n   Two automorphisms: id and φ(a+b√2) = a-b√2.\n   Gal(ℚ(√2)/ℚ) ≅ ℤ₂", "block_number": 2, "type": "description" },
+                            { "content": "Galois Extensions", "block_number": 3, "type": "header" },
+                            { "content": "A field extension E/F is Galois if:\n  |Gal(E/F)| = [E : F]\n\nEquivalently, E/F is Galois if and only if it is:\n  - Normal: E is a splitting field of some polynomial over F\n  - Separable: every irreducible polynomial in F[x] with a root in E has no repeated roots\n\nIn characteristic 0 (e.g., subfields of ℂ): every algebraic extension is separable.\n\nExamples:\n  ℚ(√2)/ℚ: Galois  — splitting field of x²-2, |Gal| = 2 = [ℚ(√2):ℚ]  ✓\n  ℚ(∛2)/ℚ: NOT Galois — splits in ℚ(∛2, ω) ≠ ℚ(∛2), |Gal| = 1 ≠ 3\n  ℚ(∛2, ω)/ℚ: Galois — splitting field of x³-2, |Gal| = 6 = [extension:ℚ]  ✓", "block_number": 4, "type": "description" },
+                            { "content": "The Fundamental Theorem of Galois Theory", "block_number": 5, "type": "header" },
+                            { "content": "Theorem (Fundamental Theorem of Galois Theory):\n  Let E/F be a finite Galois extension with Galois group G = Gal(E/F).\n  There is a bijective correspondence (the Galois correspondence):\n\n  { Intermediate fields F ⊆ K ⊆ E } ←→ { Subgroups H ≤ G }\n\n  K ↦ Gal(E/K)  (fixing subgroup)\n  E^H ↦ H        (fixed field)\n\n  This correspondence is inclusion-reversing:\n    K₁ ⊆ K₂ ⟺ Gal(E/K₂) ≤ Gal(E/K₁)\n\n  Moreover:\n    [E : K] = |Gal(E/K)|\n    [K : F] = [G : Gal(E/K)]\n    K/F is Galois ⟺ Gal(E/K) ⊲ G\n    If K/F is Galois: Gal(K/F) ≅ G / Gal(E/K)", "block_number": 6, "type": "description" },
+                            { "content": "Example: Galois Correspondence for ℚ(√2, √3)/ℚ", "block_number": 7, "type": "header" },
+                            { "content": "Let E = ℚ(√2, √3), F = ℚ.\n  [E : F] = 4, Gal(E/F) = {e, σ, τ, στ} ≅ ℤ₂ × ℤ₂\n  where:\n    σ: √2 ↦ -√2, √3 ↦ √3\n    τ: √2 ↦ √2,  √3 ↦ -√3\n    στ: √2 ↦ -√2, √3 ↦ -√3\n\nSubgroups of G = ℤ₂ × ℤ₂:\n  H₁ = {e, σ},  H₂ = {e, τ},  H₃ = {e, στ}\n\nCorresponding fixed fields:\n  E^{H₁} = ℚ(√3)   (σ fixes √3 but not √2)\n  E^{H₂} = ℚ(√2)   (τ fixes √2 but not √3)\n  E^{H₃} = ℚ(√6)   (στ fixes √6 = √2·√3)\n\nGalois Lattice:\n         ℚ(√2, √3)\n        /    |    \\\n    ℚ(√2)  ℚ(√3)  ℚ(√6)\n        \\    |    /\n              ℚ", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Solvability by Radicals",
+                        "description": "Solvable groups and the insolvability of the general quintic.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Solvable Groups", "block_number": 1, "type": "header" },
+                            { "content": "A group G is solvable if there exists a chain of subgroups:\n  {e} = G₀ ⊲ G₁ ⊲ G₂ ⊲ ... ⊲ Gₙ = G\n  where each quotient Gᵢ₊₁/Gᵢ is abelian.\n\nExamples of solvable groups:\n  - All abelian groups (trivially solvable)\n  - S₃: {e} ⊲ A₃ ⊲ S₃, quotients ℤ₃ and ℤ₂ — both abelian ✓\n  - S₄: solvable (chain: {e} ⊲ V₄ ⊲ A₄ ⊲ S₄)\n  - All groups of order < 60 are solvable\n\nNon-solvable groups:\n  - A₅ (of order 60) is simple and non-abelian — the smallest non-solvable group\n  - Sₙ for n ≥ 5 is not solvable", "block_number": 2, "type": "description" },
+                            { "content": "Solvability by Radicals", "block_number": 3, "type": "header" },
+                            { "content": "A polynomial f(x) ∈ F[x] is solvable by radicals if its roots can be expressed using:\n  +, -, ×, ÷, and ⁿ√ (radicals) starting from elements of F.\n\nExample (Quadratic Formula):\n  ax² + bx + c = 0  ⟹  x = (-b ± √(b²-4ac)) / 2a  ✓ solvable by radicals\n\nCubic Formula (Cardano, 1545):\n  x³ + px + q = 0\n  x = ∛(-q/2 + √(q²/4 + p³/27)) + ∛(-q/2 - √(q²/4 + p³/27))\n  ✓ solvable by radicals\n\nQuartic (degree 4): Also solvable by radicals (Ferrari's method)\n\nGalois' Great Theorem:\n  f(x) is solvable by radicals over F ⟺ Gal(Splitting Field / F) is a solvable group.", "block_number": 4, "type": "description" },
+                            { "content": "The Insolvability of the Quintic", "block_number": 5, "type": "header" },
+                            { "content": "Theorem (Abel-Ruffini, proved by Galois):\n  The general polynomial of degree n ≥ 5 is NOT solvable by radicals.\n\nProof Sketch (Galois):\n  - The Galois group of the general degree-n polynomial is Sₙ.\n  - S₅ is not solvable (because A₅ is simple and non-abelian).\n  - Therefore no radical formula exists for the general quintic.\n\nSpecific examples:\n  - f(x) = x⁵ - x - 1 is not solvable by radicals\n    (its Galois group is S₅)\n  - g(x) = x⁵ - 5x + 12 IS solvable by radicals\n    (its Galois group is ℤ₅, which is abelian → solvable)\n\nThis ended a 300-year search for a 'quintic formula' and launched\nmodern abstract algebra.", "block_number": 6, "type": "description" },
+                            { "content": "Historical Note", "block_number": 7, "type": "header" },
+                            { "content": "Évariste Galois (1811-1832) developed the theory of groups specifically to answer the question of polynomial solvability by radicals.\n\nHe submitted his work to the French Academy of Sciences but it was lost or rejected multiple times.\n\nGalois died in a duel at age 20. The night before, he frantically wrote out his mathematical results in a letter, sensing he would not survive.\n\nHis work was published posthumously in 1846 by Joseph Liouville, and it laid the foundation for:\n- Abstract group theory\n- Field theory\n- Modern algebra as a discipline\n- The proof that certain geometric constructions (trisecting the angle, doubling the cube) are impossible with compass and straightedge", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Linear Algebra Extensions",
+                "description": "Advanced topics: vector spaces over arbitrary fields, linear maps, eigentheory, and inner product spaces.",
+                "chapter_number": 6,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Vector Spaces over Arbitrary Fields",
+                        "description": "Abstract vector spaces, subspaces, bases, and dimension.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Abstract Vector Spaces", "block_number": 1, "type": "header" },
+                            { "content": "A vector space over a field F is a set V with operations:\n  + : V × V → V  (vector addition)\n  · : F × V → V  (scalar multiplication)\n\nsatisfying 8 axioms:\n  1. (V, +) is an abelian group\n  2. Scalar distributivity: α(u + v) = αu + αv\n  3. Vector distributivity: (α + β)v = αv + βv\n  4. Associativity: (αβ)v = α(βv)\n  5. Unity: 1·v = v\n\nExamples:\n  - ℝⁿ over ℝ\n  - ℂⁿ over ℂ or over ℝ\n  - F[x] (polynomials) over F\n  - Mₘₓₙ(F) (matrices) over F\n  - Any field extension E/F: E is a vector space over F\n  - C[a,b] (continuous functions) over ℝ — infinite dimensional!", "block_number": 2, "type": "description" },
+                            { "content": "Basis and Dimension", "block_number": 3, "type": "header" },
+                            { "content": "A set S = {v₁, ..., vₙ} in V is:\n  - Linearly Independent: α₁v₁ + ... + αₙvₙ = 0 ⟹ all αᵢ = 0\n  - Spanning: every v ∈ V is a linear combination of S\n  - A Basis: both linearly independent and spanning\n\nTheorem: All bases of V have the same cardinality.\nThis cardinality is the dimension: dim(V) = n.\n\nCoordinate Representation:\n  If B = {v₁, ..., vₙ} is a basis, every v ∈ V has unique representation:\n  v = c₁v₁ + c₂v₂ + ... + cₙvₙ\n  The vector [c₁, c₂, ..., cₙ]ᵀ is the coordinate vector of v relative to B.\n\nKey Theorems:\n  - Any n+1 vectors in an n-dim space are linearly dependent\n  - Any n linearly independent vectors in an n-dim space form a basis\n  - dim(U + W) = dim(U) + dim(W) - dim(U ∩ W)  (Dimension Formula)", "block_number": 4, "type": "description" },
+                            { "content": "Linear Transformations", "block_number": 5, "type": "header" },
+                            { "content": "A linear transformation T: V → W between vector spaces over F satisfies:\n  T(u + v) = T(u) + T(v)\n  T(αv) = αT(v)\n\nKernel: ker(T) = {v ∈ V | T(v) = 0}\nImage: Im(T) = {T(v) | v ∈ V}\n\nRank-Nullity Theorem:\n  dim(ker T) + dim(Im T) = dim(V)\n  i.e., nullity(T) + rank(T) = dim(V)\n\nMatrix Representation:\n  If B = {v₁,...,vₙ} is a basis of V and C = {w₁,...,wₘ} basis of W,\n  then T is represented by the m×n matrix A where:\n  j-th column of A = coordinates of T(vⱼ) in basis C.\n\nChange of Basis:\n  If P is the change-of-basis matrix from B to B',\n  then the representation changes: A' = P⁻¹AP  (similar matrices)", "block_number": 6, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Eigenvalues, Eigenvectors & Diagonalization",
+                        "description": "Spectral theory, diagonalization, and the characteristic polynomial.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Eigenvalues and Eigenvectors", "block_number": 1, "type": "header" },
+                            { "content": "Let T: V → V be a linear operator. A scalar λ ∈ F is an eigenvalue of T if:\n  ∃v ≠ 0 such that T(v) = λv\n\nv is called the eigenvector corresponding to λ.\n\nMatrix form: Av = λv  ⟺  (A - λI)v = 0\n\nThis has non-trivial solutions ⟺ det(A - λI) = 0\n\nThe characteristic polynomial:\n  p(λ) = det(A - λI)\n\nEigenvalues are the roots of p(λ) = 0.\n\nThe eigenspace corresponding to λ:\n  Eλ = ker(A - λI) = {v | Av = λv}\n\nGeometric multiplicity of λ = dim(Eλ)\nAlgebraic multiplicity of λ = multiplicity as root of p(λ)", "block_number": 2, "type": "description" },
+                            { "content": "Computing Eigenvalues — Example", "block_number": 3, "type": "header" },
+                            { "content": "Find eigenvalues and eigenvectors of:\n  A = [[3, 1], [0, 2]]\n\nStep 1: Characteristic polynomial\n  det(A - λI) = det([[3-λ, 1], [0, 2-λ]])\n              = (3-λ)(2-λ) - 0\n              = λ² - 5λ + 6\n              = (λ-2)(λ-3) = 0\n  Eigenvalues: λ₁ = 2, λ₂ = 3\n\nStep 2: Eigenvectors for λ₁ = 2\n  (A - 2I)v = 0\n  [[1, 1], [0, 0]] v = 0\n  ⟹ v₁ + v₂ = 0 ⟹ v = t[-1, 1]ᵀ  (t ≠ 0)\n  E₂ = span{[-1, 1]ᵀ}\n\nStep 3: Eigenvectors for λ₂ = 3\n  (A - 3I)v = 0\n  [[0, 1], [0, -1]] v = 0\n  ⟹ v₂ = 0 ⟹ v = t[1, 0]ᵀ\n  E₃ = span{[1, 0]ᵀ}", "block_number": 4, "type": "description" },
+                            { "content": "Diagonalization", "block_number": 5, "type": "header" },
+                            { "content": "A matrix A is diagonalizable if ∃ invertible P and diagonal D such that:\n  A = PDP⁻¹\n\nD has eigenvalues on the diagonal.\nP has corresponding eigenvectors as columns.\n\nCriterion: A (n×n) is diagonalizable ⟺\n  A has n linearly independent eigenvectors.\n\nSufficient condition:\n  If A has n distinct eigenvalues → A is diagonalizable.\n\nExample (continuing above):\n  P = [[-1, 1], [1, 0]],  D = [[2, 0], [0, 3]]\n  A = PDP⁻¹\n\nUse of diagonalization:\n  Aⁿ = PDⁿP⁻¹  (easy to compute Dⁿ — just raise diagonal entries to n)\n\nSpectral Theorem:\n  Every real symmetric matrix A is diagonalizable, with:\n  - All eigenvalues real\n  - Eigenvectors from different eigenspaces are orthogonal", "block_number": 6, "type": "description" },
+                            { "content": "Jordan Normal Form", "block_number": 7, "type": "header" },
+                            { "content": "Not every matrix is diagonalizable. The Jordan Normal Form is the 'best' we can do.\n\nA Jordan block of size k for eigenvalue λ is the k×k matrix:\n  Jₖ(λ) = [[λ,1,0,...,0], [0,λ,1,...,0], ..., [0,...,0,λ,1], [0,...,0,0,λ]]\n\nThe Jordan Normal Form of A is a block-diagonal matrix:\n  J = block_diag(J_{k₁}(λ₁), J_{k₂}(λ₂), ...)\n\nA is similar to J: A = PJP⁻¹ for some invertible P.\n\nEvery square matrix over an algebraically closed field (like ℂ) has a Jordan Normal Form.\n\nDiagonalizable ⟺ all Jordan blocks have size 1 ⟺ geometric mult = algebraic mult for each λ.", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Modules",
+                "description": "Modules over rings — the generalization of vector spaces.",
+                "chapter_number": 7,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Introduction to Modules",
+                        "description": "Definition, examples, submodules, and module homomorphisms.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "What is a Module?", "block_number": 1, "type": "header" },
+                            { "content": "A module generalizes a vector space by replacing the field of scalars with a ring.\n\nLet R be a ring with unity. A left R-module is an abelian group (M, +) with a scalar multiplication:\n  R × M → M,  (r, m) ↦ r·m\n\nsatisfying:\n  1. r(m + n) = rm + rn\n  2. (r + s)m = rm + sm\n  3. (rs)m = r(sm)\n  4. 1·m = m  (if R has unity)\n\nRelationship:\n  - R-module where R is a field = vector space\n  - ℤ-module = abelian group  (since ℤ is the 'most basic' ring)\n\nExamples:\n  - R itself is an R-module (with multiplication as scalar action)\n  - Rⁿ is an R-module\n  - Every ideal I of R is an R-module\n  - ℤₙ = ℤ/nℤ is a ℤ-module", "block_number": 2, "type": "description" },
+                            { "content": "Submodules and Quotient Modules", "block_number": 3, "type": "header" },
+                            { "content": "A submodule N of an R-module M is a non-empty subset N ⊆ M such that:\n  - N is a subgroup of (M, +)\n  - For all r ∈ R, n ∈ N: r·n ∈ N\n\nThe quotient module M/N:\n  Consists of cosets m + N with operations:\n  (m + N) + (m' + N) = (m + m') + N\n  r(m + N) = rm + N\n\nModule Homomorphism φ: M → M':\n  φ(m + n) = φ(m) + φ(n)\n  φ(rm) = rφ(m)\n\nFirst Isomorphism Theorem for Modules:\n  M / ker(φ) ≅ Im(φ)", "block_number": 4, "type": "description" },
+                            { "content": "Free Modules and Finitely Generated Modules", "block_number": 5, "type": "header" },
+                            { "content": "A free R-module of rank n is isomorphic to Rⁿ.\n  It has a basis — a linearly independent spanning set.\n\nOver a field: free modules = vector spaces.\nOver ℤ: free ℤ-modules = free abelian groups.\n\nFinitely Generated Modules:\n  M is finitely generated if ∃m₁,...,mₙ ∈ M such that every m ∈ M can be written as:\n  m = r₁m₁ + r₂m₂ + ... + rₙmₙ for some rᵢ ∈ R\n\nFundamental Theorem of Finitely Generated Modules over a PID:\n  If R is a PID (e.g., ℤ or F[x]) and M is a finitely generated R-module, then:\n  M ≅ R^r ⊕ R/⟨d₁⟩ ⊕ R/⟨d₂⟩ ⊕ ... ⊕ R/⟨dₖ⟩\n  where d₁ | d₂ | ... | dₖ (invariant factor form)\n  and r ≥ 0 is the rank (free part).\n\nSpecial Case (ℤ-modules = Abelian Groups):\n  Every finitely generated abelian group ≅ ℤ^r ⊕ ℤ_{n₁} ⊕ ... ⊕ ℤ_{nₖ}\n  where n₁ | n₂ | ... | nₖ", "block_number": 6, "type": "description" },
+                            { "content": "Classification of Finite Abelian Groups", "block_number": 7, "type": "header" },
+                            { "content": "By the Fundamental Theorem, every finite abelian group of order n is isomorphic to:\n  ℤ_{n₁} × ℤ_{n₂} × ... × ℤ_{nₖ}  where n₁ | n₂ | ... | nₖ and n₁n₂···nₖ = n\n\nOr equivalently (by Chinese Remainder Theorem) as a product of cyclic p-groups.\n\nExample: Classify all abelian groups of order 36 = 2² · 3².\n  2²-part: ℤ₄  or  ℤ₂ × ℤ₂\n  3²-part: ℤ₉  or  ℤ₃ × ℤ₃\n\n  Possible groups:\n    ℤ₄ × ℤ₉ ≅ ℤ₃₆\n    ℤ₄ × ℤ₃ × ℤ₃ ≅ ℤ₁₂ × ℤ₃\n    ℤ₂ × ℤ₂ × ℤ₉ ≅ ℤ₁₈ × ℤ₂\n    ℤ₂ × ℤ₂ × ℤ₃ × ℤ₃ ≅ ℤ₆ × ℤ₆\n\n  There are exactly 4 non-isomorphic abelian groups of order 36.", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Advanced Polynomial Theory",
+                "description": "Resultants, discriminants, symmetric polynomials, and Newton's identities.",
+                "chapter_number": 8,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Symmetric Polynomials",
+                        "description": "Elementary symmetric polynomials, Newton's identities, and Vieta's formulas.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Symmetric Polynomials", "block_number": 1, "type": "header" },
+                            { "content": "A polynomial f(x₁, x₂, ..., xₙ) is symmetric if it is unchanged by any permutation of the variables.\n\nExamples:\n  x₁ + x₂ + x₃  — symmetric\n  x₁² + x₂² + x₃²  — symmetric\n  x₁x₂ + x₁x₃ + x₂x₃  — symmetric\n  x₁ - x₂  — NOT symmetric (swapping gives -(x₁ - x₂))\n\nElementary Symmetric Polynomials eₖ in variables x₁,...,xₙ:\n  e₁ = x₁ + x₂ + ... + xₙ\n  e₂ = ∑_{i<j} xᵢxⱼ\n  e₃ = ∑_{i<j<k} xᵢxⱼxₖ\n  ⋮\n  eₙ = x₁x₂···xₙ\n\nFundamental Theorem of Symmetric Polynomials:\n  Every symmetric polynomial in x₁,...,xₙ can be written uniquely as a polynomial in e₁, e₂, ..., eₙ.", "block_number": 2, "type": "description" },
+                            { "content": "Vieta's Formulas", "block_number": 3, "type": "header" },
+                            { "content": "If f(x) = xⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀ = (x - r₁)(x - r₂)···(x - rₙ)\n\nThen by expanding the product:\n  e₁ = r₁ + r₂ + ... + rₙ = -aₙ₋₁\n  e₂ = ∑_{i<j} rᵢrⱼ = aₙ₋₂\n  e₃ = ∑_{i<j<k} rᵢrⱼrₖ = -aₙ₋₃\n  ⋮\n  eₙ = r₁r₂···rₙ = (-1)ⁿ a₀\n\nThese are Vieta's Formulas — they relate coefficients to symmetric functions of roots.\n\nExample: f(x) = x³ - 6x² + 11x - 6 = (x-1)(x-2)(x-3)\n  Roots: 1, 2, 3\n  e₁ = 1+2+3 = 6 = -(-6)  ✓\n  e₂ = 1·2+1·3+2·3 = 11  ✓\n  e₃ = 1·2·3 = 6 = -(-6)  ✓", "block_number": 4, "type": "description" },
+                            { "content": "Newton's Power Sum Identities", "block_number": 5, "type": "header" },
+                            { "content": "Define power sums: pₖ = x₁ᵏ + x₂ᵏ + ... + xₙᵏ\n\nNewton's Identities relate pₖ to the elementary symmetric polynomials eₖ:\n\n  p₁ = e₁\n  p₂ = e₁p₁ - 2e₂\n  p₃ = e₁p₂ - e₂p₁ + 3e₃\n  p₄ = e₁p₃ - e₂p₂ + e₃p₁ - 4e₄\n  \n  General: pₖ = e₁pₖ₋₁ - e₂pₖ₋₂ + ... + (-1)ᵏ⁻¹ eₖ₋₁p₁ + (-1)ᵏ⁺¹ keₖ\n\nExample: Compute x₁² + x₂² for the roots of x² - 5x + 6 = 0\n  e₁ = 5, e₂ = 6\n  p₁ = e₁ = 5\n  p₂ = e₁p₁ - 2e₂ = 5·5 - 2·6 = 25 - 12 = 13\n  Indeed: roots are 2 and 3, 2² + 3² = 4 + 9 = 13  ✓", "block_number": 6, "type": "description" },
+                            { "content": "Discriminant of a Polynomial", "block_number": 7, "type": "header" },
+                            { "content": "The discriminant Δ of f(x) with roots r₁, ..., rₙ is:\n  Δ(f) = ∏_{i<j} (rᵢ - rⱼ)²\n\nΔ(f) ≠ 0 ⟺ f has no repeated roots\nΔ(f) = 0 ⟺ f has a repeated root\n\nExpressions in terms of coefficients:\n\nQuadratic: f(x) = ax² + bx + c\n  Δ = b² - 4ac\n\nCubic: f(x) = x³ + px + q  (depressed cubic)\n  Δ = -4p³ - 27q²\n  Δ > 0: three distinct real roots\n  Δ = 0: repeated root\n  Δ < 0: one real root, two complex conjugate roots\n\nThe discriminant is always a polynomial in the coefficients of f.", "block_number": 8, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Principal Ideal Domains & Unique Factorization",
+                        "description": "PIDs, UFDs, and the structure of factorization in algebraic settings.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Euclidean Domains", "block_number": 1, "type": "header" },
+                            { "content": "An Euclidean Domain is an integral domain R with a norm function\n  N: R \\ {0} → ℕ₀\nsuch that for all a ∈ R and b ∈ R \\ {0}:\n  ∃q, r ∈ R with a = bq + r and either r = 0 or N(r) < N(b)\n\nThis generalizes integer division.\n\nExamples:\n  - ℤ with N(n) = |n|\n  - F[x] with N(f) = deg(f)\n  - ℤ[i] (Gaussian integers) with N(a+bi) = a² + b²\n  - ℤ[ω] (Eisenstein integers) with ω = e^(2πi/3)\n\nEvery Euclidean Domain is a PID.\nEvery PID is a UFD.", "block_number": 2, "type": "description" },
+                            { "content": "Principal Ideal Domains (PIDs)", "block_number": 3, "type": "header" },
+                            { "content": "A Principal Ideal Domain (PID) is an integral domain where every ideal is principal (generated by a single element).\n\nPID ⟹ every prime ideal is maximal\nPID ⟹ every irreducible element is prime\n\nExamples of PIDs: ℤ, F[x] (for any field F), ℤ[i]\n\nNon-PIDs: ℤ[x] (the ideal ⟨2, x⟩ is not principal)\n\nGCD in PIDs:\n  In a PID, gcd(a, b) exists for all a, b and can be expressed as:\n  gcd(a, b) = sa + tb  for some s, t ∈ R  (Bezout's Identity)\n\nLCM in PIDs:\n  lcm(a, b) = ab / gcd(a, b)", "block_number": 4, "type": "description" },
+                            { "content": "Unique Factorization Domains (UFDs)", "block_number": 5, "type": "header" },
+                            { "content": "A Unique Factorization Domain (UFD) is an integral domain where every non-zero non-unit element factors uniquely (up to order and units) into irreducibles.\n\nFormally: ∀a ≠ 0, not a unit:\n  a = p₁p₂···pₙ  where each pᵢ is irreducible\n  This factorization is unique up to order and associates.\n\nUFD Hierarchy:\n  Euclidean Domain ⊊ PID ⊊ UFD ⊊ Integral Domain\n\nℤ[√-5] is an integral domain that is NOT a UFD:\n  6 = 2 · 3 = (1+√-5)(1-√-5)\n  Both are factorizations into irreducibles — but they are different!\n\nGauss' Lemma:\n  If R is a UFD, then R[x] is also a UFD.\n  (So ℤ[x], F[x][y] = F[x,y] are all UFDs.)", "block_number": 6, "type": "description" }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
 
 

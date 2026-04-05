@@ -206,6 +206,7 @@ body, main, .side-bar {
     gap: 6px;
     border-bottom: 1px solid var(--border-mid);
     overflow: visible;
+    
 }
 
 .lesson-row:hover { background: var(--bg-hover); }
