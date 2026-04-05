@@ -130,10 +130,15 @@
 }
 
 /* ── Description / paragraph ── */
+p{
+    white-space: pre-line;
+}
+
 .preview p {
     font-size: 15px;
     color: var(--text);
     line-height: 1.85;
+
 }
 
 /* ── Note block ── */

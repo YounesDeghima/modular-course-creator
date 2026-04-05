@@ -335,6 +335,14 @@ body, main, .side-bar {
     line-height: 1.65;
     color: var(--text);
 
+    min-height: 70px;
+
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-x: hidden;
+    height:auto;
 
 }
 
@@ -363,6 +371,18 @@ body, main, .side-bar {
     white-space: pre;
     overflow-x: auto;
     line-height: 1.7;
+
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    /* Ensures standard wrapping behavior */
+    white-space: normal;
+
+    /* Hides the horizontal scroll if it tries to appear */
+    overflow-x: hidden;
+    height: 100%;
+
+
 }
 
 [data-theme="dark"] .block-row.type-code .input-ghost {
@@ -733,6 +753,7 @@ body, main, .side-bar {
     flex-direction: column;
     gap: 12px;
     transition: border-color .15s;
+    height: 100%;
 }
 
 .block:hover { border-color: var(--accent); }
@@ -777,6 +798,16 @@ body, main, .side-bar {
     font-family: inherit;
     transition: border-color .15s;
     resize: none;
+
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    /* Ensures standard wrapping behavior */
+    white-space: normal;
+
+    /* Hides the horizontal scroll if it tries to appear */
+    overflow-x: hidden;
+    height: 100%;
 }
 
 .value-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
@@ -872,4 +903,19 @@ input[type="submit"].value-input:hover { background: var(--accent-hover); }
 .sidebar-content {
     overflow-y: auto;
     overflow-x: hidden; /* was: visible — this was bleeding content out */
+}
+textarea{
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    /* Ensures standard wrapping behavior */
+    white-space: normal;
+
+    /* Hides the horizontal scroll if it tries to appear */
+    overflow-x: hidden;
+    height: 100%;
+}
+.blocks-wrapper{
+    height: 100%;
+    width: 100%;
 }

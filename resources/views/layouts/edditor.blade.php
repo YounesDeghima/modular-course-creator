@@ -15,7 +15,7 @@
 <header>
     <nav style="justify-content: space-between">
         <div class="nav-left">
-            <img src="#" class="logo" alt="logo">
+            <img src="{{asset('images/logo/logo.png')}}" class="logo" alt="logo">
             <a href='{{route('admin.main')}}' data-item='Home'>Home</a>
             <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
             <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>

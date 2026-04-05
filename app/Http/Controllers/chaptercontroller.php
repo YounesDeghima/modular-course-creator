@@ -68,6 +68,7 @@ class chaptercontroller extends Controller
         $email = $admin->email;
 
 
+
         return view('pages.admin.chapters', compact(
             'chapters',
             'course',
@@ -137,7 +138,9 @@ class chaptercontroller extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'status' => 'required|in:draft,published',
+            'chapter_number' => 'required|integer',
         ]);
+
 
         $chapter->update($validated);
 

@@ -622,3 +622,37 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border-mid) transparent;
 }
+
+.main-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    position: relative;
+    padding-left: 12px;
+}
+
+/* Accent line on the left */
+.main-header h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 70%;
+    background: var(--accent);
+    border-radius: 2px;
+}
+
+/* Optional subtle underline */
+.main-header h2::after {
+    content: "";
+    display: block;
+    width: 40%;
+    height: 2px;
+    background: var(--border);
+    margin-top: 6px;
+    border-radius: 2px;
+}
+
+

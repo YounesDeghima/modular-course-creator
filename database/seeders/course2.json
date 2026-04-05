@@ -1,0 +1,1006 @@
+[
+    {
+        "title": "Artificial Intelligence",
+        "year": 3,
+        "branch": "mi",
+        "description": "Comprehensive AI course covering ML, DL, and NLP",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Machine Learning Basics",
+                "description": "Introduction to Machine Learning concepts",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "ML Introduction",
+                        "description": "Overview of Machine Learning",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is Machine Learning?" },
+                            { "block_number": 2, "type": "description", "content": "Machine Learning is a branch of AI that enables computers to learn from data." },
+                            { "block_number": 3, "type": "description", "content": "It uses algorithms to make predictions or decisions without being explicitly programmed." },
+                            { "block_number": 4, "type": "header", "content": "Types of ML" },
+                            { "block_number": 5, "type": "description", "content": "Supervised Learning: Training with labeled data." },
+                            { "block_number": 6, "type": "description", "content": "Unsupervised Learning: Finding patterns in unlabeled data." },
+                            { "block_number": 7, "type": "description", "content": "Reinforcement Learning: Learning through rewards and punishments." },
+                            { "block_number": 8, "type": "header", "content": "Applications of ML" },
+                            { "block_number": 9, "type": "description", "content": "Image recognition, NLP, fraud detection, recommendation systems, and more." },
+                            { "block_number": 10, "type": "code", "content": "Data + Algorithms = Results" },
+                            { "block_number": 11, "type": "header", "content": "Challenges" },
+                            { "block_number": 12, "type": "description", "content": "Overfitting, underfitting, data quality, and computational complexity are common issues." },
+                            { "block_number": 13, "type": "description", "content": "Feature selection and preprocessing are crucial for effective models." },
+                            { "block_number": 14, "type": "header", "content": "Summary" },
+                            { "block_number": 15, "type": "description", "content": "ML allows systems to learn patterns from data and make intelligent predictions." }
+                        ]
+                    },
+                    {
+                        "title": "Neural Networks",
+                        "description": "Understanding artificial neural networks",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What are Neural Networks?" },
+                            { "block_number": 2, "type": "description", "content": "Neural Networks are computing systems inspired by the human brain." },
+                            { "block_number": 3, "type": "description", "content": "They consist of layers of interconnected neurons that process data." },
+                            { "block_number": 4, "type": "header", "content": "Perceptrons" },
+                            { "block_number": 5, "type": "description", "content": "The simplest type of neural network, representing a single neuron." },
+                            { "block_number": 6, "type": "description", "content": "Perceptrons take input, apply a weight, and produce an output based on a threshold." },
+                            { "block_number": 7, "type": "header", "content": "Multi-Layer Perceptrons" },
+                            { "block_number": 8, "type": "description", "content": "Combine multiple perceptrons into layers to solve complex problems." },
+                            { "block_number": 9, "type": "description", "content": "Hidden layers enable the network to learn abstract representations of data." },
+                            { "block_number": 10, "type": "description", "content": "Activation functions like ReLU and Sigmoid introduce non-linearity." },
+                            { "block_number": 11, "type": "header", "content": "Deep Neural Networks" },
+                            { "block_number": 12, "type": "description", "content": "Networks with many hidden layers capable of handling complex tasks." },
+                            { "block_number": 13, "type": "description", "content": "Used in image recognition, NLP, and reinforcement learning." },
+                            { "block_number": 14, "type": "description", "content": "Training requires large datasets and significant computational power." },
+                            { "block_number": 15, "type": "header", "content": "Summary" },
+                            { "block_number": 16, "type": "description", "content": "Neural Networks model complex patterns in data and form the basis of modern AI." }
+                        ]
+                    },
+                    {
+                        "title": "Deep Learning",
+                        "description": "Advanced ML techniques using multiple layers",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "Deep Learning Overview" },
+                            { "block_number": 2, "type": "description", "content": "Deep Learning is a subset of Machine Learning that uses neural networks with many layers." },
+                            { "block_number": 3, "type": "description", "content": "It excels in tasks like image and speech recognition." },
+                            { "block_number": 4, "type": "header", "content": "Convolutional Neural Networks" },
+                            { "block_number": 5, "type": "description", "content": "CNNs are designed for image data processing." },
+                            { "block_number": 6, "type": "description", "content": "They use convolutional and pooling layers to extract features." },
+                            { "block_number": 7, "type": "header", "content": "Recurrent Neural Networks" },
+                            { "block_number": 8, "type": "description", "content": "RNNs are specialized for sequential data like text or time series." },
+                            { "block_number": 9, "type": "description", "content": "They maintain a memory of previous inputs to capture context." },
+                            { "block_number": 10, "type": "description", "content": "Variants include LSTM and GRU networks." },
+                            { "block_number": 11, "type": "header", "content": "Applications" },
+                            { "block_number": 12, "type": "description", "content": "Self-driving cars, voice assistants, image generation, and medical diagnostics." },
+                            { "block_number": 13, "type": "description", "content": "Deep Learning requires GPUs and large datasets for training." },
+                            { "block_number": 14, "type": "header", "content": "Summary" },
+                            { "block_number": 15, "type": "description", "content": "Deep Learning is a powerful tool for solving complex AI problems." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Natural Language Processing",
+                "description": "Processing human language with AI",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "NLP Basics",
+                        "description": "Introduction to NLP",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is NLP?" },
+                            { "block_number": 2, "type": "description", "content": "NLP allows machines to understand and generate human language." },
+                            { "block_number": 3, "type": "description", "content": "Applications include chatbots, translation, and sentiment analysis." },
+                            { "block_number": 4, "type": "header", "content": "Text Preprocessing" },
+                            { "block_number": 5, "type": "description", "content": "Tokenization, stemming, and lemmatization prepare text for analysis." },
+                            { "block_number": 6, "type": "description", "content": "Stop word removal and lowercasing help clean the text." },
+                            { "block_number": 7, "type": "header", "content": "Word Embeddings" },
+                            { "block_number": 8, "type": "description", "content": "Word2Vec, GloVe, and FastText convert words into vectors." },
+                            { "block_number": 9, "type": "description", "content": "Embeddings capture semantic meaning in a numeric form." },
+                            { "block_number": 10, "type": "description", "content": "Embeddings are used as input to neural networks." },
+                            { "block_number": 11, "type": "header", "content": "Applications" },
+                            { "block_number": 12, "type": "description", "content": "Machine translation, sentiment analysis, chatbots, text summarization." },
+                            { "block_number": 13, "type": "description", "content": "NLP is used in search engines and recommendation systems." },
+                            { "block_number": 14, "type": "header", "content": "Summary" },
+                            { "block_number": 15, "type": "description", "content": "NLP enables computers to interpret human language effectively." }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Web Development",
+        "year": 2,
+        "branch": "mi",
+        "description": "Full-stack web development covering HTML, CSS, JavaScript, and backend technologies",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Frontend Fundamentals",
+                "description": "Core technologies for building web interfaces",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "HTML Basics",
+                        "description": "Structure of web pages using HTML",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is HTML?" },
+                            { "block_number": 2, "type": "description", "content": "HTML stands for HyperText Markup Language and defines the structure of web pages." },
+                            { "block_number": 3, "type": "description", "content": "It uses elements represented by tags to organize content." },
+                            { "block_number": 4, "type": "header", "content": "HTML Document Structure" },
+                            { "block_number": 5, "type": "description", "content": "Every HTML document starts with a DOCTYPE declaration followed by html, head, and body tags." },
+                            { "block_number": 6, "type": "description", "content": "The head contains metadata while the body holds visible content." },
+                            { "block_number": 7, "type": "code", "content": "<!DOCTYPE html>\n<html>\n  <head><title>My Page</title></head>\n  <body><h1>Hello World</h1></body>\n</html>" },
+                            { "block_number": 8, "type": "header", "content": "Common HTML Tags" },
+                            { "block_number": 9, "type": "description", "content": "Headings (h1-h6), paragraphs (p), links (a), images (img), and lists (ul, ol) are the most used tags." },
+                            { "block_number": 10, "type": "description", "content": "Semantic tags like header, nav, main, and footer improve readability and accessibility." },
+                            { "block_number": 11, "type": "header", "content": "Forms and Inputs" },
+                            { "block_number": 12, "type": "description", "content": "Forms allow users to submit data using input, textarea, select, and button elements." },
+                            { "block_number": 13, "type": "description", "content": "The action and method attributes control where and how data is sent." },
+                            { "block_number": 14, "type": "header", "content": "Summary" },
+                            { "block_number": 15, "type": "description", "content": "HTML is the backbone of every web page, providing structure and meaning to content." }
+                        ]
+                    },
+                    {
+                        "title": "CSS Styling",
+                        "description": "Styling web pages with CSS",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is CSS?" },
+                            { "block_number": 2, "type": "description", "content": "CSS (Cascading Style Sheets) controls the visual appearance of HTML elements." },
+                            { "block_number": 3, "type": "description", "content": "It can be applied inline, internally via a style tag, or externally via a linked file." },
+                            { "block_number": 4, "type": "header", "content": "Selectors and Properties" },
+                            { "block_number": 5, "type": "description", "content": "Selectors target elements by tag, class, or ID. Properties like color, font-size, and margin define the style." },
+                            { "block_number": 6, "type": "code", "content": "h1 { color: blue; font-size: 32px; }\n.card { background: white; border-radius: 8px; }" },
+                            { "block_number": 7, "type": "header", "content": "Box Model" },
+                            { "block_number": 8, "type": "description", "content": "Every element is a box consisting of content, padding, border, and margin." },
+                            { "block_number": 9, "type": "description", "content": "Understanding the box model is essential for precise layout control." },
+                            { "block_number": 10, "type": "header", "content": "Flexbox and Grid" },
+                            { "block_number": 11, "type": "description", "content": "Flexbox is used for one-dimensional layouts, aligning items in rows or columns." },
+                            { "block_number": 12, "type": "description", "content": "CSS Grid enables complex two-dimensional layouts with rows and columns." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "CSS transforms plain HTML into visually appealing, responsive web interfaces." }
+                        ]
+                    },
+                    {
+                        "title": "JavaScript Essentials",
+                        "description": "Adding interactivity with JavaScript",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is JavaScript?" },
+                            { "block_number": 2, "type": "description", "content": "JavaScript is a scripting language that makes web pages interactive and dynamic." },
+                            { "block_number": 3, "type": "description", "content": "It runs in the browser and can also run on the server via Node.js." },
+                            { "block_number": 4, "type": "header", "content": "Variables and Data Types" },
+                            { "block_number": 5, "type": "description", "content": "JavaScript supports strings, numbers, booleans, arrays, and objects." },
+                            { "block_number": 6, "type": "description", "content": "Use let and const to declare variables; avoid var in modern code." },
+                            { "block_number": 7, "type": "header", "content": "DOM Manipulation" },
+                            { "block_number": 8, "type": "description", "content": "The Document Object Model (DOM) represents the page as a tree of nodes." },
+                            { "block_number": 9, "type": "description", "content": "JavaScript can select, modify, add, or remove DOM elements dynamically." },
+                            { "block_number": 10, "type": "code", "content": "document.querySelector('#btn').addEventListener('click', () => {\n  alert('Button clicked!');\n});" },
+                            { "block_number": 11, "type": "header", "content": "Events and Functions" },
+                            { "block_number": 12, "type": "description", "content": "Functions encapsulate reusable logic. Events like click, keydown, and submit trigger code execution." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "JavaScript brings web pages to life with interactivity, animations, and real-time data." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Backend Development",
+                "description": "Server-side programming and APIs",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Node.js and Express",
+                        "description": "Building servers with Node.js",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is Node.js?" },
+                            { "block_number": 2, "type": "description", "content": "Node.js is a JavaScript runtime built on Chrome's V8 engine for server-side development." },
+                            { "block_number": 3, "type": "description", "content": "It is event-driven and non-blocking, making it efficient for I/O-heavy applications." },
+                            { "block_number": 4, "type": "header", "content": "Express Framework" },
+                            { "block_number": 5, "type": "description", "content": "Express is a minimal web framework for Node.js that simplifies routing and middleware." },
+                            { "block_number": 6, "type": "code", "content": "const express = require('express');\nconst app = express();\napp.get('/', (req, res) => res.send('Hello World'));\napp.listen(3000);" },
+                            { "block_number": 7, "type": "header", "content": "REST APIs" },
+                            { "block_number": 8, "type": "description", "content": "REST APIs use HTTP methods (GET, POST, PUT, DELETE) to manage resources." },
+                            { "block_number": 9, "type": "description", "content": "Data is typically exchanged in JSON format between client and server." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "Node.js and Express provide a fast, scalable foundation for backend web services." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Databases",
+                "description": "Storing and querying data",
+                "chapter_number": 3,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "SQL Fundamentals",
+                        "description": "Introduction to relational databases",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is SQL?" },
+                            { "block_number": 2, "type": "description", "content": "SQL (Structured Query Language) is used to manage and query relational databases." },
+                            { "block_number": 3, "type": "description", "content": "Popular SQL databases include MySQL, PostgreSQL, and SQLite." },
+                            { "block_number": 4, "type": "header", "content": "CRUD Operations" },
+                            { "block_number": 5, "type": "description", "content": "Create, Read, Update, and Delete are the four fundamental database operations." },
+                            { "block_number": 6, "type": "code", "content": "SELECT * FROM users WHERE age > 18;\nINSERT INTO users (name, age) VALUES ('Alice', 25);" },
+                            { "block_number": 7, "type": "header", "content": "Joins and Relationships" },
+                            { "block_number": 8, "type": "description", "content": "JOIN operations combine rows from multiple tables based on a related column." },
+                            { "block_number": 9, "type": "description", "content": "INNER, LEFT, RIGHT, and FULL joins cover different matching scenarios." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "SQL is an essential skill for storing, retrieving, and managing structured data." }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Data Science",
+        "year": 3,
+        "branch": "mi",
+        "description": "Complete data science pipeline from collection and cleaning to analysis and visualization",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Data Collection and Cleaning",
+                "description": "Gathering and preparing raw data for analysis",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Data Sources",
+                        "description": "Where and how to collect data",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "Types of Data Sources" },
+                            { "block_number": 2, "type": "description", "content": "Data can come from databases, APIs, web scraping, surveys, sensors, and flat files." },
+                            { "block_number": 3, "type": "description", "content": "Structured data fits in tables; unstructured data includes text, images, and audio." },
+                            { "block_number": 4, "type": "header", "content": "APIs and Web Scraping" },
+                            { "block_number": 5, "type": "description", "content": "REST APIs provide data in JSON or XML format via HTTP requests." },
+                            { "block_number": 6, "type": "description", "content": "Web scraping uses tools like BeautifulSoup and Scrapy to extract data from HTML pages." },
+                            { "block_number": 7, "type": "header", "content": "Data Formats" },
+                            { "block_number": 8, "type": "description", "content": "Common formats include CSV, JSON, XML, Parquet, and Excel spreadsheets." },
+                            { "block_number": 9, "type": "description", "content": "Pandas is the primary Python library for reading and working with tabular data." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "Knowing where to find and how to collect data is the first step in any data science project." }
+                        ]
+                    },
+                    {
+                        "title": "Data Cleaning",
+                        "description": "Handling missing values and inconsistencies",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "Why Clean Data?" },
+                            { "block_number": 2, "type": "description", "content": "Raw data is rarely perfect — it contains missing values, duplicates, and errors." },
+                            { "block_number": 3, "type": "description", "content": "Poor data quality leads to inaccurate models and misleading insights." },
+                            { "block_number": 4, "type": "header", "content": "Handling Missing Values" },
+                            { "block_number": 5, "type": "description", "content": "Missing values can be removed, filled with the mean/median, or predicted using models." },
+                            { "block_number": 6, "type": "code", "content": "df.dropna()  # Remove rows with missing values\ndf['age'].fillna(df['age'].mean())  # Fill with mean" },
+                            { "block_number": 7, "type": "header", "content": "Outlier Detection" },
+                            { "block_number": 8, "type": "description", "content": "Outliers are extreme values that skew analysis. They can be detected using Z-scores or IQR." },
+                            { "block_number": 9, "type": "description", "content": "Depending on context, outliers may be removed, capped, or kept." },
+                            { "block_number": 10, "type": "header", "content": "Data Normalization" },
+                            { "block_number": 11, "type": "description", "content": "Normalization scales features to a common range, improving model performance." },
+                            { "block_number": 12, "type": "description", "content": "Min-max scaling and Z-score standardization are the most common techniques." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "Clean data is the foundation of reliable analysis and trustworthy machine learning models." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Data Analysis and Visualization",
+                "description": "Exploring and presenting data insights",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Exploratory Data Analysis",
+                        "description": "Understanding data through statistics and plots",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is EDA?" },
+                            { "block_number": 2, "type": "description", "content": "Exploratory Data Analysis (EDA) is the process of summarizing and visualizing data to find patterns." },
+                            { "block_number": 3, "type": "description", "content": "It helps identify relationships, anomalies, and distributions before building models." },
+                            { "block_number": 4, "type": "header", "content": "Descriptive Statistics" },
+                            { "block_number": 5, "type": "description", "content": "Mean, median, mode, standard deviation, and variance summarize the central tendency and spread." },
+                            { "block_number": 6, "type": "description", "content": "Correlation measures the linear relationship between two variables." },
+                            { "block_number": 7, "type": "header", "content": "Visualization Tools" },
+                            { "block_number": 8, "type": "description", "content": "Matplotlib and Seaborn are popular Python libraries for creating charts and plots." },
+                            { "block_number": 9, "type": "description", "content": "Common plots include histograms, scatter plots, box plots, and heatmaps." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "EDA gives a clear picture of the data before any formal modeling begins." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Statistical Modeling",
+                "description": "Building predictive and inferential models",
+                "chapter_number": 3,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Regression Analysis",
+                        "description": "Predicting continuous outcomes",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is Regression?" },
+                            { "block_number": 2, "type": "description", "content": "Regression models predict a continuous target variable based on one or more input features." },
+                            { "block_number": 3, "type": "description", "content": "Linear regression assumes a straight-line relationship between inputs and output." },
+                            { "block_number": 4, "type": "header", "content": "Simple vs Multiple Regression" },
+                            { "block_number": 5, "type": "description", "content": "Simple regression uses one predictor; multiple regression uses two or more." },
+                            { "block_number": 6, "type": "code", "content": "from sklearn.linear_model import LinearRegression\nmodel = LinearRegression()\nmodel.fit(X_train, y_train)\npredictions = model.predict(X_test)" },
+                            { "block_number": 7, "type": "header", "content": "Evaluation Metrics" },
+                            { "block_number": 8, "type": "description", "content": "MSE, RMSE, and R-squared are used to assess regression model performance." },
+                            { "block_number": 9, "type": "description", "content": "Lower error and higher R-squared indicate a better fit." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "Regression is a fundamental technique for forecasting and understanding variable relationships." }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Cybersecurity",
+        "year": 4,
+        "branch": "mi",
+        "description": "Principles of securing systems, networks, and data from digital attacks",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Network Security",
+                "description": "Protecting network infrastructure and communications",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Network Fundamentals",
+                        "description": "Core networking concepts for security",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "OSI Model and TCP/IP" },
+                            { "block_number": 2, "type": "description", "content": "The OSI model has 7 layers from physical to application, each handling specific communication tasks." },
+                            { "block_number": 3, "type": "description", "content": "TCP/IP is the practical protocol suite that powers the internet." },
+                            { "block_number": 4, "type": "header", "content": "Common Protocols" },
+                            { "block_number": 5, "type": "description", "content": "HTTP, HTTPS, DNS, FTP, SSH, and SMTP are widely used protocols with distinct security profiles." },
+                            { "block_number": 6, "type": "description", "content": "HTTPS encrypts communication using TLS, while plain HTTP transmits data in cleartext." },
+                            { "block_number": 7, "type": "header", "content": "Firewalls and IDS" },
+                            { "block_number": 8, "type": "description", "content": "Firewalls filter traffic based on rules; Intrusion Detection Systems (IDS) monitor for suspicious activity." },
+                            { "block_number": 9, "type": "description", "content": "Next-generation firewalls (NGFW) include deep packet inspection and application awareness." },
+                            { "block_number": 10, "type": "header", "content": "Summary" },
+                            { "block_number": 11, "type": "description", "content": "A solid understanding of networking is essential for identifying and defending against attacks." }
+                        ]
+                    },
+                    {
+                        "title": "Common Attack Vectors",
+                        "description": "How attackers compromise systems",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "Types of Cyber Attacks" },
+                            { "block_number": 2, "type": "description", "content": "Phishing, malware, man-in-the-middle, SQL injection, and DDoS are among the most frequent attacks." },
+                            { "block_number": 3, "type": "description", "content": "Social engineering manipulates human psychology rather than exploiting technical vulnerabilities." },
+                            { "block_number": 4, "type": "header", "content": "Phishing and Social Engineering" },
+                            { "block_number": 5, "type": "description", "content": "Phishing emails trick users into revealing credentials or downloading malicious files." },
+                            { "block_number": 6, "type": "description", "content": "Spear phishing targets specific individuals with personalized content." },
+                            { "block_number": 7, "type": "header", "content": "Malware Types" },
+                            { "block_number": 8, "type": "description", "content": "Viruses, worms, trojans, ransomware, and spyware each cause harm in different ways." },
+                            { "block_number": 9, "type": "description", "content": "Ransomware encrypts victim files and demands payment for the decryption key." },
+                            { "block_number": 10, "type": "header", "content": "Denial of Service" },
+                            { "block_number": 11, "type": "description", "content": "DoS and DDoS attacks flood servers with traffic, making services unavailable to legitimate users." },
+                            { "block_number": 12, "type": "description", "content": "Botnets are used to distribute DDoS traffic across thousands of compromised machines." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "Understanding attack vectors enables security teams to build effective defense strategies." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Cryptography",
+                "description": "Mathematical foundations of data security",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Encryption Basics",
+                        "description": "Symmetric and asymmetric encryption",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is Encryption?" },
+                            { "block_number": 2, "type": "description", "content": "Encryption transforms readable data (plaintext) into an unreadable format (ciphertext) using an algorithm and key." },
+                            { "block_number": 3, "type": "description", "content": "Only parties with the correct key can decrypt and read the original data." },
+                            { "block_number": 4, "type": "header", "content": "Symmetric Encryption" },
+                            { "block_number": 5, "type": "description", "content": "The same key is used for both encryption and decryption. AES is the most widely used symmetric cipher." },
+                            { "block_number": 6, "type": "description", "content": "Fast and efficient, but the key must be securely shared between parties." },
+                            { "block_number": 7, "type": "header", "content": "Asymmetric Encryption" },
+                            { "block_number": 8, "type": "description", "content": "Uses a public-private key pair. The public key encrypts; only the private key decrypts." },
+                            { "block_number": 9, "type": "description", "content": "RSA and Elliptic Curve Cryptography (ECC) are common asymmetric algorithms." },
+                            { "block_number": 10, "type": "header", "content": "Hashing" },
+                            { "block_number": 11, "type": "description", "content": "Hash functions produce a fixed-size digest from any input. SHA-256 is widely used." },
+                            { "block_number": 12, "type": "description", "content": "Hashes are one-way — they cannot be reversed, making them ideal for password storage." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "Cryptography is the core mechanism for ensuring confidentiality, integrity, and authenticity of data." }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Ethical Hacking",
+                "description": "Authorized techniques to test system security",
+                "chapter_number": 3,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Penetration Testing",
+                        "description": "Simulating attacks to find vulnerabilities",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "block_number": 1, "type": "header", "content": "What is Penetration Testing?" },
+                            { "block_number": 2, "type": "description", "content": "Penetration testing (pen testing) is an authorized simulated attack to evaluate a system's security." },
+                            { "block_number": 3, "type": "description", "content": "The goal is to find vulnerabilities before malicious actors do." },
+                            { "block_number": 4, "type": "header", "content": "Phases of a Pen Test" },
+                            { "block_number": 5, "type": "description", "content": "Reconnaissance, scanning, exploitation, post-exploitation, and reporting are the five core phases." },
+                            { "block_number": 6, "type": "description", "content": "Each phase builds on the previous one to achieve deeper system access." },
+                            { "block_number": 7, "type": "header", "content": "Common Tools" },
+                            { "block_number": 8, "type": "description", "content": "Nmap, Metasploit, Burp Suite, Wireshark, and John the Ripper are popular pen testing tools." },
+                            { "block_number": 9, "type": "description", "content": "Kali Linux is a specialized OS bundling hundreds of security and testing tools." },
+                            { "block_number": 10, "type": "header", "content": "Legal and Ethical Considerations" },
+                            { "block_number": 11, "type": "description", "content": "Pen testing must always be done with written permission. Unauthorized testing is illegal." },
+                            { "block_number": 12, "type": "description", "content": "A scope agreement defines which systems can be tested and what methods are allowed." },
+                            { "block_number": 13, "type": "header", "content": "Summary" },
+                            { "block_number": 14, "type": "description", "content": "Ethical hacking is a proactive approach to identifying and fixing security weaknesses." }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Data Structures & Algorithms",
+        "year": 2,
+        "branch": "mi",
+        "description": "A comprehensive deep-dive into Data Structures and Algorithms — from fundamentals to advanced techniques used in competitive programming and real-world systems.",
+        "status": "published",
+        "chapters": [
+            {
+                "title": "Introduction to Algorithms",
+                "description": "Foundations of algorithmic thinking, complexity analysis, and problem-solving strategies.",
+                "chapter_number": 1,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "What is an Algorithm?",
+                        "description": "Definition and properties of algorithms.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "What is an Algorithm?", "block_number": 1, "type": "header" },
+                            { "content": "An algorithm is a finite sequence of well-defined instructions used to solve a problem or perform a computation.\n\nKey properties of a good algorithm:\n- Input: Takes zero or more inputs\n- Output: Produces at least one output\n- Definiteness: Each step is clearly defined\n- Finiteness: Terminates after a finite number of steps\n- Effectiveness: Every step is basic enough to be carried out", "block_number": 2, "type": "description" },
+                            { "content": "Example: Algorithm to find the maximum of two numbers", "block_number": 3, "type": "header" },
+                            { "content": "function max(a, b) {\n  if (a > b) return a;\n  else return b;\n}", "block_number": 4, "type": "code" },
+                            { "content": "Why Algorithms Matter", "block_number": 5, "type": "header" },
+                            { "content": "Algorithms are the backbone of every software application. A poorly chosen algorithm can make a program thousands of times slower than necessary — even on powerful hardware.\n\nExample: Sorting 1 million elements:\n- Bubble Sort: ~1,000,000,000,000 operations\n- Merge Sort: ~20,000,000 operations", "block_number": 6, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Big-O Notation",
+                        "description": "Understanding time and space complexity.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Big-O Notation", "block_number": 1, "type": "header" },
+                            { "content": "Big-O notation describes the upper bound of an algorithm's runtime or space usage as input size (n) grows.\n\nCommon complexities (from best to worst):\n- O(1)       — Constant\n- O(log n)   — Logarithmic\n- O(n)       — Linear\n- O(n log n) — Linearithmic\n- O(n²)      — Quadratic\n- O(2ⁿ)      — Exponential\n- O(n!)      — Factorial", "block_number": 2, "type": "description" },
+                            { "content": "O(1) — Constant Time Example", "block_number": 3, "type": "header" },
+                            { "content": "// Access element at index — always one step\nfunction getFirst(arr) {\n  return arr[0];\n}", "block_number": 4, "type": "code" },
+                            { "content": "O(n) — Linear Time Example", "block_number": 5, "type": "header" },
+                            { "content": "// Loop through all elements\nfunction printAll(arr) {\n  for (let i = 0; i < arr.length; i++) {\n    console.log(arr[i]);\n  }\n}", "block_number": 6, "type": "code" },
+                            { "content": "O(n²) — Quadratic Time Example", "block_number": 7, "type": "header" },
+                            { "content": "// Nested loops — typical in Bubble Sort\nfunction printPairs(arr) {\n  for (let i = 0; i < arr.length; i++) {\n    for (let j = 0; j < arr.length; j++) {\n      console.log(arr[i], arr[j]);\n    }\n  }\n}", "block_number": 8, "type": "code" },
+                            { "content": "Space Complexity", "block_number": 9, "type": "header" },
+                            { "content": "Space complexity measures how much memory an algorithm uses relative to input size.\n\nExample:\n- Storing a copy of an array → O(n) space\n- Using a few variables → O(1) space\n\nAlways aim to balance time and space trade-offs.", "block_number": 10, "type": "description" }
+                        ]
+                    },
+                    {
+                        "title": "Recursion",
+                        "description": "Understanding and applying recursive thinking.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Recursion", "block_number": 1, "type": "header" },
+                            { "content": "Recursion is when a function calls itself to solve a smaller subproblem.\n\nEvery recursive function must have:\n1. A base case — the termination condition\n2. A recursive case — reduces the problem size", "block_number": 2, "type": "description" },
+                            { "content": "Example: Factorial", "block_number": 3, "type": "header" },
+                            { "content": "function factorial(n) {\n  if (n === 0) return 1;       // base case\n  return n * factorial(n - 1); // recursive case\n}\n\nconsole.log(factorial(5)); // 120", "block_number": 4, "type": "code" },
+                            { "content": "Example: Fibonacci", "block_number": 5, "type": "header" },
+                            { "content": "function fib(n) {\n  if (n <= 1) return n;\n  return fib(n - 1) + fib(n - 2);\n}\n\nconsole.log(fib(7)); // 13", "block_number": 6, "type": "code" },
+                            { "content": "The Call Stack", "block_number": 7, "type": "header" },
+                            { "content": "Each recursive call is pushed onto the call stack. Too many recursive calls without a base case leads to a Stack Overflow error.\n\nTime complexity of naive Fibonacci: O(2ⁿ)\nThis is why memoization and dynamic programming are critical.", "block_number": 8, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Arrays & Strings",
+                "description": "The most fundamental data structures in computer science.",
+                "chapter_number": 2,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Arrays Deep Dive",
+                        "description": "Memory layout, operations, and complexity of arrays.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Arrays", "block_number": 1, "type": "header" },
+                            { "content": "An array is a collection of elements stored in contiguous memory locations.\n\nAccess by index: O(1)\nSearch (unsorted): O(n)\nInsert at end: O(1) amortized\nInsert at beginning: O(n)\nDelete at end: O(1)\nDelete at beginning: O(n)", "block_number": 2, "type": "description" },
+                            { "content": "Array Declaration", "block_number": 3, "type": "header" },
+                            { "content": "// JavaScript\nconst arr = [10, 20, 30, 40, 50];\nconsole.log(arr[2]); // 30\n\n// PHP\n$arr = [10, 20, 30, 40, 50];\necho $arr[2]; // 30\n\n// Python\narr = [10, 20, 30, 40, 50]\nprint(arr[2])  # 30", "block_number": 4, "type": "code" },
+                            { "content": "Two-Pointer Technique", "block_number": 5, "type": "header" },
+                            { "content": "The two-pointer technique uses two indices that move toward each other to solve problems in O(n) instead of O(n²).\n\nExample: Check if an array is a palindrome.", "block_number": 6, "type": "description" },
+                            { "content": "function isPalindrome(arr) {\n  let left = 0, right = arr.length - 1;\n  while (left < right) {\n    if (arr[left] !== arr[right]) return false;\n    left++;\n    right--;\n  }\n  return true;\n}", "block_number": 7, "type": "code" },
+                            { "content": "Sliding Window Technique", "block_number": 8, "type": "header" },
+                            { "content": "The sliding window technique efficiently processes subarrays/substrings of a fixed or variable size.\n\nExample: Find max sum subarray of size k.", "block_number": 9, "type": "description" },
+                            { "content": "function maxSumSubarray(arr, k) {\n  let sum = 0, maxSum = 0;\n  for (let i = 0; i < k; i++) sum += arr[i];\n  maxSum = sum;\n  for (let i = k; i < arr.length; i++) {\n    sum += arr[i] - arr[i - k];\n    maxSum = Math.max(maxSum, sum);\n  }\n  return maxSum;\n}", "block_number": 10, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "String Manipulation",
+                        "description": "String algorithms and common interview problems.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Strings", "block_number": 1, "type": "header" },
+                            { "content": "A string is a sequence of characters. In most languages, strings are immutable (cannot be changed after creation).\n\nCommon operations:\n- Length: O(1) or O(n) depending on language\n- Concatenation: O(n)\n- Substring search: O(n*m) naive, O(n) with KMP", "block_number": 2, "type": "description" },
+                            { "content": "Reverse a String", "block_number": 3, "type": "header" },
+                            { "content": "function reverseString(s) {\n  return s.split('').reverse().join('');\n}\nconsole.log(reverseString('hello')); // 'olleh'", "block_number": 4, "type": "code" },
+                            { "content": "Check Anagram", "block_number": 5, "type": "header" },
+                            { "content": "Two strings are anagrams if they contain the same characters with the same frequencies.", "block_number": 6, "type": "description" },
+                            { "content": "function isAnagram(s, t) {\n  if (s.length !== t.length) return false;\n  const count = {};\n  for (let c of s) count[c] = (count[c] || 0) + 1;\n  for (let c of t) {\n    if (!count[c]) return false;\n    count[c]--;\n  }\n  return true;\n}\nconsole.log(isAnagram('listen', 'silent')); // true", "block_number": 7, "type": "code" },
+                            { "content": "KMP Algorithm — Efficient String Search", "block_number": 8, "type": "header" },
+                            { "content": "The Knuth-Morris-Pratt (KMP) algorithm finds a pattern in a text in O(n + m) time by precomputing a failure function (LPS array) that avoids redundant comparisons.", "block_number": 9, "type": "description" },
+                            { "content": "function buildLPS(pattern) {\n  const lps = Array(pattern.length).fill(0);\n  let len = 0, i = 1;\n  while (i < pattern.length) {\n    if (pattern[i] === pattern[len]) {\n      lps[i++] = ++len;\n    } else if (len > 0) {\n      len = lps[len - 1];\n    } else {\n      lps[i++] = 0;\n    }\n  }\n  return lps;\n}\n\nfunction kmpSearch(text, pattern) {\n  const lps = buildLPS(pattern);\n  let i = 0, j = 0;\n  const results = [];\n  while (i < text.length) {\n    if (text[i] === pattern[j]) { i++; j++; }\n    if (j === pattern.length) {\n      results.push(i - j);\n      j = lps[j - 1];\n    } else if (i < text.length && text[i] !== pattern[j]) {\n      j > 0 ? (j = lps[j - 1]) : i++;\n    }\n  }\n  return results;\n}", "block_number": 10, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Linked Lists",
+                "description": "Singly, doubly, and circular linked lists with full implementation.",
+                "chapter_number": 3,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Singly Linked List",
+                        "description": "Structure and operations on singly linked lists.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Singly Linked List", "block_number": 1, "type": "header" },
+                            { "content": "A linked list is a linear data structure where elements (nodes) are linked via pointers.\n\nEach node contains:\n- data: the value\n- next: pointer to the next node\n\nAdvantages over arrays:\n- Dynamic size\n- O(1) insertion/deletion at head\n\nDisadvantages:\n- No random access — O(n) to reach index\n- Extra memory for pointers", "block_number": 2, "type": "description" },
+                            { "content": "Node & LinkedList Class", "block_number": 3, "type": "header" },
+                            { "content": "class Node {\n  constructor(data) {\n    this.data = data;\n    this.next = null;\n  }\n}\n\nclass LinkedList {\n  constructor() {\n    this.head = null;\n  }\n\n  // Insert at head — O(1)\n  prepend(data) {\n    const node = new Node(data);\n    node.next = this.head;\n    this.head = node;\n  }\n\n  // Insert at tail — O(n)\n  append(data) {\n    const node = new Node(data);\n    if (!this.head) { this.head = node; return; }\n    let cur = this.head;\n    while (cur.next) cur = cur.next;\n    cur.next = node;\n  }\n\n  // Delete node by value — O(n)\n  delete(data) {\n    if (!this.head) return;\n    if (this.head.data === data) { this.head = this.head.next; return; }\n    let cur = this.head;\n    while (cur.next && cur.next.data !== data) cur = cur.next;\n    if (cur.next) cur.next = cur.next.next;\n  }\n\n  // Print all — O(n)\n  print() {\n    let cur = this.head;\n    const vals = [];\n    while (cur) { vals.push(cur.data); cur = cur.next; }\n    console.log(vals.join(' -> '));\n  }\n}", "block_number": 4, "type": "code" },
+                            { "content": "Detect a Cycle — Floyd's Algorithm", "block_number": 5, "type": "header" },
+                            { "content": "Floyd's cycle detection (tortoise and hare) uses two pointers moving at different speeds to detect cycles in O(n) time and O(1) space.", "block_number": 6, "type": "description" },
+                            { "content": "function hasCycle(head) {\n  let slow = head, fast = head;\n  while (fast && fast.next) {\n    slow = slow.next;\n    fast = fast.next.next;\n    if (slow === fast) return true;\n  }\n  return false;\n}", "block_number": 7, "type": "code" },
+                            { "content": "Reverse a Linked List", "block_number": 8, "type": "header" },
+                            { "content": "function reverseList(head) {\n  let prev = null, cur = head;\n  while (cur) {\n    const next = cur.next;\n    cur.next = prev;\n    prev = cur;\n    cur = next;\n  }\n  return prev;\n}", "block_number": 9, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Doubly Linked List",
+                        "description": "Bidirectional traversal with doubly linked lists.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Doubly Linked List", "block_number": 1, "type": "header" },
+                            { "content": "A doubly linked list has nodes with two pointers:\n- next: points to the next node\n- prev: points to the previous node\n\nThis allows O(1) deletion when given a pointer to the node, and bidirectional traversal.", "block_number": 2, "type": "description" },
+                            { "content": "class DoublyNode {\n  constructor(data) {\n    this.data = data;\n    this.prev = null;\n    this.next = null;\n  }\n}\n\nclass DoublyLinkedList {\n  constructor() {\n    this.head = null;\n    this.tail = null;\n  }\n\n  append(data) {\n    const node = new DoublyNode(data);\n    if (!this.tail) {\n      this.head = this.tail = node;\n    } else {\n      node.prev = this.tail;\n      this.tail.next = node;\n      this.tail = node;\n    }\n  }\n\n  deleteTail() {\n    if (!this.tail) return;\n    if (this.head === this.tail) { this.head = this.tail = null; return; }\n    this.tail = this.tail.prev;\n    this.tail.next = null;\n  }\n}", "block_number": 3, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Stacks & Queues",
+                "description": "LIFO and FIFO structures with real-world applications.",
+                "chapter_number": 4,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Stack",
+                        "description": "Stack implementation and classic problems.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Stack", "block_number": 1, "type": "header" },
+                            { "content": "A stack is a Last-In-First-Out (LIFO) data structure.\n\nOperations (all O(1)):\n- push(x): Add element on top\n- pop(): Remove top element\n- peek(): View top element\n- isEmpty(): Check if empty\n\nReal-world uses:\n- Undo/redo in editors\n- Browser back button\n- Function call stack\n- Balanced parentheses checking", "block_number": 2, "type": "description" },
+                            { "content": "Stack Implementation", "block_number": 3, "type": "header" },
+                            { "content": "class Stack {\n  constructor() { this.items = []; }\n  push(x) { this.items.push(x); }\n  pop() { return this.items.pop(); }\n  peek() { return this.items[this.items.length - 1]; }\n  isEmpty() { return this.items.length === 0; }\n  size() { return this.items.length; }\n}", "block_number": 4, "type": "code" },
+                            { "content": "Balanced Parentheses", "block_number": 5, "type": "header" },
+                            { "content": "function isBalanced(s) {\n  const stack = [];\n  const map = { ')': '(', ']': '[', '}': '{' };\n  for (let c of s) {\n    if ('([{'.includes(c)) stack.push(c);\n    else if (stack.pop() !== map[c]) return false;\n  }\n  return stack.length === 0;\n}\nconsole.log(isBalanced('{[()]}')); // true\nconsole.log(isBalanced('{[(])}')); // false", "block_number": 6, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Queue",
+                        "description": "Queue implementation, circular queue, and priority queue.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Queue", "block_number": 1, "type": "header" },
+                            { "content": "A queue is a First-In-First-Out (FIFO) data structure.\n\nOperations (all O(1) with proper implementation):\n- enqueue(x): Add to back\n- dequeue(): Remove from front\n- front(): View front element\n- isEmpty(): Check if empty\n\nReal-world uses:\n- Task scheduling\n- BFS traversal\n- Printer job queue\n- Message queues (RabbitMQ, Kafka)", "block_number": 2, "type": "description" },
+                            { "content": "Queue using two Stacks", "block_number": 3, "type": "header" },
+                            { "content": "class MyQueue {\n  constructor() {\n    this.in = [];\n    this.out = [];\n  }\n  enqueue(x) { this.in.push(x); }\n  dequeue() {\n    if (!this.out.length)\n      while (this.in.length) this.out.push(this.in.pop());\n    return this.out.pop();\n  }\n  front() {\n    if (!this.out.length)\n      while (this.in.length) this.out.push(this.in.pop());\n    return this.out[this.out.length - 1];\n  }\n}", "block_number": 4, "type": "code" },
+                            { "content": "Priority Queue (Min-Heap based)", "block_number": 5, "type": "header" },
+                            { "content": "A priority queue dequeues elements in order of priority (not insertion order).\n\nImplemented efficiently using a binary heap:\n- Insert: O(log n)\n- Extract min/max: O(log n)\n- Peek min/max: O(1)\n\nUsed in: Dijkstra's algorithm, Huffman coding, A* pathfinding.", "block_number": 6, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Trees",
+                "description": "Binary trees, BSTs, AVL trees, and tree traversals.",
+                "chapter_number": 5,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Binary Trees",
+                        "description": "Structure and traversals of binary trees.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Binary Trees", "block_number": 1, "type": "header" },
+                            { "content": "A binary tree is a tree where each node has at most 2 children: left and right.\n\nTerminology:\n- Root: topmost node\n- Leaf: node with no children\n- Height: longest path from root to leaf\n- Depth: distance from root to a node\n- Full tree: every node has 0 or 2 children\n- Complete tree: all levels filled except possibly last\n- Perfect tree: all leaves at the same level", "block_number": 2, "type": "description" },
+                            { "content": "Tree Node Class", "block_number": 3, "type": "header" },
+                            { "content": "class TreeNode {\n  constructor(val) {\n    this.val = val;\n    this.left = null;\n    this.right = null;\n  }\n}", "block_number": 4, "type": "code" },
+                            { "content": "Tree Traversals", "block_number": 5, "type": "header" },
+                            { "content": "There are 4 main traversal orders:\n\n1. Inorder (Left → Root → Right) — gives sorted output for BST\n2. Preorder (Root → Left → Right) — useful for tree copy\n3. Postorder (Left → Right → Root) — useful for tree deletion\n4. Level-order (BFS) — level by level", "block_number": 6, "type": "description" },
+                            { "content": "// Inorder\nfunction inorder(node) {\n  if (!node) return;\n  inorder(node.left);\n  console.log(node.val);\n  inorder(node.right);\n}\n\n// Preorder\nfunction preorder(node) {\n  if (!node) return;\n  console.log(node.val);\n  preorder(node.left);\n  preorder(node.right);\n}\n\n// Postorder\nfunction postorder(node) {\n  if (!node) return;\n  postorder(node.left);\n  postorder(node.right);\n  console.log(node.val);\n}\n\n// Level-Order (BFS)\nfunction levelOrder(root) {\n  if (!root) return [];\n  const queue = [root], result = [];\n  while (queue.length) {\n    const level = [];\n    const size = queue.length;\n    for (let i = 0; i < size; i++) {\n      const node = queue.shift();\n      level.push(node.val);\n      if (node.left) queue.push(node.left);\n      if (node.right) queue.push(node.right);\n    }\n    result.push(level);\n  }\n  return result;\n}", "block_number": 7, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Binary Search Tree (BST)",
+                        "description": "BST properties, operations, and validation.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Binary Search Tree", "block_number": 1, "type": "header" },
+                            { "content": "A BST is a binary tree where:\n- Every node in the left subtree has value < current node\n- Every node in the right subtree has value > current node\n\nAverage complexities:\n- Search: O(log n)\n- Insert: O(log n)\n- Delete: O(log n)\n\nWorst case (unbalanced): O(n)", "block_number": 2, "type": "description" },
+                            { "content": "BST Insert & Search", "block_number": 3, "type": "header" },
+                            { "content": "function insert(root, val) {\n  if (!root) return new TreeNode(val);\n  if (val < root.val) root.left = insert(root.left, val);\n  else if (val > root.val) root.right = insert(root.right, val);\n  return root;\n}\n\nfunction search(root, val) {\n  if (!root || root.val === val) return root;\n  if (val < root.val) return search(root.left, val);\n  return search(root.right, val);\n}", "block_number": 4, "type": "code" },
+                            { "content": "Validate a BST", "block_number": 5, "type": "header" },
+                            { "content": "function isValidBST(root, min = -Infinity, max = Infinity) {\n  if (!root) return true;\n  if (root.val <= min || root.val >= max) return false;\n  return isValidBST(root.left, min, root.val) &&\n         isValidBST(root.right, root.val, max);\n}", "block_number": 6, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "AVL Trees & Balancing",
+                        "description": "Self-balancing BSTs for guaranteed O(log n) operations.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "AVL Trees", "block_number": 1, "type": "header" },
+                            { "content": "An AVL tree (Adelson-Velsky and Landis) is a self-balancing BST.\n\nBalance factor of a node = height(left) - height(right)\n\nValid balance factors: -1, 0, 1\n\nIf the balance factor becomes < -1 or > 1, rotations are performed to rebalance.\n\nRotation types:\n1. Left Rotation (LL case)\n2. Right Rotation (RR case)\n3. Left-Right Rotation (LR case)\n4. Right-Left Rotation (RL case)", "block_number": 2, "type": "description" },
+                            { "content": "Height and Balance Factor", "block_number": 3, "type": "header" },
+                            { "content": "function height(node) {\n  if (!node) return 0;\n  return 1 + Math.max(height(node.left), height(node.right));\n}\n\nfunction getBalance(node) {\n  if (!node) return 0;\n  return height(node.left) - height(node.right);\n}", "block_number": 4, "type": "code" },
+                            { "content": "Right Rotation", "block_number": 5, "type": "header" },
+                            { "content": "function rotateRight(y) {\n  const x = y.left;\n  const T2 = x.right;\n  x.right = y;\n  y.left = T2;\n  return x; // new root\n}\n\nfunction rotateLeft(x) {\n  const y = x.right;\n  const T2 = y.left;\n  y.left = x;\n  x.right = T2;\n  return y; // new root\n}", "block_number": 6, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Heaps",
+                "description": "Min-heaps, max-heaps, and heap sort.",
+                "chapter_number": 6,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Heap Data Structure",
+                        "description": "Understanding and implementing heaps.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Heap", "block_number": 1, "type": "header" },
+                            { "content": "A heap is a complete binary tree satisfying the heap property:\n\n- Min-Heap: parent ≤ children (root is minimum)\n- Max-Heap: parent ≥ children (root is maximum)\n\nHeaps are typically stored in arrays:\n- Parent of i: Math.floor((i - 1) / 2)\n- Left child of i: 2*i + 1\n- Right child of i: 2*i + 2", "block_number": 2, "type": "description" },
+                            { "content": "Min-Heap Implementation", "block_number": 3, "type": "header" },
+                            { "content": "class MinHeap {\n  constructor() { this.heap = []; }\n\n  insert(val) {\n    this.heap.push(val);\n    this._bubbleUp(this.heap.length - 1);\n  }\n\n  extractMin() {\n    const min = this.heap[0];\n    const last = this.heap.pop();\n    if (this.heap.length) {\n      this.heap[0] = last;\n      this._sinkDown(0);\n    }\n    return min;\n  }\n\n  _bubbleUp(i) {\n    while (i > 0) {\n      const parent = Math.floor((i - 1) / 2);\n      if (this.heap[parent] > this.heap[i]) {\n        [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];\n        i = parent;\n      } else break;\n    }\n  }\n\n  _sinkDown(i) {\n    const n = this.heap.length;\n    while (true) {\n      let min = i, l = 2*i+1, r = 2*i+2;\n      if (l < n && this.heap[l] < this.heap[min]) min = l;\n      if (r < n && this.heap[r] < this.heap[min]) min = r;\n      if (min === i) break;\n      [this.heap[min], this.heap[i]] = [this.heap[i], this.heap[min]];\n      i = min;\n    }\n  }\n}", "block_number": 4, "type": "code" },
+                            { "content": "Heap Sort", "block_number": 5, "type": "header" },
+                            { "content": "Heap sort builds a max-heap, then repeatedly extracts the max.\n\nTime complexity: O(n log n)\nSpace complexity: O(1) — in-place\n\nNot stable, but very memory efficient.", "block_number": 6, "type": "description" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Hash Tables",
+                "description": "Hashing, collision resolution, and applications.",
+                "chapter_number": 7,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Hash Table Fundamentals",
+                        "description": "How hash maps work internally.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Hash Table", "block_number": 1, "type": "header" },
+                            { "content": "A hash table maps keys to values using a hash function.\n\nAverage case:\n- Insert: O(1)\n- Search: O(1)\n- Delete: O(1)\n\nWorst case (all collisions): O(n)\n\nA good hash function distributes keys uniformly to minimize collisions.", "block_number": 2, "type": "description" },
+                            { "content": "Simple Hash Function", "block_number": 3, "type": "header" },
+                            { "content": "function hash(key, size) {\n  let h = 0;\n  for (let c of key) h = (h + c.charCodeAt(0)) % size;\n  return h;\n}", "block_number": 4, "type": "code" },
+                            { "content": "Collision Resolution Strategies", "block_number": 5, "type": "header" },
+                            { "content": "1. Chaining (Separate Chaining):\n   Each bucket holds a linked list of colliding entries.\n   Easy to implement; performance degrades if chains grow long.\n\n2. Open Addressing:\n   - Linear Probing: Check next slot sequentially\n   - Quadratic Probing: Check slots at quadratic intervals\n   - Double Hashing: Use a second hash function for step size", "block_number": 6, "type": "description" },
+                            { "content": "Hash Map with Chaining", "block_number": 7, "type": "header" },
+                            { "content": "class HashMap {\n  constructor(size = 53) {\n    this.table = new Array(size);\n    this.size = size;\n  }\n  _hash(key) {\n    let h = 0;\n    for (let c of String(key)) h = (h * 31 + c.charCodeAt(0)) % this.size;\n    return h;\n  }\n  set(key, value) {\n    const i = this._hash(key);\n    if (!this.table[i]) this.table[i] = [];\n    const existing = this.table[i].find(e => e[0] === key);\n    if (existing) existing[1] = value;\n    else this.table[i].push([key, value]);\n  }\n  get(key) {\n    const i = this._hash(key);\n    if (!this.table[i]) return undefined;\n    return this.table[i].find(e => e[0] === key)?.[1];\n  }\n}", "block_number": 8, "type": "code" },
+                            { "content": "Classic Hash Map Problems", "block_number": 9, "type": "header" },
+                            { "content": "// Two Sum — O(n)\nfunction twoSum(nums, target) {\n  const map = {};\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (map[complement] !== undefined) return [map[complement], i];\n    map[nums[i]] = i;\n  }\n}\n\n// First non-repeating character — O(n)\nfunction firstUnique(s) {\n  const freq = {};\n  for (let c of s) freq[c] = (freq[c] || 0) + 1;\n  for (let c of s) if (freq[c] === 1) return c;\n  return null;\n}", "block_number": 10, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Graphs",
+                "description": "Graph theory, representations, traversals, and classic algorithms.",
+                "chapter_number": 8,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Graph Fundamentals",
+                        "description": "Types, representations, and basic graph concepts.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Graphs", "block_number": 1, "type": "header" },
+                            { "content": "A graph G = (V, E) consists of:\n- V: a set of vertices (nodes)\n- E: a set of edges (connections)\n\nTypes of graphs:\n- Undirected: edges have no direction\n- Directed (Digraph): edges have direction\n- Weighted: edges have weights/costs\n- Cyclic / Acyclic\n- Connected / Disconnected\n- DAG: Directed Acyclic Graph", "block_number": 2, "type": "description" },
+                            { "content": "Graph Representations", "block_number": 3, "type": "header" },
+                            { "content": "1. Adjacency Matrix:\n   - 2D array of size V×V\n   - matrix[i][j] = 1 if edge exists\n   - Space: O(V²)\n   - Edge lookup: O(1)\n\n2. Adjacency List:\n   - Array of lists\n   - Space: O(V + E)\n   - Edge lookup: O(degree)\n   - Preferred for sparse graphs", "block_number": 4, "type": "description" },
+                            { "content": "// Adjacency List Graph\nclass Graph {\n  constructor() { this.adj = {}; }\n\n  addVertex(v) {\n    if (!this.adj[v]) this.adj[v] = [];\n  }\n\n  addEdge(u, v) { // undirected\n    this.adj[u].push(v);\n    this.adj[v].push(u);\n  }\n\n  addDirectedEdge(u, v) {\n    this.adj[u].push(v);\n  }\n}", "block_number": 5, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "BFS & DFS",
+                        "description": "Breadth-first and depth-first graph traversals.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Breadth-First Search (BFS)", "block_number": 1, "type": "header" },
+                            { "content": "BFS explores all neighbors at the current depth before moving deeper.\n\nUses a queue.\nTime: O(V + E)\nSpace: O(V)\n\nApplications:\n- Shortest path in unweighted graph\n- Level-order traversal\n- Finding connected components", "block_number": 2, "type": "description" },
+                            { "content": "function bfs(graph, start) {\n  const visited = new Set([start]);\n  const queue = [start];\n  const order = [];\n  while (queue.length) {\n    const node = queue.shift();\n    order.push(node);\n    for (let neighbor of graph.adj[node] || []) {\n      if (!visited.has(neighbor)) {\n        visited.add(neighbor);\n        queue.push(neighbor);\n      }\n    }\n  }\n  return order;\n}", "block_number": 3, "type": "code" },
+                            { "content": "Depth-First Search (DFS)", "block_number": 4, "type": "header" },
+                            { "content": "DFS explores as deep as possible before backtracking.\n\nUses a stack (or recursion).\nTime: O(V + E)\nSpace: O(V)\n\nApplications:\n- Topological sort\n- Cycle detection\n- Pathfinding\n- Finding SCCs", "block_number": 5, "type": "description" },
+                            { "content": "// Recursive DFS\nfunction dfs(graph, node, visited = new Set()) {\n  visited.add(node);\n  console.log(node);\n  for (let neighbor of graph.adj[node] || []) {\n    if (!visited.has(neighbor)) dfs(graph, neighbor, visited);\n  }\n}\n\n// Iterative DFS\nfunction dfsIterative(graph, start) {\n  const visited = new Set();\n  const stack = [start];\n  while (stack.length) {\n    const node = stack.pop();\n    if (!visited.has(node)) {\n      visited.add(node);\n      console.log(node);\n      for (let n of graph.adj[node] || []) stack.push(n);\n    }\n  }\n}", "block_number": 6, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Dijkstra's Algorithm",
+                        "description": "Shortest path in weighted graphs.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Dijkstra's Algorithm", "block_number": 1, "type": "header" },
+                            { "content": "Dijkstra's algorithm finds the shortest path from a source to all other nodes in a weighted graph with non-negative weights.\n\nTime: O((V + E) log V) with a priority queue\nSpace: O(V)\n\nSteps:\n1. Set distance to source = 0, all others = Infinity\n2. Use a min-priority queue\n3. For each extracted minimum, relax all neighbors\n4. Repeat until queue is empty", "block_number": 2, "type": "description" },
+                            { "content": "function dijkstra(graph, start) {\n  const dist = {};\n  for (let v in graph) dist[v] = Infinity;\n  dist[start] = 0;\n\n  // Simple implementation with array as priority queue\n  const visited = new Set();\n  const nodes = Object.keys(graph);\n\n  while (true) {\n    // Get unvisited node with min dist\n    let u = null;\n    for (let v of nodes) {\n      if (!visited.has(v) && (u === null || dist[v] < dist[u])) u = v;\n    }\n    if (u === null || dist[u] === Infinity) break;\n    visited.add(u);\n    for (let [neighbor, weight] of graph[u]) {\n      const newDist = dist[u] + weight;\n      if (newDist < dist[neighbor]) dist[neighbor] = newDist;\n    }\n  }\n  return dist;\n}\n\n// Example usage:\nconst g = {\n  A: [['B', 4], ['C', 2]],\n  B: [['D', 5]],\n  C: [['B', 1], ['D', 8]],\n  D: []\n};\nconsole.log(dijkstra(g, 'A'));\n// { A: 0, B: 3, C: 2, D: 8 }", "block_number": 3, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Topological Sort",
+                        "description": "Ordering of vertices in a DAG.",
+                        "lesson_number": 4,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Topological Sort", "block_number": 1, "type": "header" },
+                            { "content": "Topological sort produces a linear ordering of vertices in a DAG such that for every directed edge u → v, u appears before v.\n\nApplications:\n- Task scheduling (build systems)\n- Course prerequisites\n- Dependency resolution (npm, gradle)\n\nTwo approaches:\n1. Kahn's Algorithm (BFS-based)\n2. DFS-based (post-order)", "block_number": 2, "type": "description" },
+                            { "content": "Kahn's Algorithm", "block_number": 3, "type": "header" },
+                            { "content": "function topologicalSort(vertices, edges) {\n  const inDegree = {};\n  const adj = {};\n  for (let v of vertices) { inDegree[v] = 0; adj[v] = []; }\n  for (let [u, v] of edges) { adj[u].push(v); inDegree[v]++; }\n\n  const queue = vertices.filter(v => inDegree[v] === 0);\n  const result = [];\n\n  while (queue.length) {\n    const u = queue.shift();\n    result.push(u);\n    for (let v of adj[u]) {\n      inDegree[v]--;\n      if (inDegree[v] === 0) queue.push(v);\n    }\n  }\n\n  if (result.length !== vertices.length) throw new Error('Cycle detected!');\n  return result;\n}", "block_number": 4, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sorting Algorithms",
+                "description": "Classic and advanced sorting algorithms with full analysis.",
+                "chapter_number": 9,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Elementary Sorts",
+                        "description": "Bubble, Selection, and Insertion Sort.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Bubble Sort", "block_number": 1, "type": "header" },
+                            { "content": "Bubble sort repeatedly swaps adjacent elements that are in the wrong order.\n\nTime: O(n²) worst/average, O(n) best (already sorted)\nSpace: O(1)\nStable: Yes", "block_number": 2, "type": "description" },
+                            { "content": "function bubbleSort(arr) {\n  const n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    let swapped = false;\n    for (let j = 0; j < n - i - 1; j++) {\n      if (arr[j] > arr[j + 1]) {\n        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];\n        swapped = true;\n      }\n    }\n    if (!swapped) break; // Early termination\n  }\n  return arr;\n}", "block_number": 3, "type": "code" },
+                            { "content": "Insertion Sort", "block_number": 4, "type": "header" },
+                            { "content": "Insertion sort builds a sorted array one element at a time.\n\nTime: O(n²) worst/average, O(n) best\nSpace: O(1)\nStable: Yes\n\nExcellent for small arrays and nearly sorted data.", "block_number": 5, "type": "description" },
+                            { "content": "function insertionSort(arr) {\n  for (let i = 1; i < arr.length; i++) {\n    const key = arr[i];\n    let j = i - 1;\n    while (j >= 0 && arr[j] > key) {\n      arr[j + 1] = arr[j];\n      j--;\n    }\n    arr[j + 1] = key;\n  }\n  return arr;\n}", "block_number": 6, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Efficient Sorts",
+                        "description": "Merge Sort, Quick Sort, and Counting Sort.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Merge Sort", "block_number": 1, "type": "header" },
+                            { "content": "Merge sort is a divide-and-conquer algorithm that splits the array in half, sorts each half, then merges them.\n\nTime: O(n log n) always\nSpace: O(n)\nStable: Yes\n\nPreferred for linked lists and external sorting.", "block_number": 2, "type": "description" },
+                            { "content": "function mergeSort(arr) {\n  if (arr.length <= 1) return arr;\n  const mid = Math.floor(arr.length / 2);\n  const left = mergeSort(arr.slice(0, mid));\n  const right = mergeSort(arr.slice(mid));\n  return merge(left, right);\n}\n\nfunction merge(left, right) {\n  const result = [];\n  let i = 0, j = 0;\n  while (i < left.length && j < right.length) {\n    if (left[i] <= right[j]) result.push(left[i++]);\n    else result.push(right[j++]);\n  }\n  return result.concat(left.slice(i)).concat(right.slice(j));\n}", "block_number": 3, "type": "code" },
+                            { "content": "Quick Sort", "block_number": 4, "type": "header" },
+                            { "content": "Quick sort picks a pivot and partitions the array around it.\n\nTime: O(n log n) average, O(n²) worst\nSpace: O(log n)\nStable: No\n\nFastest in practice due to excellent cache performance.", "block_number": 5, "type": "description" },
+                            { "content": "function quickSort(arr, lo = 0, hi = arr.length - 1) {\n  if (lo < hi) {\n    const p = partition(arr, lo, hi);\n    quickSort(arr, lo, p - 1);\n    quickSort(arr, p + 1, hi);\n  }\n  return arr;\n}\n\nfunction partition(arr, lo, hi) {\n  const pivot = arr[hi];\n  let i = lo - 1;\n  for (let j = lo; j < hi; j++) {\n    if (arr[j] <= pivot) {\n      i++;\n      [arr[i], arr[j]] = [arr[j], arr[i]];\n    }\n  }\n  [arr[i + 1], arr[hi]] = [arr[hi], arr[i + 1]];\n  return i + 1;\n}", "block_number": 6, "type": "code" },
+                            { "content": "Counting Sort", "block_number": 7, "type": "header" },
+                            { "content": "Counting sort is a non-comparison sort for integers in a known range.\n\nTime: O(n + k) where k = range\nSpace: O(k)\nStable: Yes\n\nExtremely fast when k is small relative to n.", "block_number": 8, "type": "description" },
+                            { "content": "function countingSort(arr, max) {\n  const count = new Array(max + 1).fill(0);\n  const output = new Array(arr.length);\n  for (let x of arr) count[x]++;\n  for (let i = 1; i <= max; i++) count[i] += count[i - 1];\n  for (let i = arr.length - 1; i >= 0; i--) {\n    output[--count[arr[i]]] = arr[i];\n  }\n  return output;\n}", "block_number": 9, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Searching Algorithms",
+                "description": "Linear search, binary search, and advanced search strategies.",
+                "chapter_number": 10,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Binary Search",
+                        "description": "Divide and conquer search on sorted arrays.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Binary Search", "block_number": 1, "type": "header" },
+                            { "content": "Binary search finds a target in a sorted array by repeatedly halving the search space.\n\nTime: O(log n)\nSpace: O(1) iterative, O(log n) recursive\n\nRequirement: array must be sorted.", "block_number": 2, "type": "description" },
+                            { "content": "// Iterative\nfunction binarySearch(arr, target) {\n  let lo = 0, hi = arr.length - 1;\n  while (lo <= hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (arr[mid] === target) return mid;\n    else if (arr[mid] < target) lo = mid + 1;\n    else hi = mid - 1;\n  }\n  return -1;\n}\n\n// Recursive\nfunction binarySearchRec(arr, target, lo = 0, hi = arr.length - 1) {\n  if (lo > hi) return -1;\n  const mid = Math.floor((lo + hi) / 2);\n  if (arr[mid] === target) return mid;\n  if (arr[mid] < target) return binarySearchRec(arr, target, mid + 1, hi);\n  return binarySearchRec(arr, target, lo, mid - 1);\n}", "block_number": 3, "type": "code" },
+                            { "content": "Binary Search Variants", "block_number": 4, "type": "header" },
+                            { "content": "// Find first occurrence of target\nfunction firstOccurrence(arr, target) {\n  let lo = 0, hi = arr.length - 1, result = -1;\n  while (lo <= hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (arr[mid] === target) { result = mid; hi = mid - 1; }\n    else if (arr[mid] < target) lo = mid + 1;\n    else hi = mid - 1;\n  }\n  return result;\n}\n\n// Find the smallest element >= target (lower bound)\nfunction lowerBound(arr, target) {\n  let lo = 0, hi = arr.length;\n  while (lo < hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (arr[mid] < target) lo = mid + 1;\n    else hi = mid;\n  }\n  return lo;\n}", "block_number": 5, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Dynamic Programming",
+                "description": "Memoization, tabulation, and classic DP problems.",
+                "chapter_number": 11,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Introduction to DP",
+                        "description": "What is dynamic programming and when to use it.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Dynamic Programming", "block_number": 1, "type": "header" },
+                            { "content": "Dynamic Programming (DP) solves problems by breaking them into overlapping subproblems and storing results to avoid recomputation.\n\nTwo conditions for DP:\n1. Overlapping subproblems\n2. Optimal substructure\n\nTwo approaches:\n- Top-Down (Memoization): Recursive + cache\n- Bottom-Up (Tabulation): Iterative + table", "block_number": 2, "type": "description" },
+                            { "content": "Fibonacci — Three Ways", "block_number": 3, "type": "header" },
+                            { "content": "// 1. Naive Recursive — O(2^n)\nfunction fib(n) {\n  if (n <= 1) return n;\n  return fib(n-1) + fib(n-2);\n}\n\n// 2. Memoization — O(n)\nfunction fibMemo(n, memo = {}) {\n  if (n in memo) return memo[n];\n  if (n <= 1) return n;\n  memo[n] = fibMemo(n-1, memo) + fibMemo(n-2, memo);\n  return memo[n];\n}\n\n// 3. Tabulation — O(n)\nfunction fibTab(n) {\n  const dp = [0, 1];\n  for (let i = 2; i <= n; i++) dp[i] = dp[i-1] + dp[i-2];\n  return dp[n];\n}\n\n// 4. Space optimized — O(1)\nfunction fibOpt(n) {\n  let a = 0, b = 1;\n  for (let i = 2; i <= n; i++) [a, b] = [b, a + b];\n  return b;\n}", "block_number": 4, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Classic DP Problems",
+                        "description": "0/1 Knapsack, Longest Common Subsequence, Coin Change.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "0/1 Knapsack Problem", "block_number": 1, "type": "header" },
+                            { "content": "Given items with weights and values, and a knapsack of capacity W, maximize the total value without exceeding capacity.\n\nTime: O(n * W)\nSpace: O(n * W)", "block_number": 2, "type": "description" },
+                            { "content": "function knapsack(weights, values, W) {\n  const n = weights.length;\n  const dp = Array.from({length: n+1}, () => new Array(W+1).fill(0));\n\n  for (let i = 1; i <= n; i++) {\n    for (let w = 0; w <= W; w++) {\n      dp[i][w] = dp[i-1][w]; // don't take item i\n      if (weights[i-1] <= w) {\n        dp[i][w] = Math.max(dp[i][w], dp[i-1][w - weights[i-1]] + values[i-1]);\n      }\n    }\n  }\n  return dp[n][W];\n}\n\n// Example\nconst weights = [1, 3, 4, 5];\nconst values  = [1, 4, 5, 7];\nconsole.log(knapsack(weights, values, 7)); // 9", "block_number": 3, "type": "code" },
+                            { "content": "Longest Common Subsequence (LCS)", "block_number": 4, "type": "header" },
+                            { "content": "Find the longest subsequence common to two strings.\n\nTime: O(m * n)\nSpace: O(m * n)\n\nExample: LCS('ABCBDAB', 'BDCAB') = 'BCAB' (length 4)", "block_number": 5, "type": "description" },
+                            { "content": "function lcs(s1, s2) {\n  const m = s1.length, n = s2.length;\n  const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      if (s1[i-1] === s2[j-1]) dp[i][j] = dp[i-1][j-1] + 1;\n      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);\n    }\n  }\n  return dp[m][n];\n}", "block_number": 6, "type": "code" },
+                            { "content": "Coin Change", "block_number": 7, "type": "header" },
+                            { "content": "Given coin denominations and a target amount, find the minimum number of coins needed.\n\nTime: O(amount * coins.length)\nSpace: O(amount)", "block_number": 8, "type": "description" },
+                            { "content": "function coinChange(coins, amount) {\n  const dp = new Array(amount + 1).fill(Infinity);\n  dp[0] = 0;\n  for (let i = 1; i <= amount; i++) {\n    for (let coin of coins) {\n      if (coin <= i) dp[i] = Math.min(dp[i], dp[i - coin] + 1);\n    }\n  }\n  return dp[amount] === Infinity ? -1 : dp[amount];\n}\nconsole.log(coinChange([1, 5, 6, 9], 11)); // 2 (5+6)", "block_number": 9, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Advanced DP",
+                        "description": "Matrix Chain Multiplication, Edit Distance, DP on Trees.",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Edit Distance (Levenshtein Distance)", "block_number": 1, "type": "header" },
+                            { "content": "Find the minimum number of operations (insert, delete, replace) to convert string A to string B.\n\nTime: O(m * n)\nSpace: O(m * n)\n\nUsed in: spell checkers, diff tools, DNA alignment.", "block_number": 2, "type": "description" },
+                            { "content": "function editDistance(s1, s2) {\n  const m = s1.length, n = s2.length;\n  const dp = Array.from({length: m+1}, (_, i) =>\n    Array.from({length: n+1}, (_, j) => i || j));\n\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      if (s1[i-1] === s2[j-1]) dp[i][j] = dp[i-1][j-1];\n      else dp[i][j] = 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);\n    }\n  }\n  return dp[m][n];\n}\nconsole.log(editDistance('horse', 'ros')); // 3", "block_number": 3, "type": "code" },
+                            { "content": "Longest Increasing Subsequence (LIS)", "block_number": 4, "type": "header" },
+                            { "content": "Find the length of the longest strictly increasing subsequence.\n\n- DP approach: O(n²)\n- Binary search approach: O(n log n)", "block_number": 5, "type": "description" },
+                            { "content": "// O(n log n) — Patience Sorting\nfunction lis(nums) {\n  const tails = [];\n  for (let n of nums) {\n    let lo = 0, hi = tails.length;\n    while (lo < hi) {\n      const mid = (lo + hi) >> 1;\n      if (tails[mid] < n) lo = mid + 1;\n      else hi = mid;\n    }\n    tails[lo] = n;\n  }\n  return tails.length;\n}\nconsole.log(lis([10, 9, 2, 5, 3, 7, 101, 18])); // 4", "block_number": 6, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Greedy Algorithms",
+                "description": "Making locally optimal choices for globally optimal solutions.",
+                "chapter_number": 12,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Greedy Strategy",
+                        "description": "When greedy works and classic greedy problems.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Greedy Algorithms", "block_number": 1, "type": "header" },
+                            { "content": "A greedy algorithm makes the locally optimal choice at each step, hoping to find the global optimum.\n\nGreedy works when the problem has:\n1. Greedy choice property: local optimal → global optimal\n2. Optimal substructure\n\nGreedy does NOT always give optimal solutions (e.g., 0/1 knapsack). DP is needed when greedy fails.", "block_number": 2, "type": "description" },
+                            { "content": "Activity Selection Problem", "block_number": 3, "type": "header" },
+                            { "content": "Select the maximum number of non-overlapping activities.\n\nGreedy strategy: Always pick the activity that finishes earliest.", "block_number": 4, "type": "description" },
+                            { "content": "function activitySelection(start, end) {\n  const activities = start.map((s, i) => [s, end[i]]).sort((a, b) => a[1] - b[1]);\n  const selected = [activities[0]];\n  let lastEnd = activities[0][1];\n\n  for (let i = 1; i < activities.length; i++) {\n    if (activities[i][0] >= lastEnd) {\n      selected.push(activities[i]);\n      lastEnd = activities[i][1];\n    }\n  }\n  return selected;\n}", "block_number": 5, "type": "code" },
+                            { "content": "Huffman Coding", "block_number": 6, "type": "header" },
+                            { "content": "Huffman coding assigns shorter codes to more frequent characters.\n\nUsed in: ZIP compression, JPEG, MP3.\n\nAlgorithm:\n1. Build a min-heap of character frequencies\n2. Repeatedly merge two lowest-frequency nodes\n3. Assign 0 to left branches, 1 to right branches\n\nTime: O(n log n)", "block_number": 7, "type": "description" },
+                            { "content": "Fractional Knapsack", "block_number": 8, "type": "header" },
+                            { "content": "Unlike 0/1 knapsack, you can take fractions of items.\n\nGreedy: Sort by value/weight ratio, take as much as possible.", "block_number": 9, "type": "description" },
+                            { "content": "function fractionalKnapsack(weights, values, W) {\n  const items = weights.map((w, i) => ({ w, v: values[i], ratio: values[i] / w }))\n    .sort((a, b) => b.ratio - a.ratio);\n\n  let total = 0, remaining = W;\n  for (let item of items) {\n    if (remaining <= 0) break;\n    const take = Math.min(item.w, remaining);\n    total += take * item.ratio;\n    remaining -= take;\n  }\n  return total;\n}", "block_number": 10, "type": "code" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Advanced Data Structures",
+                "description": "Tries, Segment Trees, Union-Find, and more.",
+                "chapter_number": 13,
+                "status": "published",
+                "lessons": [
+                    {
+                        "title": "Trie (Prefix Tree)",
+                        "description": "Efficient string storage and prefix search.",
+                        "lesson_number": 1,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Trie", "block_number": 1, "type": "header" },
+                            { "content": "A Trie (from re-TRIE-val) is a tree where each node represents a character.\n\nOperations:\n- Insert: O(m) where m = word length\n- Search: O(m)\n- StartsWith: O(m)\n\nApplications:\n- Autocomplete / search suggestions\n- Spell checking\n- IP routing tables", "block_number": 2, "type": "description" },
+                            { "content": "class TrieNode {\n  constructor() {\n    this.children = {};\n    this.isEnd = false;\n  }\n}\n\nclass Trie {\n  constructor() { this.root = new TrieNode(); }\n\n  insert(word) {\n    let node = this.root;\n    for (let c of word) {\n      if (!node.children[c]) node.children[c] = new TrieNode();\n      node = node.children[c];\n    }\n    node.isEnd = true;\n  }\n\n  search(word) {\n    let node = this.root;\n    for (let c of word) {\n      if (!node.children[c]) return false;\n      node = node.children[c];\n    }\n    return node.isEnd;\n  }\n\n  startsWith(prefix) {\n    let node = this.root;\n    for (let c of prefix) {\n      if (!node.children[c]) return false;\n      node = node.children[c];\n    }\n    return true;\n  }\n}", "block_number": 3, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Union-Find (Disjoint Set Union)",
+                        "description": "Efficiently manage disjoint sets with union and find.",
+                        "lesson_number": 2,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Union-Find", "block_number": 1, "type": "header" },
+                            { "content": "Union-Find (DSU) tracks elements grouped into disjoint sets.\n\nOperations:\n- find(x): Find the root/representative of x's set — O(α(n)) amortized\n- union(x, y): Merge sets of x and y — O(α(n)) amortized\n\nα(n) is the inverse Ackermann function — practically constant.\n\nApplications:\n- Kruskal's MST algorithm\n- Cycle detection in graphs\n- Connected components", "block_number": 2, "type": "description" },
+                            { "content": "class UnionFind {\n  constructor(n) {\n    this.parent = Array.from({length: n}, (_, i) => i);\n    this.rank = new Array(n).fill(0);\n  }\n\n  find(x) {\n    if (this.parent[x] !== x)\n      this.parent[x] = this.find(this.parent[x]); // Path compression\n    return this.parent[x];\n  }\n\n  union(x, y) {\n    const rx = this.find(x), ry = this.find(y);\n    if (rx === ry) return false; // Already same set\n    // Union by rank\n    if (this.rank[rx] < this.rank[ry]) this.parent[rx] = ry;\n    else if (this.rank[rx] > this.rank[ry]) this.parent[ry] = rx;\n    else { this.parent[ry] = rx; this.rank[rx]++; }\n    return true;\n  }\n\n  connected(x, y) { return this.find(x) === this.find(y); }\n}", "block_number": 3, "type": "code" }
+                        ]
+                    },
+                    {
+                        "title": "Segment Tree",
+                        "description": "Range queries and point updates in O(log n).",
+                        "lesson_number": 3,
+                        "status": "published",
+                        "blocks": [
+                            { "content": "Segment Tree", "block_number": 1, "type": "header" },
+                            { "content": "A segment tree is a binary tree used for range queries (sum, min, max) and point updates.\n\nBuild: O(n)\nQuery: O(log n)\nUpdate: O(log n)\nSpace: O(n)\n\nAlternative: Fenwick Tree (BIT) — simpler, lower constant factor, but less general.", "block_number": 2, "type": "description" },
+                            { "content": "class SegmentTree {\n  constructor(arr) {\n    this.n = arr.length;\n    this.tree = new Array(4 * this.n).fill(0);\n    this._build(arr, 0, 0, this.n - 1);\n  }\n\n  _build(arr, node, start, end) {\n    if (start === end) { this.tree[node] = arr[start]; return; }\n    const mid = (start + end) >> 1;\n    this._build(arr, 2*node+1, start, mid);\n    this._build(arr, 2*node+2, mid+1, end);\n    this.tree[node] = this.tree[2*node+1] + this.tree[2*node+2];\n  }\n\n  query(l, r, node = 0, start = 0, end = this.n - 1) {\n    if (r < start || end < l) return 0;\n    if (l <= start && end <= r) return this.tree[node];\n    const mid = (start + end) >> 1;\n    return this.query(l, r, 2*node+1, start, mid) +\n           this.query(l, r, 2*node+2, mid+1, end);\n  }\n\n  update(idx, val, node = 0, start = 0, end = this.n - 1) {\n    if (start === end) { this.tree[node] = val; return; }\n    const mid = (start + end) >> 1;\n    if (idx <= mid) this.update(idx, val, 2*node+1, start, mid);\n    else this.update(idx, val, 2*node+2, mid+1, end);\n    this.tree[node] = this.tree[2*node+1] + this.tree[2*node+2];\n  }\n}", "block_number": 3, "type": "code" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+
+
+]

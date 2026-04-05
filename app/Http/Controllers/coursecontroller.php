@@ -96,8 +96,10 @@ class coursecontroller extends Controller
 
         $course->update($validated);
 
+        return response()->json(['success' => true]);
 
-        return(redirect()->back()->with('success', 'Course updated successfully'));
+
+
     }
 
     /**
@@ -132,6 +134,6 @@ class coursecontroller extends Controller
         // 3. Update all Lessons
         \App\Models\lesson::query()->update(['status' => $newStatus]);
 
-        return redirect()->back()->with('success', "Entire platform is now $newStatus");
+        return response()->json(['success' => true]);
     }
 }
