@@ -17,7 +17,7 @@
     @yield("progress-bar")
     <nav style="justify-content: space-between;">
         <div class="nav-left">
-            <img src="#" class="logo" alt="logo">
+            <img src="{{asset('images/logo/logo.png')}}" class="logo" alt="logo">
 
 
 
