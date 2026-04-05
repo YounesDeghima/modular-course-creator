@@ -3,6 +3,21 @@
 
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/preview.css')}}">
+
+    <style>
+        .sb-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #eee;
+        }
+
+        .sb-progress-fill {
+            height: 100%;
+            width: 0;
+            background: #4caf50;
+            transition: width 0.4s ease;
+        }
+    </style>
 @endsection
 
 @section('navigation')
@@ -19,20 +34,23 @@
     </div>
 
     @foreach($chapters as $i => $chapter)
-
+        @php $chProgress = $chapter->progressForUser($id); @endphp
 
         <div style="margin-bottom: 32px;">
             <div class="ch-main-header">
                 <h2 class="ch-main-title">Chapter {{ $i+1 }} — {{ $chapter->title }}</h2>
                 <span class="ch-progress-badge" id="ch-badge-{{ $chapter->id }}">
-            {{ $chapter->progressForUser($id) }}% complete
+            {{ $chProgress }}% complete
         </span>
             </div>
 
             <div class="lessons-grid">
                 @foreach($chapter->lessons as $j => $lesson)
                     @if($lesson->status == 'published')
-                        @php $done = $lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90; @endphp
+                        @php
+                            $progress = $lesson->progressForUser($id);
+                            $done = $progress && $progress->progress > 90;
+                        @endphp
                         <a class="lesson-card {{ $done ? 'done' : '' }}"
                            href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
                             <span class="lc-num">{{ ($i+1) }}.{{ ($j+1) }}</span>
@@ -55,7 +73,7 @@
         <div class="sb-overall-progress">
             <div class="sb-progress-label">
                 <span>Overall progress</span>
-                <span id="overall-pct">{{$chapter->progressForUser($id)}}%</span>
+                <span id="overall-pct">{{$course->progressForUser($id)}}%</span>
             </div>
             <div class="sb-progress-bar">
                 <div class="sb-progress-fill" id="overall-fill"></div>
@@ -64,21 +82,29 @@
     </div>
 
     <nav class="chapters-nav">
+
+
+
         @foreach($chapters as $i => $chapter)
+            @php $chProgress = $chapter->progressForUser($id); @endphp
             <div class="ch-nav-item">
                 <a class="ch-nav-row {{ request()->route('chapter') == $chapter->id ? 'active' : '' }}"
                    href="{{ route('user.preview.lessons', ['course'=>$course,'chapter'=>$chapter]) }}">
                     <span class="ch-nav-num">{{ str_pad($i+1, 2, '0', STR_PAD_LEFT) }}</span>
                     <span class="ch-nav-title">{{ $chapter->title }}</span>
                     <span class="ch-nav-dot
-                {{ $chapter->progressForUser($id) == 100 ? 'dot-done' :
-                  ($chapter->progressForUser($id) > 0 ? 'dot-partial' : 'dot-none') }}">
+                {{$chProgress == 100 ? 'dot-done' :
+                  ($chProgress  > 0 ? 'dot-partial' : 'dot-none') }}">
             </span>
                 </a>
                 <div class="ls-nav-list">
                     @foreach($chapter->lessons as $j => $lesson)
+                        @php
+                            $progress = $lesson->progressForUser($id);
+                            $done = $progress && $progress->progress > 90;
+                        @endphp
                         @if($lesson->status == 'published')
-                            <a class="ls-nav-item {{ $lesson->progressForUser($id) && $lesson->progressForUser($id)->progress > 90 ? 'done' : '' }}"
+                            <a class="ls-nav-item {{ $done ? 'done' : '' }}"
                                href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
                                 {{ ($i+1) }}.{{ ($j+1) }} {{ $lesson->title }}
                             </a>
@@ -96,30 +122,14 @@
 
 
 
-
-        let chapters = document.querySelectorAll('.chapters > li');
-
-        chapters.forEach((chapter,i)=>{
-            let chapter_number= i+1;
-            let lessons = chapter.querySelectorAll(':scope> ol > li');
-            lessons.forEach((lesson,j)=>{
-                let lesson_number= lesson.querySelector(':scope >a');
-                lesson.insertAdjacentText('afterbegin',`${chapter_number}.` +`${j+1}`+' ');
-
-            });
-
-
-            let progressFill = chapter.querySelector('.chapter-progress-fill');
-            let progress = progressFill.dataset.progress;
-
-            setTimeout(() => {
-                progressFill.style.width = progress + '%';
-            }, 50);
+        document.addEventListener('DOMContentLoaded', function () {
+            let pct = document.getElementById('overall-pct').innerText.replace('%','').trim();
+            document.getElementById('overall-fill').style.width = pct + '%';
         });
 
-        function confirmReset() {
-            return confirm("Are you sure you want to reset this chapter's progress? This action cannot be undone.");
-        }
+
+
+
 
 
 

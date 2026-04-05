@@ -5,6 +5,10 @@
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
 @endsection
 
+@section('progress-bar')
+    <div id="scroll-progress"></div>
+@endsection
+
 @section('sidebar-elements')
     <div class="sb-course-head">
         <div class="sb-course-label">Chapter</div>
@@ -79,7 +83,7 @@
 @endsection
 
 @section('main')
-    <div id="scroll-progress"></div>
+
 
     <div class="lesson-wrapper">
         @if($prevlesson)

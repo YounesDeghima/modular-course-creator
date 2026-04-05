@@ -13,6 +13,8 @@
 
 <body>
 <header>
+
+    @yield("progress-bar")
     <nav style="justify-content: space-between;">
         <div class="nav-left">
             <img src="#" class="logo" alt="logo">
