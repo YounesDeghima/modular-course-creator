@@ -60,10 +60,12 @@ class previewcontroller extends Controller
             ->where('course_id','=',$course->id)
             ->get();
 
+        $overallProgress = $course->chapters->avg(fn($ch) => $ch->progressForUser($id)) ?? 0;
+        $overallProgress = round($overallProgress);
 
 
 
-        return view('pages.admin.preview.chapters',compact('course','chapters','name','email','id'));
+        return view('pages.admin.preview.chapters',compact('course','chapters','name','email','id','overallProgress'));
     }
 
     public function loadlessons(course $course,chapter $chapter)

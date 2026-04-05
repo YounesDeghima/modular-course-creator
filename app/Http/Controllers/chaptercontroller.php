@@ -68,6 +68,7 @@ class chaptercontroller extends Controller
         $email = $admin->email;
 
 
+
         return view('pages.admin.chapters', compact(
             'chapters',
             'course',

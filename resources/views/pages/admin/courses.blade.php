@@ -178,7 +178,7 @@
         <form action="{{ route('admin.courses.toggle-everything') }}" method="POST">
             @csrf
             @method('PUT')
-            <button type="submit" class="btn-global-toggle" id="btn-global-toggle">
+            <button type="button" class="btn-global-toggle" id="btn-global-toggle">
                 🌍 Toggle all visibility
             </button>
         </form>
@@ -364,6 +364,97 @@
                     block.style.display = show ? 'flex' : 'none';
                 });
             });
+        });
+
+
+        document.querySelectorAll('.update-form').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // ❌ stop page reload
+
+                const courseId = this.action.split('/').pop();
+
+                const payload = {
+                    title: this.querySelector('input[name="title"]').value,
+                    year: this.querySelector('.year-input').value,
+                    branch: this.querySelector('.branch-input').value,
+                    description: this.querySelector('textarea').value,
+                    status: this.querySelector('input[name="status"]').value,
+                };
+
+                const submitBtn = this.querySelector('input[type="submit"]');
+
+                // Optional: loading state
+                submitBtn.value = "Saving...";
+                submitBtn.disabled = true;
+
+                axios.put(`/admin/courses/${courseId}`, payload)
+                    .then(() => {
+                        submitBtn.value = "Saved ✓";
+                        submitBtn.style.background = "#10b981";
+
+                        // hide again after save
+                        setTimeout(() => {
+                            submitBtn.style.visibility = "hidden";
+                            submitBtn.disabled = false;
+                            submitBtn.value = "Save changes";
+                        }, 1000);
+
+                        refreshGlobalUI();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        submitBtn.value = "Error ❌";
+                        submitBtn.disabled = false;
+                    });
+            });
+        });
+
+        const globalBtn = document.getElementById('btn-global-toggle');
+
+        globalBtn.addEventListener('click', () => {
+            const allBlocks = document.querySelectorAll('.block');
+            const allBtns   = document.querySelectorAll('.status-toggle-btn');
+
+            if (!allBlocks.length) return;
+
+            // Check if any draft exists
+            const hasDraft = Array.from(allBtns).some(b => b.dataset.status === 'draft');
+
+            // Decide target state
+            const newStatus = hasDraft ? 'published' : 'draft';
+
+            globalBtn.innerText = "Updating...";
+            globalBtn.disabled = true;
+
+            axios.put('/admin/courses/toggle-everything', {
+                status: newStatus
+            })
+                .then(() => {
+                    // 🔥 Update ALL UI instantly
+                    allBlocks.forEach(block => {
+                        const btn  = block.querySelector('.status-toggle-btn');
+                        const form = block.querySelector('.update-form');
+
+                        // Update button
+                        updateButtonUI(btn, newStatus);
+
+                        // Update dataset (for filters)
+                        block.dataset.status = newStatus;
+
+                        // Update hidden input
+                        const hidden = form.querySelector('input[name="status"]');
+                        if (hidden) hidden.value = newStatus;
+                    });
+
+                    refreshGlobalUI();
+                })
+                .catch(err => {
+                    console.error('Bulk toggle failed:', err);
+                })
+                .finally(() => {
+                    globalBtn.disabled = false;
+                    updateGlobalButtonUI();
+                });
         });
     </script>
 @endsection

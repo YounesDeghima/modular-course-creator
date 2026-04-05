@@ -181,6 +181,7 @@ class blockcontroller extends Controller
             'content' => 'required|string',
             'block_number'=>'required|integer',
         ]);
+        $validated['content']   = $validated['content'] ?? '';
 
 
         $validated['lesson_id'] = $lesson->id;
@@ -197,7 +198,7 @@ class blockcontroller extends Controller
 
 
 
-        return redirect()->back();
+        return response()->json(['block' => $block], 201);
     }
 
     /**

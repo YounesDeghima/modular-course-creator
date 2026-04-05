@@ -6,10 +6,8 @@ use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
 use App\Models\lesson;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
-
 
 class AISeeder extends Seeder
 {
@@ -18,46 +16,49 @@ class AISeeder extends Seeder
      */
     public function run(): void
     {
-        $json = File::get(database_path('seeders/course.json'));
-        $data = json_decode($json, true);
+        $json = File::get(database_path('seeders/course2.json'));
+        $courses = json_decode($json, true); // This is an array of courses
 
-        // Create Course
-        $course = course::create([
-            'title' => $data['title'],
-            'year' => $data['year'],
-            'branch' => $data['branch'],
-            'description' => $data['description'],
-            'status' => $data['status'],
-        ]);
+        foreach ($courses as $data) { // Loop through each course
 
-        foreach ($data['chapters'] as $chapterData) {
-
-            $chapter = chapter::create([
-                'course_id' => $course->id,
-                'title' => $chapterData['title'],
-                'description' => $chapterData['description'] ?? null,
-                'chapter_number' => $chapterData['chapter_number'],
-                'status' => $chapterData['status'],
+            // Create Course
+            $course = course::create([
+                'title' => $data['title'],
+                'year' => $data['year'],
+                'branch' => $data['branch'],
+                'description' => $data['description'],
+                'status' => $data['status'],
             ]);
 
-            foreach ($chapterData['lessons'] as $lessonData) {
+            foreach ($data['chapters'] as $chapterData) {
 
-                $lesson = lesson::create([
-                    'chapter_id' => $chapter->id,
-                    'title' => $lessonData['title'],
-                    'description' => $lessonData['description'] ?? null,
-                    'lesson_number' => $lessonData['lesson_number'],
-                    'status' => $lessonData['status'],
+                $chapter = chapter::create([
+                    'course_id' => $course->id,
+                    'title' => $chapterData['title'],
+                    'description' => $chapterData['description'] ?? null,
+                    'chapter_number' => $chapterData['chapter_number'],
+                    'status' => $chapterData['status'],
                 ]);
 
-                foreach ($lessonData['blocks'] as $blockData) {
+                foreach ($chapterData['lessons'] as $lessonData) {
 
-                    block::create([
-                        'lesson_id' => $lesson->id,
-                        'content' => $blockData['content'],
-                        'block_number' => $blockData['block_number'],
-                        'type' => $blockData['type'],
+                    $lesson = lesson::create([
+                        'chapter_id' => $chapter->id,
+                        'title' => $lessonData['title'],
+                        'description' => $lessonData['description'] ?? null,
+                        'lesson_number' => $lessonData['lesson_number'],
+                        'status' => $lessonData['status'],
                     ]);
+
+                    foreach ($lessonData['blocks'] as $blockData) {
+
+                        block::create([
+                            'lesson_id' => $lesson->id,
+                            'content' => $blockData['content'],
+                            'block_number' => $blockData['block_number'],
+                            'type' => $blockData['type'],
+                        ]);
+                    }
                 }
             }
         }

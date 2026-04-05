@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
 
 
-    {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
+{{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
 @endsection
@@ -22,7 +22,6 @@
 
 
 @section('main')
-
     @fragment('main-content')
         <div class="blocks-wrapper">
             <div class="route-header">
@@ -49,8 +48,8 @@
                             <div class="block-main-content">
                                 @if($block->type == 'header')
                                     <textarea type="text" name="blocks[{{ $block->id }}][content]"
-                                              class="input-ghost title-style"
-                                              placeholder="Enter Title...">{{ $block->content }}</textarea>
+                                       class="input-ghost title-style"
+                                       placeholder="Enter Title...">{{ $block->content }}</textarea>
 
                                 @else
 
@@ -117,9 +116,7 @@
         </div>
 
         <div class="block-adder-container">
-            <button id="block-adder" class="fab-button"
-                    data-url="{{ route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id]) }}"
-                    type="button" onclick="createHeaderBlock()">+</button>
+            <button id="block-adder" class="fab-button" type="button" onclick="openModal('block-popup')">+</button>
         </div>
 
         <div id="block-popup" class="modal-overlay">
@@ -360,14 +357,14 @@
     @endif
 
 
-    <div class="chapter-group add-chapter-trigger">
-        <div class="chapter-header add-header" onclick="openModal('add-chapter-modal')">
-            <div class="header-left">
-                <span class="plus-icon-lg">+</span>
-                <strong class="chapter-title">Add New Chapter</strong>
+            <div class="chapter-group add-chapter-trigger">
+                <div class="chapter-header add-header" onclick="openModal('add-chapter-modal')">
+                    <div class="header-left">
+                        <span class="plus-icon-lg">+</span>
+                        <strong class="chapter-title">Add New Chapter</strong>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
 
     <div id="add-chapter-modal" class="modal-overlay">
@@ -406,7 +403,6 @@
     <script>
 
         document.addEventListener('DOMContentLoaded', function() {
-            initAutoResize();
 
             // --- 1. CORE UTILITIES ---
             const COURSE_ID = "{{ $course->id }}";
@@ -442,7 +438,7 @@
                 mainContainer.scrollTop = parseInt(savedMainScroll, 10);
             }
 
-            let lastSave = 0;
+// Save
             mainContainer.addEventListener('scroll', () => {
                 const now = Date.now();
 
@@ -496,17 +492,17 @@
             }
 
             // Initialize UI elements for the block editor
-            // function initBlockEditor() {
-            //     initAutoResize();
-            //
-            //     // Setup Floating Action Button
-            //     const btn = document.getElementById('block-adder');
-            //     const popup = document.getElementById('block-popup');
-            //     const close = document.getElementById('close-popup');
-            //
-            //     if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
-            //     if (close && popup) close.onclick = () => popup.style.display = 'none';
-            // }
+            function initBlockEditor() {
+                initAutoResize();
+
+                // Setup Floating Action Button
+                const btn = document.getElementById('block-adder');
+                const popup = document.getElementById('block-popup');
+                const close = document.getElementById('close-popup');
+
+                if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
+                if (close && popup) close.onclick = () => popup.style.display = 'none';
+            }
 
             // --- 2. AJAX LESSON LOADING ---
             document.addEventListener('click', function(e) {
@@ -542,7 +538,7 @@
                         history.pushState(null, '', url);
 
                         // ✅ FIX: reinitialize after DOM replacement
-                        // initBlockEditor();   // this calls initAutoResize()
+                        initBlockEditor();   // this calls initAutoResize()
                     })
                     .catch(() => {
                         localStorage.removeItem('activeLessonUrl');
@@ -604,7 +600,7 @@
             }
 
             // --- 4. INITIALIZATION ---
-            // initBlockEditor();
+            initBlockEditor();
             window.onpopstate = () => loadLesson(window.location.href);
 
 
@@ -1253,128 +1249,7 @@
                 });
         }
 
-        document.getElementById('master-toggle-form').addEventListener('submit', function(e) {
-            e.preventDefault();
 
-            const form = this;
-            const masterBtn = document.getElementById('master-toggle-btn');
-            masterBtn.disabled = true;
-            masterBtn.innerText = 'Processing...';
-
-            const allChapters = document.querySelectorAll('.status-toggle-btn[data-chapter-id]');
-            const allLessons = document.querySelectorAll('.status-toggle-btn[data-lesson-id]');
-
-            // Determine target status (if any draft exists -> publish all, else draft all)
-            const hasDrafts = Array.from(allChapters).concat(Array.from(allLessons))
-                .some(btn => btn.dataset.status === 'draft');
-            const newStatus = hasDrafts ? 'published' : 'draft';
-
-            // Update all UI buttons immediately
-            allChapters.forEach(btn => updateButtonUI(btn, newStatus));
-            allLessons.forEach(btn => updateButtonUI(btn, newStatus));
-
-            // Send AJAX PUT requests for each chapter
-            const courseId = "{{ $course->id }}";
-            const chapterRequests = Array.from(allChapters).map(btn => {
-                const chapterId = btn.dataset.chapterId;
-                const chapterGroup = btn.closest('.chapter-group');
-                const title = chapterGroup.querySelector('.chapter-title').innerText;
-                const chapterNumber = chapterGroup.querySelector('input[name="chapter_number"]')?.value || 1;
-                return axios.put(`/admin/courses/${courseId}/chapters/${chapterId}`, {
-                    status: newStatus,
-                    title: title,
-                    description: 'Bulk status update',
-                    chapter_number: chapterNumber
-                });
-            });
-
-            // AJAX PUT for lessons
-            const lessonRequests = Array.from(allLessons).map(btn => {
-                const lessonId = btn.dataset.lessonId;
-                const chapterId = btn.dataset.chapterId;
-                const title = btn.closest('.lesson-row').querySelector('.lesson-link').innerText;
-                return axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
-                    status: newStatus,
-                    title: title,
-                    description: 'Bulk status update',
-                    lesson_number: 1
-                });
-            });
-
-            // Wait for all requests
-            Promise.all([...chapterRequests, ...lessonRequests])
-                .then(() => {
-                    masterBtn.disabled = false;
-                    updateMasterButtonUI();
-                })
-                .catch(() => {
-                    masterBtn.disabled = false;
-                    updateMasterButtonUI();
-                });
-        });
-
-        function createHeaderBlock() {
-            const btn = document.getElementById('block-adder');
-            btn.disabled = true;
-            btn.innerText = '...';
-
-            const url = btn.dataset.url;
-            const blockCount = document.querySelectorAll('.blocks-list .block-row').length;
-
-            axios.post(url, {
-                type: 'header',
-                content: 'enter content here',
-                block_number: blockCount + 1
-            })
-                .then((response) => {
-                    const block = response.data.block; // adjust to your actual response shape
-                    const list = document.querySelector('.blocks-list');
-
-                    const newRow = document.createElement('div');
-                    newRow.classList.add('block-row', 'type-header');
-                    newRow.innerHTML = `
-            <input type="hidden" name="blocks[${block.id}][id]" value="${block.id}">
-            <input type="hidden" name="blocks[${block.id}][block_number]" value="${block.block_number}">
-
-            <div class="block-main-content">
-                <textarea type="text" name="blocks[${block.id}][content]"
-                    class="input-ghost title-style"
-                    placeholder="Enter Title..."
-                    oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
-            </div>
-
-            <div class="block-controls">
-                <div class="control-group">
-                    <span class="control-icon" onclick="toggleTypeSelect('${block.id}')">✏️</span>
-                    <select onchange="updateBlockType(this)" name="blocks[${block.id}][type]" id="select-${block.id}" class="mini-type-select">
-                        <option value="header" selected>H1</option>
-                        <option value="description">Text</option>
-                        <option value="note">Note</option>
-                        <option value="code">Code</option>
-                        <option value="exercise">exercise</option>
-                    </select>
-                </div>
-                <button type="button" value="${block.id}:up" class="arrow-btn">∧</button>
-                <button type="button" value="${block.id}:down" class="arrow-btn">∨</button>
-            </div>
-        `;
-
-                    // Remove empty state if present
-                    list.querySelector('.empty-state')?.remove();
-                    list.appendChild(newRow);
-
-                    // Focus the new textarea
-                    newRow.querySelector('textarea')?.focus();
-
-                    updateBlockNumbers();
-                })
-                .catch(() => {
-                    alert('Failed to create block.');
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerText = '+';
-                });}
     </script>
 @endsection
 
