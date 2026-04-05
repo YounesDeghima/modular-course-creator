@@ -60,7 +60,7 @@
                             $done = $progress && $progress->progress > 90;
                         @endphp
                         <a class="lesson-card {{ $done ? 'done' : '' }}"
-                           href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
+                           href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
                             <span class="lc-num">{{ ($i+1) }}.{{ ($j+1) }}</span>
                             <span class="lc-title">{{ $lesson->title }}</span>
                             <span class="lc-check {{ $done ? 'check-done' : 'check-none' }}">
@@ -113,7 +113,7 @@
                         @endphp
                         @if($lesson->status == 'published')
                             <a class="ls-nav-item {{ $done ? 'done' : '' }}"
-                               href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
+                               href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
                                 {{ ($i+1) }}.{{ ($j+1) }} {{ $lesson->title }}
                             </a>
                         @endif

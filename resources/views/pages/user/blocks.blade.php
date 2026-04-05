@@ -49,18 +49,32 @@
                href="{{ route('user.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">
                 ‹ Prev
             </a>
+        @elseif($prevchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('user.preview.lessons', ['course'=>$course,'chapter'=>$prevchapter]) }}">
+                ‹ Prev chapter
+            </a>
         @else
             <span class="sb-nav-btn disabled">‹ Prev</span>
         @endif
 
-        @if($nextlesson)
-            <a class="sb-nav-btn"
-               href="{{ route('user.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
-                Next ›
-            </a>
-        @else
-            <span class="sb-nav-btn disabled">Next ›</span>
-        @endif
+            @if($nextlesson)
+                <a class="sb-nav-btn"
+                   href="{{ route('user.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
+                    Next ›
+                </a>
+            @elseif($nextchapter)
+                <a class="sb-nav-btn"
+                   href="{{ route('user.preview.lessons', ['course'=>$course,'chapter'=>$nextchapter]) }}">
+                    Next chapter ›
+                </a>
+            @else
+                <a class="sb-nav-btn"
+                   href="{{ route('user.preview.chapters', ['course'=>$course]) }}">
+                    Back to course ›
+                </a>
+            @endif
+
     </div>
 @endsection
 
@@ -89,6 +103,14 @@
         @if($prevlesson)
             <div class="nav-button">
                 <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
+            </div>
+        @elseif($prevchapter)
+            <div class="nav-button">
+                <a href="{{ route('user.preview.lessons',['course'=>$course,'chapter'=>$prevchapter]) }}" title="Previous chapter">«</a>
+            </div>
+        @else
+            <div class="nav-button" style="visibility:hidden;">
+                <a>‹</a>
             </div>
         @endif
 
@@ -132,11 +154,19 @@
             </div>
         </div>
 
-        @if($nextlesson)
-            <div class="nav-button">
-                <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">›</a>
-            </div>
-        @endif
+            @if($nextlesson)
+                <div class="nav-button">
+                    <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">›</a>
+                </div>
+            @elseif($nextchapter)
+                <div class="nav-button">
+                    <a href="{{ route('user.preview.lessons',['course'=>$course,'chapter'=>$nextchapter]) }}" title="Next chapter">»</a>
+                </div>
+            @else
+                <div class="nav-button">
+                    <a href="{{ route('user.preview.chapters',['course'=>$course]) }}" title="Back to course">⌂</a>
+                </div>
+            @endif
     </div>
 
     <form id="progress-form" method="POST"
