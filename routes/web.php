@@ -13,6 +13,7 @@ use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\eventcontroller;
 
 
 Route::get('/', function () {
@@ -28,12 +29,19 @@ Route::post('/signup',[signupController::class,'verify'])->name('verify_user_sig
 
 
 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+});
 
 
 
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
+
+        Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
@@ -85,6 +93,8 @@ Route::prefix('admin')
 Route::prefix('user')
     ->name('user.')
     ->group(function () {
+
+        Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 
         Route::get('/home', [usercontroller::class, 'home'])->name('home');
 

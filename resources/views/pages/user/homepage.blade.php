@@ -185,6 +185,12 @@
                    onmouseout="this.style.background=''">
                     <span style="font-size:14px;">📚</span> Courses
                 </a>
+
+                <a href="{{ route('admin.calendar') }}"
+                   style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:background .13s;display:block;"
+                   onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                    <span style="font-size:14px;">📅</span> Calendar
+                </a>
                 {{-- Add more nav items here as you build new features --}}
             </div>
         </div>
@@ -229,6 +235,14 @@
             <span class="feat-arrow">›</span>
         </a>
         {{-- Placeholder cards for future features --}}
+
+        <a class="feature-card" href="{{ route('user.calendar') }}">
+            <div class="feat-icon" style="background:#E1F5EE;">📅</div>
+            <div class="feat-title">Calendar</div>
+            <div class="feat-desc">Events, exams, deadlines</div>
+            <span class="feat-arrow">›</span>
+        </a>
+
         <div class="feature-card disabled">
             <div class="feat-icon" style="background:#F1EFE8;">🔔</div>
             <div class="feat-title">Notifications</div>
