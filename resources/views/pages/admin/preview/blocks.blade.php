@@ -65,9 +65,9 @@
 
 
         <div class="navigation">
-            <a href="{{ route('user.preview.courses') }}">{{ $course->year }}-{{ $course->branch }}</a>
+            <a href="{{ route('admin.preview.courses') }}">{{ $course->year }}-{{ $course->branch }}</a>
             <span>›</span>
-            <a href="{{ route('user.preview.chapters', ['course'=>$course]) }}">{{ $chapter->title }}</a>
+            <a href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">{{ $chapter->title }}</a>
             <span>›</span>
             <span style="color:var(--text);font-weight:500;">{{ $lesson->title }}</span>
         </div>
@@ -135,7 +135,7 @@
 
         @if($nextlesson)
             <div class="nav-button">
-                <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">›</a>
+                <a href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">›</a>
             </div>
         @endif
     </div>
