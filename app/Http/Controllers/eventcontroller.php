@@ -10,7 +10,7 @@ class eventcontroller extends Controller
     // Shared logic — fetch events for a user
     private function getEvents($userId)
     {
-        return Event::where('visibility', 'global')
+        return event::where('visibility', 'global')
             ->orWhere(fn($q) => $q->where('visibility','personal')->where('user_id', $userId))
             ->orderBy('start_date')
             ->get();

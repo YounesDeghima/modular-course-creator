@@ -223,6 +223,66 @@
         </div>
     </div>
 
+    <div class="section-head" style="margin-top:24px;">
+        <span class="section-title">Schedule & Activity</span>
+        <a class="see-all" href="{{ route('user.calendar') }}">View Calendar ›</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px;">
+
+        {{-- 1. THINGS HAPPENING NOW --}}
+        {{-- 1. THINGS HAPPENING TODAY --}}
+
+        <div style="display none ">
+            <div>
+            @foreach($currentEvents as $event)
+                <div style="display: flex; align-items: center; gap: 12px; background: #f0f7ff; border: 1px solid #cfe2ff; padding: 12px 16px; border-radius: 10px; margin-bottom: 8px;">
+                    {{-- Changed icon/color to blue for "Today" schedule feel --}}
+                    <div style="font-size: 18px;">📅</div>
+
+                    <div style="flex-grow: 1;">
+                        <div style="font-size: 10px; font-weight: 700; color: #084298; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Today</div>
+                        <div style="font-size: 14px; font-weight: 600; color: var(--text);">{{ $event->title }}</div>
+                    </div>
+
+                    <div style="text-align: right;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
+                    {{ $event->start_date->format('H:i') }} - {{ $event->end_date->format('H:i') }}
+                </span>
+                    </div>
+                </div>
+            @endforeach
+            </div>
+            {{-- 2. UPCOMING EVENTS (The Next 5) --}}
+            <div style="background: var(--bg-subtle); border-radius: 10px; padding: 4px 0;">
+                @forelse($upcomingEvents as $event)
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 12px 16px; {{ !$loop->last ? 'border-bottom: 1px solid var(--border);' : '' }}">
+                        <div style="background: var(--bg); border-radius: 6px; padding: 4px 8px; min-width: 45px; text-align: center; border: 1px solid var(--border);">
+                            <div style="font-size: 9px; font-weight: 700; color: var(--text-faint); text-transform: uppercase;">{{ $event->start_date->format('M') }}</div>
+                            <div style="font-size: 15px; font-weight: 600; color: var(--text);">{{ $event->start_date->format('d') }}</div>
+                        </div>
+
+                        <div style="flex-grow: 1;">
+                            <div style="font-size: 13px; font-weight: 500; color: var(--text);">{{ $event->title }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">
+                                {{ $event->start_date->format('H:i') }} • {{ $event->location ?? 'General' }}
+                            </div>
+                        </div>
+
+                        <span style="font-size: 14px; color: var(--text-faint);">›</span>
+                    </div>
+                @empty
+                    @if($currentEvents->isEmpty())
+                        <div style="padding: 20px; text-align: center; font-size: 12px; color: var(--text-faint);">
+                            No events scheduled for today.
+                        </div>
+                    @endif
+                @endforelse
+            </div>
+        </div>
+
+    </div>
+
     {{-- Feature cards --}}
     <div class="section-head">
         <span class="section-title">Quick access</span>
