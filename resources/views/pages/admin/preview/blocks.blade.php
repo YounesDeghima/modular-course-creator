@@ -89,7 +89,7 @@
     <div class="lesson-wrapper">
         @if($prevlesson)
             <div class="nav-button">
-                <a href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
+                <a href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
             </div>
         @endif
 

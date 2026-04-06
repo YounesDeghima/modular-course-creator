@@ -109,8 +109,20 @@ class previewcontroller extends Controller
         $lesson_progress = $lesson->progressForUser($id);
 
 
+        $prevchapter = $chapter->course->chapters()
+        ->where('chapter_number', '<', $chapter->chapter_number)
+        ->where('status', 'published')
+        ->orderByDesc('chapter_number')
+        ->first();
 
-        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','blocks','name','email','id','lesson_progress'));
+        $nextchapter = $chapter->course->chapters()
+            ->where('chapter_number', '>', $chapter->chapter_number)
+            ->where('status', 'published')
+            ->orderBy('chapter_number', 'asc')
+            ->first();
+
+
+        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','prevchapter','nextchapter','blocks','name','email','id','lesson_progress'));
 
     }
 
@@ -197,11 +209,21 @@ class previewcontroller extends Controller
             ->orderBy('lesson_number','asc')
             ->first();
 
+        $prevchapter = $chapter->course->chapters()
+            ->where('chapter_number', '<', $chapter->chapter_number)
+            ->where('status', 'published')
+            ->orderByDesc('chapter_number')
+            ->first();
+
         $lesson_progress = $lesson->progressForUser($id);
+        $nextchapter = $chapter->course->chapters()
+            ->where('chapter_number', '>', $chapter->chapter_number)
+            ->where('status', 'published')
+            ->orderBy('chapter_number', 'asc')
+            ->first();
 
 
-
-        return view('pages.user.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','blocks','name','email','id','lesson_progress'));
+        return view('pages.user.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','prevchapter','nextchapter','blocks','name','email','id','lesson_progress'));
 
     }
 
