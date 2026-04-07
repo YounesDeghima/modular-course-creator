@@ -145,7 +145,28 @@
         <p>Here's what's happening on your platform.</p>
     </div>
 
-    <livewire:dashboardstats :user="$user"/>
+    <div class="dash-stats">
+        <div class="stat-card">
+            <div class="stat-label">Total users</div>
+            <div class="stat-val">{{ $totalUsers }}</div>
+            <div class="stat-sub">registered accounts</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Courses</div>
+            <div class="stat-val">{{ $totalCourses }}</div>
+            <div class="stat-sub">{{ $pubCourses }} published · {{ $draftCourses }} draft</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Published lessons</div>
+            <div class="stat-val">{{ $pubLessons }}</div>
+            <div class="stat-sub">live for students</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Draft lessons</div>
+            <div class="stat-val">{{ $draftLessons }}</div>
+            <div class="stat-sub">awaiting publish</div>
+        </div>
+    </div>
 
     <div class="dash-grid">
         <div class="dash-card">
@@ -205,29 +226,18 @@
             <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px;">
                 Platform overview
             </div>
-            <div style="display:flex;flex-direction:column;gap:3px;" x-data="{
-                        totalUsers: '{{ $totalUsers }}',
-                        totalCourses: '{{ $totalCourses }}',
-                        pubLessons: '{{ $pubLessons }}',
-                        draftLessons: '{{ $draftLessons }}'
-                    }"
-                             @stats-updated.window="
-                        totalUsers = $event.detail[0].totalUsers;
-                        totalCourses = $event.detail[0].totalCourses;
-                        pubLessons = $event.detail[0].pubLessons;
-                        draftLessons = $event.detail[0].draftLessons;">
-
-                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);" >
-                    <span>Users</span><span style="font-weight:500;color:var(--text);" x-text="totalUsers">{{ $totalUsers }}</span>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
+                    <span>Users</span><span style="font-weight:500;color:var(--text);">{{ $totalUsers }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Courses</span><span style="font-weight:500;color:var(--text);" x-text="totalCourses">{{ $totalCourses }}</span>
+                    <span>Courses</span><span style="font-weight:500;color:var(--text);">{{ $totalCourses }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Published</span><span style="font-weight:500;color:#065f46;" x-text="pubLessons">{{ $pubLessons }} lessons</span>
+                    <span>Published</span><span style="font-weight:500;color:#065f46;">{{ $pubLessons }} lessons</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Drafts</span><span style="font-weight:500;color:#6b7280;" x-text="draftLessons">{{ $draftLessons }} lessons</span>
+                    <span>Drafts</span><span style="font-weight:500;color:#6b7280;">{{ $draftLessons }} lessons</span>
                 </div>
             </div>
         </div>

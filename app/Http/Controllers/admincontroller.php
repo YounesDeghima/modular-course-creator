@@ -12,29 +12,28 @@ class admincontroller extends Controller
 {
 //    public function dashboard()
 //    {
-//        $user = Auth::user();
+//        $admin = Auth::user();
 //        $users = User::all();
 //
 //        return view('pages.admin.dashboard', [
 //            'users' => $users,
-//            'name'  => $user->name,
-//            'email' => $user->email,
-//            'id'    => $user->id,
+//            'name'  => $admin->name,
+//            'email' => $admin->email,
+//            'id'    => $admin->id,
 //        ]);
 //    }
 
     public function main()
     {
-        $user = Auth::user();
-        if ($user->role !== 'admin') return redirect()->back();
+        $admin = Auth::user();
+        if ($admin->role !== 'admin') return redirect()->back();
 
         $courses = Course::all();
 
         return view('pages.admin.main', [
-            'user'=>$user,
-            'name'         => $user->name,
-            'email'        => $user->email,
-            'id'           => $user->id,
+            'name'         => $admin->name,
+            'email'        => $admin->email,
+            'id'           => $admin->id,
             'totalUsers'   => User::count(),
             'totalCourses' => $courses->count(),
             'pubCourses'   => $courses->where('status', 'published')->count(),
@@ -46,15 +45,14 @@ class admincontroller extends Controller
     }
     public function dashboard()
     {
-        $user = Auth::user();
+        $admin = Auth::user();
         $users = User::orderBy('created_at', 'desc')->get();
 
         return view('pages.admin.dashboard', [
-            'user'=>$user,
             'users'      => $users,
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'id'         => $user->id,
+            'name'       => $admin->name,
+            'email'      => $admin->email,
+            'id'         => $admin->id,
             'totalUsers' => $users->count(),
             'totalAdmins'=> $users->where('role', 'admin')->count(),
             'totalStudents' => $users->where('role', 'user')->count(),
@@ -64,7 +62,6 @@ class admincontroller extends Controller
     public function storeUser(Request $request)
     {
         $request->validate([
-
             'name'      => 'required|string',
             'last_name' => 'required|string',
             'email'     => 'required|email|unique:users',
