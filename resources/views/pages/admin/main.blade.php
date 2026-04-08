@@ -242,7 +242,14 @@
                 <a href="{{ route('admin.courses.index') }}" style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;transition:background .13s;display:block;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">Courses</a>
                 <a href="{{ route('admin.dashboard') }}"    style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;transition:background .13s;display:block;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">Users</a>
                 <a href="{{ route('admin.preview.courses') }}" style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;transition:background .13s;display:block;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">Preview</a>
+                <a href="{{ route('admin.calendar') }}"
+                   style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:background .13s;display:block;"
+                   onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                    <span style="font-size:14px;">📅</span> Calendar
+                </a>
+
             </div>
+
         </div>
 
     </div>
