@@ -12,6 +12,7 @@ use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
+use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
 
 
@@ -35,6 +36,7 @@ Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
+        Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
         Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
