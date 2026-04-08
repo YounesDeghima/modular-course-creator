@@ -222,66 +222,74 @@
             <div class="stat-sub">keep going</div>
         </div>
     </div>
-
-    <div class="section-head" style="margin-top:24px;">
-        <span class="section-title">Schedule & Activity</span>
-        <a class="see-all" href="{{ route('user.calendar') }}">View Calendar ›</a>
+<div>
+    <div class="section-head" style="margin-top:8px;">
+        <span class="section-title">Schedule & activity</span>
+        <a class="see-all" href="{{ route('user.calendar') }}">View all ›</a>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px;">
-
-        {{-- 1. THINGS HAPPENING NOW --}}
-        {{-- 1. THINGS HAPPENING TODAY --}}
-
-        <div style="display none ">
-            <div>
-            @foreach($currentEvents as $event)
-                <div style="display: flex; align-items: center; gap: 12px; background: #f0f7ff; border: 1px solid #cfe2ff; padding: 12px 16px; border-radius: 10px; margin-bottom: 8px;">
-                    {{-- Changed icon/color to blue for "Today" schedule feel --}}
-                    <div style="font-size: 18px;">📅</div>
-
-                    <div style="flex-grow: 1;">
-                        <div style="font-size: 10px; font-weight: 700; color: #084298; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Today</div>
-                        <div style="font-size: 14px; font-weight: 600; color: var(--text);">{{ $event->title }}</div>
-                    </div>
-
-                    <div style="text-align: right;">
-                <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
-                    {{ $event->start_date->format('H:i') }} - {{ $event->end_date->format('H:i') }}
-                </span>
-                    </div>
-                </div>
-            @endforeach
-            </div>
-            {{-- 2. UPCOMING EVENTS (The Next 5) --}}
-            <div style="background: var(--bg-subtle); border-radius: 10px; padding: 4px 0;">
-                @forelse($upcomingEvents as $event)
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 12px 16px; {{ !$loop->last ? 'border-bottom: 1px solid var(--border);' : '' }}">
-                        <div style="background: var(--bg); border-radius: 6px; padding: 4px 8px; min-width: 45px; text-align: center; border: 1px solid var(--border);">
-                            <div style="font-size: 9px; font-weight: 700; color: var(--text-faint); text-transform: uppercase;">{{ $event->start_date->format('M') }}</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--text);">{{ $event->start_date->format('d') }}</div>
-                        </div>
-
-                        <div style="flex-grow: 1;">
-                            <div style="font-size: 13px; font-weight: 500; color: var(--text);">{{ $event->title }}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">
-                                {{ $event->start_date->format('H:i') }} • {{ $event->location ?? 'General' }}
-                            </div>
-                        </div>
-
-                        <span style="font-size: 14px; color: var(--text-faint);">›</span>
-                    </div>
-                @empty
-                    @if($currentEvents->isEmpty())
-                        <div style="padding: 20px; text-align: center; font-size: 12px; color: var(--text-faint);">
-                            No events scheduled for today.
-                        </div>
-                    @endif
-                @endforelse
-            </div>
+    @if($upcomingEvents->isEmpty())
+        <div style="padding:16px;border:1px solid var(--border);border-radius:10px;
+                font-size:13px;color:var(--text-faint);text-align:center;margin-bottom:28px;">
+            No upcoming events.
         </div>
+    @else
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px;">
+            @foreach($upcomingEvents as $event)
+                @php
+                    $today     = now()->toDateString();
+                    $start     = $event->start_date->toDateString();
+                    $end       = $event->end_date?->toDateString();
+                    $happening = $start <= $today && ($end >= $today || (!$end && $start === $today));
+                    $colors    = [
+                        'exam'       => ['bg'=>'#FCEBEB','text'=>'#A32D2D','bar'=>'#E24B4A'],
+                        'vacation'   => ['bg'=>'#EAF3DE','text'=>'#27500A','bar'=>'#639922'],
+                        'project'    => ['bg'=>'#EEEDFE','text'=>'#3C3489','bar'=>'#7F77DD'],
+                        'assignment' => ['bg'=>'#FAEEDA','text'=>'#633806','bar'=>'#BA7517'],
+                        'personal'   => ['bg'=>'#E6F1FB','text'=>'#0C447C','bar'=>'#378ADD'],
+                    ];
+                    $c = $colors[$event->type];
+                @endphp
+                <a href="{{ route('user.calendar') }}"
+                   style="display:flex;align-items:center;gap:12px;padding:12px 14px;
+              border:1px solid var(--border);border-radius:10px;
+              text-decoration:none;transition:border-color .15s;
+              border-left:3px solid {{ $c['bar'] }};border-radius:0 10px 10px 0;"
+                   onmouseover="this.style.borderColor='{{ $c['bar'] }}'"
+                   onmouseout="this.style.borderColor='var(--border)'">
 
-    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
+                <span style="font-size:13px;font-weight:500;color:var(--text);
+                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {{ $event->title }}
+                </span>
+                            @if($happening)
+                                <span style="font-size:10px;padding:1px 7px;border-radius:999px;
+                             background:{{ $c['bg'] }};color:{{ $c['text'] }};
+                             font-weight:500;flex-shrink:0;">
+                    Ongoing
+                </span>
+                            @endif
+                        </div>
+                        <div style="font-size:11px;color:var(--text-faint);">
+                            @if($end && $end !== $start)
+                                {{ $event->start_date->format('M d') }} – {{ $event->end_date->format('M d, Y') }}
+                            @else
+                                {{ $event->start_date->format('M d, Y') }}
+                            @endif
+                        </div>
+                    </div>
+
+                    <span style="font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500;
+                     background:{{ $c['bg'] }};color:{{ $c['text'] }};flex-shrink:0;">
+            {{ ucfirst($event->type) }}
+        </span>
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>
 
     {{-- Feature cards --}}
     <div class="section-head">
@@ -330,6 +338,21 @@
     </div>
 
     <div class="course-grid">
+        @php
+            $courses = $courses->sortBy(function ($course) use ($id) {
+            $progress = $course->progressForUser($id);
+
+                // Group priority
+                if ($progress == 100) return 2; // last
+                if ($progress == 0)   return 1; // middle
+                return 0; // first (1–99)
+            })->sortByDesc(function ($course) use ($id) {
+                $progress = $course->progressForUser($id);
+
+                // Only affect 1–99 group
+                return ($progress > 0 && $progress < 100) ? $progress : -1;
+            });
+        @endphp
         @foreach($courses as $course)
             @php
                 $progress = $course->progressForUser($id);
