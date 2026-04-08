@@ -14,121 +14,9 @@
     </div>
 
     {{-- New course popup --}}
-    <div class="block-adder">
-        <div id="block-popup">
-            <form id="new-block-form" method="POST" action="{{ route('admin.courses.store') }}">
-                @csrf
-                <div>
-                    <label>Title</label>
-                    <input class="value-input" type="text" name="title" required>
-                </div>
-                <div style="display:flex;gap:10px;">
-                    <div style="flex:1;">
-                        <label>Year</label>
-                        <select name="year" class="year-input">
-                            <option value="1">Year 1</option>
-                            <option value="2">Year 2</option>
-                            <option value="3">Year 3</option>
-                        </select>
-                    </div>
-                    <div style="flex:1;">
-                        <label class="branch-label">Branch</label>
-                        <select name="branch" class="branch-input">
-                            <option value="mi">MI</option>
-                            <option value="st">ST</option>
-                            <option value="none" style="display:none">None</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label>Description</label>
-                    <textarea name="description" required style="min-height:80px;"></textarea>
-                </div>
-                <div>
-                    <label>Status</label>
-                    <select name="status">
-                        <option value="draft" selected>Draft (hidden)</option>
-                        <option value="published">Published (live)</option>
-                    </select>
-                </div>
-                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
-                    <button type="button" id="close-popup">Cancel</button>
-                    <button type="submit">Create course</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <livewire:coursecreate/>
 
-    <div class="blocks" id="blocks-container">
-        @foreach($courses as $course)
-            <div class="block"
-                 data-status="{{ $course->status }}"
-                 data-year="{{ $course->year }}">
-
-                <div class="block-meta-row">
-                    <span class="year-badge year-{{ $course->year }}">Year {{ $course->year }}</span>
-                    <button type="button"
-                            class="status-toggle-btn {{ $course->status }}"
-                            data-course-id="{{ $course->id }}"
-                            data-status="{{ $course->status }}"
-                            onclick="toggleSingleCourse(this, event)">
-                        {{ ucfirst($course->status) }}
-                    </button>
-                </div>
-
-                <form class="update-form" action="{{ route('admin.courses.update', $course->id) }}" method="post">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="status" value="{{ $course->status }}">
-
-                    <div class="info-row">
-                        <label>Title</label>
-                        <input class="value-input" type="text" name="title" value="{{ $course->title }}">
-                    </div>
-
-                    <div style="display:flex;gap:8px;">
-                        <div class="info-row" style="flex:1;">
-                            <label>Year</label>
-                            <select name="year" class="year-input">
-                                <option value="1" {{ $course->year==1?'selected':'' }}>Year 1</option>
-                                <option value="2" {{ $course->year==2?'selected':'' }}>Year 2</option>
-                                <option value="3" {{ $course->year==3?'selected':'' }}>Year 3</option>
-                            </select>
-                        </div>
-                        <div class="info-row" style="flex:1;">
-                            <label class="branch-label">Branch</label>
-                            <select name="branch" class="branch-input">
-                                <option value="mi" {{ $course->branch=='mi'?'selected':'' }}>MI</option>
-                                <option value="st" {{ $course->branch=='st'?'selected':'' }}>ST</option>
-                                <option value="none" style="display:none" {{ $course->branch=='none'?'selected':'' }}>None</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="info-row">
-                        <label>Description</label>
-                        <textarea name="description" class="value-input" style="min-height:70px;">{{ $course->description }}</textarea>
-                    </div>
-
-                    <input class="value-input" type="submit" value="Save changes">
-                </form>
-
-                <div class="block-actions">
-                    <a class="btn-card-action" href="{{ route('admin.courses.chapters.index', $course) }}">
-                        Manage chapters
-                    </a>
-                    <form action="{{ route('admin.courses.destroy', $course->id) }}" method="post" style="margin-left:auto;">
-                        @csrf
-                        @method('DELETE')
-                        <input type="button"
-                               class="btn-card-action danger"
-                               onclick="deleteCourse({{ $course->id }}, this)"
-                               value="Delete">
-                    </form>
-                </div>
-            </div>
-        @endforeach
-    </div>
+    <livewire:courses :courses="$courses"/>
 @endsection
 
 
@@ -139,25 +27,7 @@
 
     <div class="admin-sb-divider"></div>
 
-    <div class="admin-sb-section">
-        <div class="admin-sb-label">Overview</div>
-        <div class="admin-stat-row">
-            <span>Total</span>
-            <span class="admin-stat-val" id="total-courses">{{ count($courses) }}</span>
-        </div>
-        <div class="admin-stat-row">
-            <span>Published</span>
-            <span class="admin-stat-val" id="published-count" style="color:#065f46">
-            {{ $courses->where('status','published')->count() }}
-        </span>
-        </div>
-        <div class="admin-stat-row">
-            <span>Draft</span>
-            <span class="admin-stat-val" id="draft-count" style="color:#6b7280">
-            {{ $courses->where('status','draft')->count() }}
-        </span>
-        </div>
-    </div>
+    <livewire:overviewstats/>
 
     <div class="admin-sb-divider"></div>
 
@@ -201,20 +71,20 @@
         });
 
         // ── Branch visibility per form ──
-        document.querySelectorAll('.update-form').forEach(form => {
-            const year   = form.querySelector('.year-input');
-            const branch = form.querySelector('.branch-input');
-            const label  = form.querySelector('.branch-label');
-
-            function toggleBranch() {
-                const show = parseInt(year.value) > 1;
-                branch.style.visibility = show ? 'visible' : 'hidden';
-                label.style.visibility  = show ? 'visible' : 'hidden';
-            }
-
-            year.addEventListener('change', toggleBranch);
-            toggleBranch();
-        });
+        // document.querySelectorAll('.update-form').forEach(form => {
+        //     const year   = form.querySelector('.year-input');
+        //     const branch = form.querySelector('.branch-input');
+        //     const label  = form.querySelector('.branch-label');
+        //
+        //     function toggleBranch() {
+        //         const show = parseInt(year.value) > 1;
+        //         branch.style.visibility = show ? 'visible' : 'hidden';
+        //         label.style.visibility  = show ? 'visible' : 'hidden';
+        //     }
+        //
+        //     year.addEventListener('change', toggleBranch);
+        //     toggleBranch();
+        // });
 
         // Also for the new course popup
         const newYearSelect = document.querySelector('#new-block-form .year-input');
@@ -232,22 +102,22 @@
         }
 
         // ── Show save button only when form changed ──
-        document.querySelectorAll('.update-form').forEach(form => {
-            const inputs    = form.querySelectorAll('input, textarea, select');
-            const updateBtn = form.querySelector('input[type="submit"]');
-            const originals = Array.from(inputs).map(i => i.value);
-
-            updateBtn.style.visibility = 'hidden';
-
-            inputs.forEach((input, idx) => {
-                ['input', 'change'].forEach(evt => {
-                    input.addEventListener(evt, () => {
-                        const changed = Array.from(inputs).some((inp, i) => inp.value !== originals[i]);
-                        updateBtn.style.visibility = changed ? 'visible' : 'hidden';
-                    });
-                });
-            });
-        });
+        // document.querySelectorAll('.update-form').forEach(form => {
+        //     const inputs    = form.querySelectorAll('input, textarea, select');
+        //     const updateBtn = form.querySelector('input[type="submit"]');
+        //     const originals = Array.from(inputs).map(i => i.value);
+        //
+        //     updateBtn.style.visibility = 'hidden';
+        //
+        //     inputs.forEach((input, idx) => {
+        //         ['input', 'change'].forEach(evt => {
+        //             input.addEventListener(evt, () => {
+        //                 const changed = Array.from(inputs).some((inp, i) => inp.value !== originals[i]);
+        //                 updateBtn.style.visibility = changed ? 'visible' : 'hidden';
+        //             });
+        //         });
+        //     });
+        // });
 
         // ── Status toggle (FIXED) ──
         function toggleSingleCourse(btn, event) {
@@ -289,17 +159,17 @@
         }
 
         // ── Delete ──
-        function deleteCourse(courseId, btn) {
-            if (!confirm('Are you sure you want to delete this course?')) return;
-
-            const block = btn.closest('.block');
-
-            axios.delete(`/admin/courses/${courseId}`)
-                .finally(() => {
-                    block.remove();
-                    refreshGlobalUI();
-                });
-        }
+        // function deleteCourse(courseId, btn) {
+        //     if (!confirm('Are you sure you want to delete this course?')) return;
+        //
+        //     const block = btn.closest('.block');
+        //
+        //     axios.delete(`/admin/courses/${courseId}`)
+        //         .finally(() => {
+        //             block.remove();
+        //             refreshGlobalUI();
+        //         });
+        // }
 
         // ── Refresh sidebar counters ──
         function refreshGlobalUI() {
@@ -367,47 +237,7 @@
         });
 
 
-        document.querySelectorAll('.update-form').forEach(form => {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault(); // ❌ stop page reload
 
-                const courseId = this.action.split('/').pop();
-
-                const payload = {
-                    title: this.querySelector('input[name="title"]').value,
-                    year: this.querySelector('.year-input').value,
-                    branch: this.querySelector('.branch-input').value,
-                    description: this.querySelector('textarea').value,
-                    status: this.querySelector('input[name="status"]').value,
-                };
-
-                const submitBtn = this.querySelector('input[type="submit"]');
-
-                // Optional: loading state
-                submitBtn.value = "Saving...";
-                submitBtn.disabled = true;
-
-                axios.put(`/admin/courses/${courseId}`, payload)
-                    .then(() => {
-                        submitBtn.value = "Saved ✓";
-                        submitBtn.style.background = "#10b981";
-
-                        // hide again after save
-                        setTimeout(() => {
-                            submitBtn.style.visibility = "hidden";
-                            submitBtn.disabled = false;
-                            submitBtn.value = "Save changes";
-                        }, 1000);
-
-                        refreshGlobalUI();
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        submitBtn.value = "Error ❌";
-                        submitBtn.disabled = false;
-                    });
-            });
-        });
 
         const globalBtn = document.getElementById('btn-global-toggle');
 

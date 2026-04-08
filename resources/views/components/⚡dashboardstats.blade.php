@@ -20,6 +20,7 @@ new class extends Component {
 
     public function mount($user)
     {
+
         $this->user = $user;
         $this->loadstats();
     }
@@ -64,6 +65,7 @@ new class extends Component {
             'totalUsers' => $this->totalUsers]
 
         );
+
     }
 
 };
