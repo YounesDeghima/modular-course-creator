@@ -163,7 +163,7 @@
 
 /* ── Reset button ── */
 .block button[type="submit"] {
-    display: none; /* hide reset in student view, show only in admin */
+    /*display: none; !* hide reset in student view, show only in admin *!*/
 }
 
 /* ── Sidebar filters ── */
