@@ -9,7 +9,8 @@ new class extends Component
     {
         $this->user = $user;
     }
-    public function goToProfile($userId){
+    public function goToProfile($userId
+    ){
         return redirect()->route('admin.userProfile',$userId);
     }
 
@@ -44,7 +45,8 @@ new class extends Component
                     data-name="{{ $user->name }}"
                     data-last="{{ $user->last_name }}"
                     data-email="{{ $user->email }}"
-                    data-role="{{ $user->role }}">
+                    data-role="{{ $user->role }}"
+                    wire:click.stop>
                 Edit
             </button>
             @if($user->id)

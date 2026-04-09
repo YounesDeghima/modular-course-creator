@@ -733,6 +733,8 @@
             <div class="sb-identity-text">
                 <div class="sb-identity-name">{{ $user->name }}</div>
                 <div class="sb-identity-role">{{ ($user->is_admin ?? false) ? 'Admin' : 'Student' }}</div>
+                <livewire:userstatus :user="$user"/>
+
             </div>
         </div>
 
@@ -856,11 +858,11 @@
                         @csrf
                         @method('DELETE')
                     </form>
-                    <button class="btn btn-danger" onclick="confirmDelete()">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                        Delete user
+
+                    <button class="btn btn-primary" onclick="confirmResetAll()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
+                        Reset all progress
                     </button>
-                </div>
             </div>
         </div>
 
@@ -919,10 +921,7 @@
                     <span class="info-key">Joined</span>
                     <span class="info-val">{{ $user->created_at ? $user->created_at->format('d M Y, H:i') : '—' }}</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-key">Last updated</span>
-                    <span class="info-val">{{ $user->updated_at ? $user->updated_at->diffForHumans() : '—' }}</span>
-                </div>
+                <livewire:userlastupdated :user="$user"/>
                 <div class="info-row">
                     <span class="info-key">Role</span>
                     <span class="info-val">

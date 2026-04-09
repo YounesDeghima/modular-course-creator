@@ -15,6 +15,7 @@ use App\Http\Controllers\lessonprogresscontroller;
 use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\eventcontroller;
+use App\Http\Middleware\updateLastSeen;
 
 
 Route::get('/', function () {
@@ -37,7 +38,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-
+Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -89,9 +90,9 @@ Route::prefix('admin')
 
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
-    });
+    });});
 
-
+Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('user')
     ->name('user.')
     ->group(function () {
@@ -120,5 +121,5 @@ Route::prefix('user')
         Route:: Resource('course.progress', courseprogresscontroller::class);
 
 
-    });
+    });});
 
