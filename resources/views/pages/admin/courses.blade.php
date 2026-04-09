@@ -120,36 +120,36 @@
         // });
 
         // ── Status toggle (FIXED) ──
-        function toggleSingleCourse(btn, event) {
-            if (event) event.stopPropagation();
-
-            const courseId    = btn.dataset.courseId;
-            const currentStatus = btn.dataset.status;
-            const newStatus   = currentStatus === 'published' ? 'draft' : 'published';
-
-            updateButtonUI(btn, newStatus);
-
-            // Fix: go up to .block first, then find the form
-            const block  = btn.closest('.block');
-            const form   = block.querySelector('.update-form');
-
-            // Keep hidden input + data-status in sync for filters
-            const hiddenStatus = form.querySelector('input[name="status"]');
-            if (hiddenStatus) hiddenStatus.value = newStatus;
-            block.dataset.status = newStatus;
-
-            const payload = {
-                status:      newStatus,
-                title:       form.querySelector('input[name="title"]').value,
-                year:        form.querySelector('.year-input').value,
-                branch:      form.querySelector('.branch-input').value,
-                description: form.querySelector('textarea').value,
-            };
-
-            axios.put(`/admin/courses/${courseId}`, payload)
-                .then(() => refreshGlobalUI())
-                .catch(err => console.error('Toggle failed:', err));
-        }
+        // function toggleSingleCourse(btn, event) {
+        //     if (event) event.stopPropagation();
+        //
+        //     const courseId    = btn.dataset.courseId;
+        //     const currentStatus = btn.dataset.status;
+        //     const newStatus   = currentStatus === 'published' ? 'draft' : 'published';
+        //
+        //     updateButtonUI(btn, newStatus);
+        //
+        //     // Fix: go up to .block first, then find the form
+        //     const block  = btn.closest('.block');
+        //     const form   = block.querySelector('.update-form');
+        //
+        //     // Keep hidden input + data-status in sync for filters
+        //     const hiddenStatus = form.querySelector('input[name="status"]');
+        //     if (hiddenStatus) hiddenStatus.value = newStatus;
+        //     block.dataset.status = newStatus;
+        //
+        //     const payload = {
+        //         status:      newStatus,
+        //         title:       form.querySelector('input[name="title"]').value,
+        //         year:        form.querySelector('.year-input').value,
+        //         branch:      form.querySelector('.branch-input').value,
+        //         description: form.querySelector('textarea').value,
+        //     };
+        //
+        //     axios.put(`/admin/courses/${courseId}`, payload)
+        //         .then(() => refreshGlobalUI())
+        //         .catch(err => console.error('Toggle failed:', err));
+        // }
 
         function updateButtonUI(btn, status) {
             btn.dataset.status = status;

@@ -17,6 +17,21 @@
 
     <div class="blocks-container">
         <div class="blocks" id="blocks-container">
+            @php
+                $courses = $courses->sortBy(function ($course) use ($id) {
+                $progress = $course->progressForUser($id);
+
+                    // Group priority
+                    if ($progress == 100) return 2; // last
+                    if ($progress == 0)   return 1; // middle
+                    return 0; // first (1–99)
+                })->sortByDesc(function ($course) use ($id) {
+                    $progress = $course->progressForUser($id);
+
+                    // Only affect 1–99 group
+                    return ($progress > 0 && $progress < 100) ? $progress : -1;
+                });
+            @endphp
             @foreach($courses as $course)
                 <div class="block"
                      data-year="{{ $course->year }}"
@@ -168,7 +183,7 @@
                 const matchStatus =
                     filters.status === 'all' ||
                     (filters.status === 'done' && progress === 100) ||
-                    (filters.status === 'progress' && progress < 100);
+                    (filters.status === 'progress' && progress < 100 &&  progress > 0);
 
                 const show = matchYear && matchBranch && matchSearch && matchStatus;
                 card.style.display = show ? 'flex' : 'none';

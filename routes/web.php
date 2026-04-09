@@ -12,7 +12,10 @@ use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
+use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\eventcontroller;
+use App\Http\Middleware\updateLastSeen;
 
 
 Route::get('/', function () {
@@ -28,13 +31,21 @@ Route::post('/signup',[signupController::class,'verify'])->name('verify_user_sig
 
 
 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+});
 
 
-
+Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
+
+        Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
+        Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
         Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
         Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
@@ -79,12 +90,14 @@ Route::prefix('admin')
 
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
-    });
+    });});
 
-
+Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('user')
     ->name('user.')
     ->group(function () {
+
+        Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 
         Route::get('/home', [usercontroller::class, 'home'])->name('home');
 
@@ -108,5 +121,5 @@ Route::prefix('user')
         Route:: Resource('course.progress', courseprogresscontroller::class);
 
 
-    });
+    });});
 

@@ -34,32 +34,49 @@
     </div>
 
     @foreach($chapters as $i => $chapter)
-        @php $chProgress = $chapter->progressForUser($id); @endphp
+        @php
+            $chProgress = $chapter->progressForUser($id);
+        @endphp
 
         <div style="margin-bottom: 32px;">
             <div class="ch-main-header">
                 <h2 class="ch-main-title">Chapter {{ $i+1 }} — {{ $chapter->title }}</h2>
                 <span class="ch-progress-badge" id="ch-badge-{{ $chapter->id }}">
-            {{ $chProgress }}% complete
-        </span>
+                        {{ $chProgress }}% complete
+                </span>
             </div>
 
             <div class="lessons-grid">
                 @foreach($chapter->lessons as $j => $lesson)
-                    @if($lesson->status == 'published')
-                        @php
-                            $progress = $lesson->progressForUser($id);
-                            $done = $progress && $progress->progress > 90;
-                        @endphp
-                        <a class="lesson-card {{ $done ? 'done' : '' }}"
-                           href="{{ route('user.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson]) }}">
-                            <span class="lc-num">{{ ($i+1) }}.{{ ($j+1) }}</span>
-                            <span class="lc-title">{{ $lesson->title }}</span>
-                            <span class="lc-check {{ $done ? 'check-done' : 'check-none' }}">
-                    {{ $done ? '✓' : '' }}
-                </span>
-                        </a>
-                    @endif
+                    @continue($lesson->status !== 'published')
+
+                    @php
+                        // Cache result per lesson to avoid repeated calls
+                        static $progressCache = [];
+
+                        if (!isset($progressCache[$lesson->id])) {
+                            $progressCache[$lesson->id] = $lesson->progressForUser($id);
+                        }
+
+                        $progress = $progressCache[$lesson->id];
+                        $done = $progress?->progress >= 90;
+                    @endphp
+
+                    <a class="lesson-card {{ $done ? 'done' : '' }}"
+                       href="{{ route('user.preview.blocks', [
+                            'course' => $course->id,
+                            'chapter' => $chapter->id,
+                            'lesson' => $lesson->id
+                       ]) }}"
+                       aria-label="Lesson {{ $lesson->title }}">
+
+                        <span class="lc-num">{{ $i + 1 }}.{{ $j + 1 }}</span>
+                        <span class="lc-title">{{ $lesson->title }}</span>
+
+                        <span class="lc-check {{ $done ? 'check-done' : 'check-none' }}">
+                            {{ $done ? '✓' : '' }}
+                        </span>
+                    </a>
                 @endforeach
             </div>
         </div>

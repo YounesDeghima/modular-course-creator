@@ -5,7 +5,8 @@ namespace App\Http\Controllers\user;
 use App\Models\user;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Course;
+use App\Models\course;
+use App\Models\event;
 use App\Models\lesson_progress;
 
 
@@ -58,15 +59,52 @@ class usercontroller extends Controller
             elseif ($progress > 0) $inProgress++;
         }
 
+        $now = now();
+
+        $currentEvents = event::whereDate('start_date', '<=', $now)
+            ->whereDate('end_date', '>=', $now)
+            ->orderBy('start_date', 'asc')
+            ->get(); //
+
+        // 2. Fetch the next 5 events starting AFTER today
+//        $upcomingEvents = event::where('start_date', '>', $now->endOfDay())
+//            ->orderBy('start_date', 'asc')
+//            ->take(5)
+//            ->get(); //
+
+        $today = now()->toDateString();
+        $upcomingEvents = Event::where(function($q) use ($user, $today) {
+            $q->where('visibility', 'global')
+                ->orWhere(function($q2) use ($user) {
+                    $q2->where('visibility', 'personal')
+                        ->where('user_id', $user->id);
+                });
+        })
+            ->where(function($q) use ($today) {
+                $q->where('end_date', '>=', $today)
+                    ->orWhere(function($q2) use ($today) {
+                        $q2->whereNull('end_date')
+                            ->where('start_date', '>=', $today);
+                    });
+            })
+            ->orderBy('start_date')
+            ->take(5)
+            ->get();
+
+//        return view('homepage', compact('currentEvents', 'upcomingEvents'));
+
         return view('pages.user.homepage', [
-            'name'       => $user->name,
-            'last_name'  => $user->last_name,
-            'email'      => $user->email,
-            'id'         => $user->id,
-            'courses'    => $courses,
-            'total'      => $courses->count(),
-            'completed'  => $completed,
-            'inProgress' => $inProgress,
+            'name'           => $user->name,
+            'last_name'      => $user->last_name,
+            'email'          => $user->email,
+            'id'             => $user->id,
+            'courses'        => $courses,
+            'total'          => $courses->count(),
+            'completed'      => $completed,
+            'inProgress'     => $inProgress,
+            'currentEvents'  => $currentEvents,
+            'upcomingEvents' => $upcomingEvents,
+            'today'          => $today,
         ]);
     }
 

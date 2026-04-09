@@ -17,7 +17,8 @@ class user extends Authenticatable
         'last_name',
         'email',
         'password',
-        'role'
+        'role',
+        'last_seen'
     ];
 
     /**
@@ -37,13 +38,11 @@ class user extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'last_seen' => 'datetime',
+    ];
     public function testDb()
     {
         $users = user::all(); // fetch all rows from users table

@@ -185,6 +185,12 @@
                    onmouseout="this.style.background=''">
                     <span style="font-size:14px;">📚</span> Courses
                 </a>
+
+                <a href="{{ route('admin.calendar') }}"
+                   style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:background .13s;display:block;"
+                   onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                    <span style="font-size:14px;">📅</span> Calendar
+                </a>
                 {{-- Add more nav items here as you build new features --}}
             </div>
         </div>
@@ -216,6 +222,74 @@
             <div class="stat-sub">keep going</div>
         </div>
     </div>
+<div>
+    <div class="section-head" style="margin-top:8px;">
+        <span class="section-title">Schedule & activity</span>
+        <a class="see-all" href="{{ route('user.calendar') }}">View all ›</a>
+    </div>
+
+    @if($upcomingEvents->isEmpty())
+        <div style="padding:16px;border:1px solid var(--border);border-radius:10px;
+                font-size:13px;color:var(--text-faint);text-align:center;margin-bottom:28px;">
+            No upcoming events.
+        </div>
+    @else
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px;">
+            @foreach($upcomingEvents as $event)
+                @php
+                    $today     = now()->toDateString();
+                    $start     = $event->start_date->toDateString();
+                    $end       = $event->end_date?->toDateString();
+                    $happening = $start <= $today && ($end >= $today || (!$end && $start === $today));
+                    $colors    = [
+                        'exam'       => ['bg'=>'#FCEBEB','text'=>'#A32D2D','bar'=>'#E24B4A'],
+                        'vacation'   => ['bg'=>'#EAF3DE','text'=>'#27500A','bar'=>'#639922'],
+                        'project'    => ['bg'=>'#EEEDFE','text'=>'#3C3489','bar'=>'#7F77DD'],
+                        'assignment' => ['bg'=>'#FAEEDA','text'=>'#633806','bar'=>'#BA7517'],
+                        'personal'   => ['bg'=>'#E6F1FB','text'=>'#0C447C','bar'=>'#378ADD'],
+                    ];
+                    $c = $colors[$event->type];
+                @endphp
+                <a href="{{ route('user.calendar') }}"
+                   style="display:flex;align-items:center;gap:12px;padding:12px 14px;
+              border:1px solid var(--border);border-radius:10px;
+              text-decoration:none;transition:border-color .15s;
+              border-left:3px solid {{ $c['bar'] }};border-radius:0 10px 10px 0;"
+                   onmouseover="this.style.borderColor='{{ $c['bar'] }}'"
+                   onmouseout="this.style.borderColor='var(--border)'">
+
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
+                <span style="font-size:13px;font-weight:500;color:var(--text);
+                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {{ $event->title }}
+                </span>
+                            @if($happening)
+                                <span style="font-size:10px;padding:1px 7px;border-radius:999px;
+                             background:{{ $c['bg'] }};color:{{ $c['text'] }};
+                             font-weight:500;flex-shrink:0;">
+                    Ongoing
+                </span>
+                            @endif
+                        </div>
+                        <div style="font-size:11px;color:var(--text-faint);">
+                            @if($end && $end !== $start)
+                                {{ $event->start_date->format('M d') }} – {{ $event->end_date->format('M d, Y') }}
+                            @else
+                                {{ $event->start_date->format('M d, Y') }}
+                            @endif
+                        </div>
+                    </div>
+
+                    <span style="font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500;
+                     background:{{ $c['bg'] }};color:{{ $c['text'] }};flex-shrink:0;">
+            {{ ucfirst($event->type) }}
+        </span>
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>
 
     {{-- Feature cards --}}
     <div class="section-head">
@@ -229,6 +303,14 @@
             <span class="feat-arrow">›</span>
         </a>
         {{-- Placeholder cards for future features --}}
+
+        <a class="feature-card" href="{{ route('user.calendar') }}">
+            <div class="feat-icon" style="background:#E1F5EE;">📅</div>
+            <div class="feat-title">Calendar</div>
+            <div class="feat-desc">Events, exams, deadlines</div>
+            <span class="feat-arrow">›</span>
+        </a>
+
         <div class="feature-card disabled">
             <div class="feat-icon" style="background:#F1EFE8;">🔔</div>
             <div class="feat-title">Notifications</div>
@@ -256,6 +338,21 @@
     </div>
 
     <div class="course-grid">
+        @php
+            $courses = $courses->sortBy(function ($course) use ($id) {
+            $progress = $course->progressForUser($id);
+
+                // Group priority
+                if ($progress == 100) return 2; // last
+                if ($progress == 0)   return 1; // middle
+                return 0; // first (1–99)
+            })->sortByDesc(function ($course) use ($id) {
+                $progress = $course->progressForUser($id);
+
+                // Only affect 1–99 group
+                return ($progress > 0 && $progress < 100) ? $progress : -1;
+            });
+        @endphp
         @foreach($courses as $course)
             @php
                 $progress = $course->progressForUser($id);

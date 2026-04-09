@@ -281,6 +281,7 @@ nav {
     flex-direction: column;
     overflow-y: auto;
     flex: 1;
+    scrollbar-width: none;
 }
 
 .side-bar.collapsed .sidebar-content {
