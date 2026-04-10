@@ -16,6 +16,7 @@ use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\eventcontroller;
 use App\Http\Middleware\updateLastSeen;
+use App\Http\Controllers\AIController;
 
 
 Route::get('/', function () {
@@ -42,7 +43,8 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
-
+        Route::post('/courses/store-ai', [AIController::class, 'store'])->name('pdf.store');
+        Route::post('/courses/jsonify', [AIController::class, 'jsonification'])->name('pdf.jsonify');
         Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');

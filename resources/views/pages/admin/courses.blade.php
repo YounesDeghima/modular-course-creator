@@ -14,6 +14,59 @@
     </div>
 
     {{-- New course popup --}}
+    <div class="p-8 bg-gray-100 min-h-screen flex flex-col items-center">
+        <h1 class="text-2xl font-bold mb-4">Course Generator</h1>
+
+        <form id="pdfForm" action="{{ route('admin.pdf.jsonify') }}" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+            @csrf
+            <label class="block mb-2 text-sm font-medium text-gray-900">Test AI Connection</label>
+
+            <input type="file" name="pdf_file" id="pdf_file" class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+
+            <div class="flex gap-4">
+                <button type="button" id="testHiBtn" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition">
+                    Test "Hi" (Normal Text)
+                </button>
+
+                <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
+                    JSONify File (PDF)
+                </button>
+            </div>
+        </form>
+
+        <div id="resultArea" class="mt-8 p-6 bg-white rounded-lg shadow-inner hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Preview AI Generated Course</h2>
+            <pre id="jsonOutput" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto max-h-96 text-xs"></pre>
+
+            <div class="mt-6 flex justify-end">
+                <button id="saveBtn" onclick="saveToDatabase()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-lg flex items-center">
+                    <span id="saveBtnText">Save to Database</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="debugArea" class="mt-8 p-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg hidden">
+            <h3 class="text-lg font-bold text-blue-800 mb-2">Reviewing Data for AI</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="text-sm font-semibold text-gray-600 uppercase">Extracted PDF Text (Preview)</span>
+                    <div id="pdfTextPreview" class="mt-1 p-3 bg-white border rounded text-xs text-gray-700 h-40 overflow-auto italic"></div>
+                </div>
+                <div>
+                    <span class="text-sm font-semibold text-gray-600 uppercase">Full Prompt Sent to Ollama</span>
+                    <div id="finalPromptPreview" class="mt-1 p-3 bg-white border rounded text-xs text-gray-700 h-40 overflow-auto font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <div  id="resultArea" class="mt-8 w-full max-w-2xl hidden">
+            <h2 class="text-lg font-semibold mb-2">Resulting JSON:</h2>
+            <pre id="jsonOutput" class="bg-black text-green-400 p-4 rounded overflow-x-auto text-xs"></pre>
+        </div>
+    </div>
+
+
     <livewire:coursecreate/>
 
     <livewire:courses :courses="$courses"/>
@@ -56,6 +109,216 @@
 @endsection
 
 @section('js')
+    <script>
+        const JSONIFY_URL  = "{{ route('admin.pdf.jsonify') }}";
+        const CSRF         = document.querySelector('meta[name="csrf-token"]').content;
+        const output       = document.getElementById('jsonOutput');
+        const resultArea   = document.getElementById('resultArea');
+        //
+        // function showResult(data) {
+        //     // Ollama wraps response in { response: "..." } when format=json
+        //     // but the actual JSON string is inside .response
+        //     let display;
+        //     try {
+        //         const inner = data.response ? JSON.parse(data.response) : data;
+        //         display = JSON.stringify(inner, null, 2);
+        //     } catch {
+        //         display = JSON.stringify(data, null, 2);
+        //     }
+        //     output.innerText = display;
+        //     resultArea.classList.remove('hidden');
+        // }
+
+        function showError(msg) {
+            output.innerText = '❌ ' + msg;
+            resultArea.classList.remove('hidden');
+        }
+
+        // ── Test "Hi" button ──
+        document.getElementById('testHiBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('testHiBtn');
+            btn.innerText = 'Testing...';
+            btn.disabled  = true;
+
+            try {
+                const res = await fetch(JSONIFY_URL, {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type':  'application/json',
+                        'Accept':        'application/json',
+                        'X-CSRF-TOKEN':  CSRF,
+                    },
+                    body: JSON.stringify({ test_mode: 'hi' }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) { showError(data.message || data.error || res.statusText); return; }
+                showResult(data);
+
+            } catch (e) {
+                showError('Fetch failed: ' + e.message);
+            } finally {
+                btn.innerText = "Test \"Hi\"";
+                btn.disabled  = false;
+            }
+        });
+
+        // ── JSONify PDF ──
+        document.getElementById('pdfForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = 'Processing...';
+            btn.disabled  = true;
+
+            const formData = new FormData(e.target); // already contains csrf + pdf_file
+
+            try {
+                const res = await fetch(JSONIFY_URL, {
+                    method:  'POST',
+                    headers: {
+                        // NO Content-Type here — browser sets multipart boundary automatically
+                        'Accept':       'application/json',
+                        'X-CSRF-TOKEN': CSRF,
+                    },
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (!res.ok) { showError(data.message || data.error || res.statusText); return; }
+                showResult(data);
+
+            } catch (e) {
+                showError('Fetch failed: ' + e.message);
+            } finally {
+                btn.innerText = 'JSONify PDF';
+                btn.disabled  = false;
+            }
+        });
+
+        {{--async function saveToDatabase() {--}}
+        {{--    const saveBtn = document.getElementById('saveBtn'); // Add this button to your UI--}}
+        {{--    saveBtn.innerText = "Saving to Database...";--}}
+        {{--    saveBtn.disabled = true;--}}
+
+        {{--    try {--}}
+        {{--        const response = await fetch("{{ route('admin.pdf.store') }}", {--}}
+        {{--            method: "POST",--}}
+        {{--            headers: {--}}
+        {{--                'Content-Type': 'application/json',--}}
+        {{--                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content--}}
+        {{--            },--}}
+        {{--            body: JSON.stringify(currentJson) // This is the global variable where you stored the AI response--}}
+        {{--        });--}}
+
+        {{--        const result = await response.json();--}}
+        {{--        if (result.success) {--}}
+        {{--            alert("Success! Course and all modules saved.");--}}
+        {{--            window.location.reload();--}}
+        {{--        } else {--}}
+        {{--            alert("Error: " + result.message);--}}
+        {{--        }--}}
+        {{--    } catch (error) {--}}
+        {{--        console.error(error);--}}
+        {{--        alert("Failed to reach server.");--}}
+        {{--    } finally {--}}
+        {{--        saveBtn.innerText = "Save to Database";--}}
+        {{--        saveBtn.disabled = false;--}}
+        {{--    }--}}
+        {{--}--}}
+
+
+        let currentJson = null; // To store the AI result globally
+
+        // This function runs when the AI finishes
+        function showResult(data) {
+            try {
+                // Ollama often wraps the JSON in a "response" string
+                currentJson = data.response ? JSON.parse(data.response) : data;
+                document.getElementById('jsonOutput').innerText = JSON.stringify(currentJson, null, 2);
+                document.getElementById('resultArea').classList.remove('hidden');
+            } catch (e) {
+                console.error("JSON Parse Error:", e);
+                document.getElementById('jsonOutput').innerText = "AI returned text, but it's not valid JSON. Try again.";
+            }
+        }
+
+        async function saveToDatabase() {
+            if (!currentJson) return alert("No data to save!");
+
+            const btn = document.getElementById('saveBtn');
+            const btnText = document.getElementById('saveBtnText');
+
+            btn.disabled = true;
+            btnText.innerText = "Writing to Database...";
+
+            try {
+                const response = await fetch("{{ route('admin.pdf.store') }}", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(currentJson)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("Success! Everything saved to database.");
+                    window.location.reload(); // Refresh to see your new course in the list
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (error) {
+                alert("Failed to connect to server. Check your terminal!");
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Save to Database";
+            }
+        }
+
+        pdfForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const debugArea = document.getElementById('debugArea');
+            const pdfPreview = document.getElementById('pdfTextPreview');
+            const promptPreview = document.getElementById('finalPromptPreview');
+
+            btn.innerText = "Reading PDF & Generating...";
+            btn.disabled = true;
+
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch("{{ route('admin.pdf.jsonify') }}", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const data = await response.json();
+
+                // 1. Show the Debug info returned from the server
+                if(data.debug) {
+                    pdfPreview.innerText = data.debug.text_sample + "...";
+                    promptPreview.innerText = data.debug.full_prompt;
+                    debugArea.classList.remove('hidden');
+                }
+
+                // 2. Show the actual AI result
+                showResult(data);
+
+            } catch (error) {
+                alert("Check your RTX 3060 connection/Ollama status.");
+            } finally {
+                btn.innerText = "JSONify File (PDF)";
+                btn.disabled = false;
+            }
+        };
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] =
