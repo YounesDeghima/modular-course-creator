@@ -124,6 +124,7 @@ new class extends Component {
         <a class="btn-card-action" href="{{ route('admin.courses.chapters.index',['course'=>$course->id]) }}">
             Manage chapters
         </a>
+        <a class="btn-card-action" href="{{route('admin.courses.quiz.index',['course'=>$course->id])}}">manage quiz</a>
        <button class="btn-card-action danger"
                wire:click="delete"
                wire:confirm="are you sure you want to delete"

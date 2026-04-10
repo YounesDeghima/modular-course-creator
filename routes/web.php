@@ -9,6 +9,7 @@ use App\Http\Controllers\courseprogresscontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
+use App\Http\Controllers\quizcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
@@ -65,6 +66,8 @@ Route::prefix('admin')
                 ->name('courses.chapters.lessons.publish-all');
             Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
                 ->name('courses.chapters.lessons.toggle-all');
+
+            Route::resource('courses.quiz', quizcontroller::class);
 
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
