@@ -69,6 +69,10 @@ Route::prefix('admin')
 
             Route::resource('courses.quiz', quizcontroller::class);
 
+
+
+
+
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
 
@@ -93,6 +97,10 @@ Route::prefix('admin')
 
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+
+        route::get('preview/courses/{course}/quiz',[previewcontroller::class , 'loadquiz'])->name('preview.courses.quiz');
+
+
     });});
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {

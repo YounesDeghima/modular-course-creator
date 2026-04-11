@@ -127,52 +127,27 @@
     </style>
 @endsection
 
-@section('right-side')
-    <livewire:savequiz :course="$course"/>
+
+
+@section('back-button')
+    <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
+@endsection
+
+@section('main')
+
+    @fragment('main-content')
+        <livewire:coursequizpreview :course="$course" :questions="$questions"/>
+
+    @endfragment
+@endsection
+
+@section('sidebar-elements')
+
 @endsection
 
 
-    @section('back-button')
-        <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
-    @endsection
-
-
-
-
-
-    @section('main')
-
-        @fragment('main-content')
-            <livewire:questions :questions="$questions"
-                                :course="$course"/>
-            <livewire:questioncreate :course="$course"/>
-
-
-
-        @endfragment
-    @endsection
-
-    @section('sidebar-elements')
-
-
-
-
-
-
-
-
-
-    @endsection
-
-
-    @section('js')
-        <script>
-
-
-
-
-
-
-        </script>
-    @endsection
+@section('js')
+    <script>
+    </script>
+@endsection
 

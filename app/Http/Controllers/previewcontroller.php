@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
+use App\Models\coursequestion;
 use App\Models\lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -123,6 +124,18 @@ class previewcontroller extends Controller
 
 
         return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','prevchapter','nextchapter','blocks','name','email','id','lesson_progress'));
+
+    }
+
+    public function loadquiz(course $course){
+        $admin = Auth::user();
+
+        $id = $admin->id;
+        $name = $admin->name;
+        $email = $admin->email;
+
+        $questions = coursequestion::where('course_id','=',$course->id)->get();
+        return view('pages.admin.preview.coursequiz',compact('course','questions','name','email','id'));
 
     }
 

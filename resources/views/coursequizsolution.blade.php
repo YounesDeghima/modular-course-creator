@@ -127,52 +127,66 @@
     </style>
 @endsection
 
-@section('right-side')
-    <livewire:savequiz :course="$course"/>
+
+
+@section('back-button')
+    <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
+@endsection
+
+@section('main')
+
+    @fragment('main-content')
+        <livewire:coursequizpreview :course="$course" :questions="$questions"/>
+
+    @endfragment
+@endsection
+
+@section('sidebar-elements')
+    <div class="blocks-wrapper">
+
+        <h2>{{ $course->title }}</h2>
+
+        @foreach($questions as $index => $question)
+            <div class="block-row" wire:key="preview-question-{{ $question['id'] }}">
+
+                {{-- Question --}}
+                <p class="title-style">
+                    <strong>Q{{ $index + 1 }}:</strong>
+                    {{ $question['content'] }}
+                </p>
+
+                {{-- Choices --}}
+                <div class="choices">
+                    @foreach($question['questionchoices'] as $choice)
+                        <label style="display:flex; gap:10px; margin-bottom:8px;">
+
+                            <input
+                                type="radio"
+                                wire:model="answers.{{ $question['id'] }}"
+                                value="{{ $choice['id'] }}"
+                            >
+
+                            <span>{{ $choice['content'] }}</span>
+
+                        </label>
+                    @endforeach
+                </div>
+
+            </div>
+        @endforeach
+
+        <div class="save-container">
+            <button class="btn-save-all" wire:click="submit">
+                Submit Quiz
+            </button>
+        </div>
+
+    </div>
 @endsection
 
 
-    @section('back-button')
-        <a class="back-button" href="{{route('admin.courses.index')}}">{{$course->title}}</a>
-    @endsection
-
-
-
-
-
-    @section('main')
-
-        @fragment('main-content')
-            <livewire:questions :questions="$questions"
-                                :course="$course"/>
-            <livewire:questioncreate :course="$course"/>
-
-
-
-        @endfragment
-    @endsection
-
-    @section('sidebar-elements')
-
-
-
-
-
-
-
-
-
-    @endsection
-
-
-    @section('js')
-        <script>
-
-
-
-
-
-
-        </script>
-    @endsection
+@section('js')
+    <script>
+    </script>
+@endsection
 
