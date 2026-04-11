@@ -121,6 +121,18 @@ class blockcontroller extends Controller
                 elseif ($type === 'table') {
                     $content = json_encode($data['table_data'] ?? json_decode($block->content, true) ?? []);
                 }
+                // Handle function JSON
+                elseif ($type === 'function') {
+                    $content = json_encode([
+                        'function' => $data['func_expression'] ?? 'sin(x)',
+                        'x_min' => floatval($data['x_min'] ?? -10),
+                        'x_max' => floatval($data['x_max'] ?? 10),
+                        'y_min' => floatval($data['y_min'] ?? -5),
+                        'y_max' => floatval($data['y_max'] ?? 5),
+                        'color' => $data['color'] ?? '#4f46e5',
+                        'step' => floatval($data['step'] ?? 0.1)
+                    ]);
+                }
                 // Handle graph JSON
                 elseif ($type === 'graph') {
                     $lines = explode("\n", $data['chart_data'] ?? '');
@@ -199,7 +211,7 @@ class blockcontroller extends Controller
     public function store(Request $request, Course $course, Chapter $chapter, Lesson $lesson)
     {
         $validated = $request->validate([
-            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext',
+            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function',
             'block_number' => 'required|integer',
         ]);
 
@@ -216,6 +228,16 @@ class blockcontroller extends Controller
         // Handle structured data
         elseif ($request->type === 'table') {
             $validated['content'] = json_encode($request->input('table_data', [['Column 1', 'Column 2'], ['Row 1', 'Data']]));
+        }elseif ($request->type === 'function') {
+            $validated['content'] = json_encode([
+                'function' => $request->input('func_expression', 'sin(x)'),
+                'x_min' => floatval($request->input('x_min', -10)),
+                'x_max' => floatval($request->input('x_max', 10)),
+                'y_min' => floatval($request->input('y_min', -5)),
+                'y_max' => floatval($request->input('y_max', 5)),
+                'color' => $request->input('func_color', '#4f46e5'),
+                'step' => 0.1
+            ]);
         }
         elseif ($request->type === 'graph') {
             $lines = explode("\n", $request->input('chart_data', "Jan,Feb,Mar\n10,20,15"));
@@ -313,8 +335,7 @@ class blockcontroller extends Controller
 
 
         $validated = $request->validate([
-
-            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext',
+            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function',
             'block_number'=>'required|integer',
             'content' => 'required|string',
         ]);

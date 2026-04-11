@@ -137,10 +137,83 @@
                                         <input type="hidden" name="blocks[{{ $block->id }}][content]" class="table-content-hidden" value="{{ $block->content }}">
                                         @break
 
+                                    @case('function')
+                                        @php
+                                            $funcData = json_decode($block->content, true) ?? [
+                                                'function' => 'sin(x)',
+                                                'x_min' => -10,
+                                                'x_max' => 10,
+                                                'y_min' => -5,
+                                                'y_max' => 5,
+                                                'color' => '#4f46e5',
+                                                'step' => 0.1
+                                            ];
+                                        @endphp
+                                        <div class="function-editor" data-block-id="{{ $block->id }}">
+                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                                <div style="flex:2;min-width:200px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x) =</label>
+                                                    <input type="text" name="blocks[{{ $block->id }}][func_expression]"
+                                                           value="{{ $funcData['function'] ?? 'sin(x)' }}"
+                                                           class="input-ghost"
+                                                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;"
+                                                           placeholder="e.g., sin(x), x^2, cos(x)*x">
+                                                </div>
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Min</label>
+                                                    <input type="number" name="blocks[{{ $block->id }}][x_min]"
+                                                           value="{{ $funcData['x_min'] ?? -10 }}"
+                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                </div>
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Max</label>
+                                                    <input type="number" name="blocks[{{ $block->id }}][x_max]"
+                                                           value="{{ $funcData['x_max'] ?? 10 }}"
+                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                </div>
+                                            </div>
+                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Min</label>
+                                                    <input type="number" name="blocks[{{ $block->id }}][y_min]"
+                                                           value="{{ $funcData['y_min'] ?? -5 }}"
+                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                </div>
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Max</label>
+                                                    <input type="number" name="blocks[{{ $block->id }}][y_max]"
+                                                           value="{{ $funcData['y_max'] ?? 5 }}"
+                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                </div>
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
+                                                    <input type="color" name="blocks[{{ $block->id }}][color]"
+                                                           value="{{ $funcData['color'] ?? '#4f46e5' }}"
+                                                           style="width:100%;height:32px;border:none;cursor:pointer;">
+                                                </div>
+                                                <div style="flex:1;min-width:80px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
+                                                    <input type="number" name="blocks[{{ $block->id }}][step]"
+                                                           value="{{ $funcData['step'] ?? 0.1 }}"
+                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01" min="0.01" max="1">
+                                                </div>
+                                            </div>
+                                            <div class="function-preview" style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
+                                                <canvas id="func-canvas-{{ $block->id }}" width="400" height="200" style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
+                                            </div>
+                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
+                                                Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x), etc.
+                                            </small>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="function-content-hidden" value="{{ $block->content }}">
+                                        @break
+
                                     @case('ext')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
                                         <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw HTML - Be careful with external scripts</small>
                                         @break
+
+
 
                                     @default
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1">{{ $block->content }}</textarea>
@@ -158,10 +231,12 @@
                                         <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>Exercise</option>
                                         <option value="photo" {{ $block->type == 'photo' ? 'selected' : '' }}>Photo</option>
                                         <option value="video" {{ $block->type == 'video' ? 'selected' : '' }}>Video</option>
+                                        <option value="function" {{ $block->type == 'function' ? 'selected' : '' }}>Function</option>
                                         <option value="math" {{ $block->type == 'math' ? 'selected' : '' }}>Math</option>
                                         <option value="graph" {{ $block->type == 'graph' ? 'selected' : '' }}>Graph</option>
                                         <option value="table" {{ $block->type == 'table' ? 'selected' : '' }}>Table</option>
                                         <option value="ext" {{ $block->type == 'ext' ? 'selected' : '' }}>HTML/Ext</option>
+
                                     </select>
                                 </div>
 
@@ -209,6 +284,7 @@
                             <option value="math">Math (LaTeX)</option>
                             <option value="graph">Graph/Chart</option>
                             <option value="table">Table</option>
+                            <option value="function">Math Function</option>
                             <option value="ext">HTML/Embed</option>
                         </select>
                     </div>
@@ -243,6 +319,31 @@
                         <label>Initial Table (JSON format)</label>
                         <textarea name="table_data" class="modal-input" rows="4">[["Header 1","Header 2"],["Row 1 Col 1","Row 1 Col 2"]]</textarea>
                         <small style="color:var(--text-faint);font-size:11px;">Format: [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
+                    </div>
+
+                    {{-- Function specific fields --}}
+                    <div class="form-group" id="function-content-group" style="display:none;">
+                        <label>Function f(x)</label>
+                        <input type="text" name="func_expression" class="modal-input" value="sin(x)" placeholder="e.g., sin(x), x^2, cos(x)*x" style="font-family:'JetBrains Mono',monospace;margin-bottom:8px;">
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <div style="flex:1;">
+                                <label style="font-size:11px;color:var(--text-faint);">X Range</label>
+                                <div style="display:flex;gap:4px;">
+                                    <input type="number" name="x_min" value="-10" class="modal-input" style="flex:1;" placeholder="Min">
+                                    <input type="number" name="x_max" value="10" class="modal-input" style="flex:1;" placeholder="Max">
+                                </div>
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:11px;color:var(--text-faint);">Y Range</label>
+                                <div style="display:flex;gap:4px;">
+                                    <input type="number" name="y_min" value="-5" class="modal-input" style="flex:1;" placeholder="Min">
+                                    <input type="number" name="y_max" value="5" class="modal-input" style="flex:1;" placeholder="Max">
+                                </div>
+                            </div>
+                        </div>
+                        <label style="font-size:11px;color:var(--text-faint);">Line Color</label>
+                        <input type="color" name="func_color" value="#4f46e5" class="modal-input" style="height:40px;padding:4px;">
+                        <small style="color:var(--text-faint);font-size:11px;">JavaScript math syntax supported</small>
                     </div>
 
                     <div class="form-group">
@@ -1177,6 +1278,92 @@
                 </div>
                 <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(graphData)}'>`;
 
+                case 'function':
+                    let funcData = {
+                        function: 'sin(x)',
+                        x_min: -10,
+                        x_max: 10,
+                        y_min: -5,
+                        y_max: 5,
+                        color: '#4f46e5',
+                        step: 0.1
+                    };
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.function) funcData = parsed;
+                    } catch(e) {}
+
+                    return `
+                            <div class="function-editor" data-block-id="${blockId}">
+                                <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                    <div style="flex:2;min-width:200px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x) =</label>
+                                        <input type="text" name="blocks[${blockId}][func_expression]"
+                                               value="${funcData.function}"
+                                               class="input-ghost"
+                                               style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;">
+                                    </div>
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Min</label>
+                                        <input type="number" name="blocks[${blockId}][x_min]"
+                                               value="${funcData.x_min}"
+                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Max</label>
+                                        <input type="number" name="blocks[${blockId}][x_max]"
+                                               value="${funcData.x_max}"
+                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                    </div>
+                                </div>
+                                <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Min</label>
+                                        <input type="number" name="blocks[${blockId}][y_min]"
+                                               value="${funcData.y_min}"
+                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Max</label>
+                                        <input type="number" name="blocks[${blockId}][y_max]"
+                                               value="${funcData.y_max}"
+                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
+                                        <input type="color" name="blocks[${blockId}][color]"
+                                               value="${funcData.color}"
+                                               style="width:100%;height:32px;border:none;cursor:pointer;">
+                                    </div>
+                                    <div style="flex:1;min-width:80px;">
+                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
+                                        <input type="number" name="blocks[${blockId}][step]"
+                                               value="${funcData.step}"
+                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01" min="0.01" max="1">
+                                    </div>
+                                </div>
+                                <div class="function-preview" style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
+                                    <canvas id="func-canvas-${blockId}" width="400" height="200" style="width:100%;max-width:100%;height:auto;background:#ffffff;border-radius:4px;"></canvas>
+                                </div>
+                                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
+                                    Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x), etc.
+                                </small>
+                            </div>
+                            <input type="hidden" name="blocks[${blockId}][content]" class="function-content-hidden" value='${JSON.stringify(funcData)}'>
+                            <script>
+                                (function() {
+                                    // Delay to ensure DOM is ready
+                                    if (document.readyState === 'loading') {
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            setTimeout(() => renderFunctionPreview('${blockId}'), 50);
+                                        });
+                                    } else {
+                                        setTimeout(() => renderFunctionPreview('${blockId}'), 50);
+                                    }
+                                })();
+                            <\/script>`;
+
+
                 case 'table':
                     let tableData = [['Header 1', 'Header 2'], ['Row 1', 'Row 2']];
                     try {
@@ -1469,6 +1656,19 @@
                     formData.append('content_file', fileInput.files[0]);
                 }
                 defaultContent = '';
+
+            }else if (selectedType === 'function') {
+                    defaultContent = JSON.stringify({
+                        function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
+                        x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
+                        x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
+                        y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
+                        y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
+                        color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
+                        step: 0.1
+                    });
+                    formData.append('content', defaultContent);
+
             } else {
                 defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
                 formData.append('content', defaultContent);
@@ -1496,6 +1696,7 @@
             <option value="graph" ${selectedType == 'graph' ? 'selected' : ''}>Graph</option>
             <option value="table" ${selectedType == 'table' ? 'selected' : ''}>Table</option>
             <option value="ext" ${selectedType == 'ext' ? 'selected' : ''}>HTML/Ext</option>
+            <option value="function" ${selectedType == 'function' ? 'selected' : ''}>Function</option>
         `;
 
                     const newRow = document.createElement('div');
@@ -1602,34 +1803,224 @@
 
 
         // Toggle fields in new block modal based on type
-        function toggleNewBlockFields(select) {
-            const type = select.value;
-            const textGroup = document.getElementById('text-content-group');
-            const fileGroup = document.getElementById('file-content-group');
-            const graphGroup = document.getElementById('graph-content-group');
-            const tableGroup = document.getElementById('table-content-group');
 
-            // Hide all first
-            textGroup.style.display = 'none';
-            fileGroup.style.display = 'none';
-            graphGroup.style.display = 'none';
-            tableGroup.style.display = 'none';
+            function toggleNewBlockFields(select) {
+                const type = select.value;
+                const textGroup = document.getElementById('text-content-group');
+                const fileGroup = document.getElementById('file-content-group');
+                const graphGroup = document.getElementById('graph-content-group');
+                const tableGroup = document.getElementById('table-content-group');
+                const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
 
-            // Show relevant
-            if (type === 'photo' || type === 'video') {
-                fileGroup.style.display = 'flex';
-                fileGroup.style.flexDirection = 'column';
-            } else if (type === 'graph') {
-                graphGroup.style.display = 'flex';
-                graphGroup.style.flexDirection = 'column';
-            } else if (type === 'table') {
-                tableGroup.style.display = 'flex';
-                tableGroup.style.flexDirection = 'column';
-            } else {
-                textGroup.style.display = 'flex';
-                textGroup.style.flexDirection = 'column';
+                // Hide all first
+                textGroup.style.display = 'none';
+                fileGroup.style.display = 'none';
+                graphGroup.style.display = 'none';
+                tableGroup.style.display = 'none';
+                functionGroup.style.display = 'none';
+
+                // Show relevant
+                if (type === 'photo' || type === 'video') {
+                    fileGroup.style.display = 'flex';
+                    fileGroup.style.flexDirection = 'column';
+                } else if (type === 'graph') {
+                    graphGroup.style.display = 'flex';
+                    graphGroup.style.flexDirection = 'column';
+                } else if (type === 'table') {
+                    tableGroup.style.display = 'flex';
+                    tableGroup.style.flexDirection = 'column';
+                } else if (type === 'function') {  // ← FIXED: Proper condition
+                    functionGroup.style.display = 'flex';
+                    functionGroup.style.flexDirection = 'column';
+                } else {
+                    textGroup.style.display = 'flex';
+                    textGroup.style.flexDirection = 'column';
+                }
+            }
+
+        // Function graph rendering
+        // Function graph rendering
+        function renderFunctionPreview(blockId) {
+            const container = document.querySelector(`.function-editor[data-block-id="${blockId}"]`);
+            if (!container) return;
+
+            const canvas = document.getElementById(`func-canvas-${blockId}`);
+            if (!canvas) return;
+
+            // Force canvas size
+            canvas.width = 400;
+            canvas.height = 200;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Get values with fallbacks
+            const funcExprInput = container.querySelector('input[name*="[func_expression]"]');
+            const xMinInput = container.querySelector('input[name*="[x_min]"]');
+            const xMaxInput = container.querySelector('input[name*="[x_max]"]');
+            const yMinInput = container.querySelector('input[name*="[y_min]"]');
+            const yMaxInput = container.querySelector('input[name*="[y_max]"]');
+            const colorInput = container.querySelector('input[name*="[color]"]');
+            const stepInput = container.querySelector('input[name*="[step]"]');
+
+            const funcExpr = funcExprInput ? funcExprInput.value || 'sin(x)' : 'sin(x)';
+            const xMin = parseFloat(xMinInput ? xMinInput.value : -10) || -10;
+            const xMax = parseFloat(xMaxInput ? xMaxInput.value : 10) || 10;
+            const yMin = parseFloat(yMinInput ? yMinInput.value : -5) || -5;
+            const yMax = parseFloat(yMaxInput ? yMaxInput.value : 5) || 5;
+            const color = colorInput ? colorInput.value || '#4f46e5' : '#4f46e5';
+            const step = parseFloat(stepInput ? stepInput.value : 0.1) || 0.1;
+
+            // Clear canvas with white background (fallback if CSS var fails)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Try to get CSS variables, fallback to defaults
+            const rootStyles = getComputedStyle(document.documentElement);
+            const bgColor = rootStyles.getPropertyValue('--bg').trim() || '#ffffff';
+            const borderColor = rootStyles.getPropertyValue('--border').trim() || '#e5e7eb';
+            const textFaintColor = rootStyles.getPropertyValue('--text-faint').trim() || '#9ca3af';
+
+            // Redraw background with CSS var if available
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw grid
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            // Vertical grid lines
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * width;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            // Horizontal grid lines
+            for (let i = 0; i <= 10; i++) {
+                const y = (i / 10) * height;
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+            }
+            ctx.stroke();
+
+            // Draw axes
+            ctx.strokeStyle = textFaintColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            // X-axis (y=0)
+            const yZero = height - ((0 - yMin) / (yMax - yMin)) * height;
+            if (yZero >= 0 && yZero <= height) {
+                ctx.moveTo(0, yZero);
+                ctx.lineTo(width, yZero);
+            }
+
+            // Y-axis (x=0)
+            const xZero = ((0 - xMin) / (xMax - xMin)) * width;
+            if (xZero >= 0 && xZero <= width) {
+                ctx.moveTo(xZero, 0);
+                ctx.lineTo(xZero, height);
+            }
+            ctx.stroke();
+
+            // Prepare function - handle empty or invalid input
+            if (!funcExpr || funcExpr.trim() === '') {
+                // Update hidden input even if empty
+                updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step);
+                return;
+            }
+
+            const funcStr = funcExpr
+                .replace(/\^/g, '**')
+                .replace(/sin/g, 'Math.sin')
+                .replace(/cos/g, 'Math.cos')
+                .replace(/tan/g, 'Math.tan')
+                .replace(/sqrt/g, 'Math.sqrt')
+                .replace(/log/g, 'Math.log')
+                .replace(/abs/g, 'Math.abs')
+                .replace(/pi/g, 'Math.PI')
+                .replace(/e(?![a-z])/g, 'Math.E');
+
+            // Draw function
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            let firstPoint = true;
+            let hasValidPoint = false;
+
+            for (let x = xMin; x <= xMax; x += step) {
+                let y;
+                try {
+                    // Use Function constructor for safer eval
+                    const fn = new Function('x', `return ${funcStr}`);
+                    y = fn(x);
+                } catch (e) {
+                    continue;
+                }
+
+                if (!isFinite(y) || isNaN(y)) continue;
+
+                const canvasX = ((x - xMin) / (xMax - xMin)) * width;
+                const canvasY = height - ((y - yMin) / (yMax - yMin)) * height;
+
+                // Skip points outside canvas bounds for line continuity
+                if (canvasY < -1000 || canvasY > height + 1000) {
+                    firstPoint = true;
+                    continue;
+                }
+
+                if (firstPoint) {
+                    ctx.moveTo(canvasX, canvasY);
+                    firstPoint = false;
+                    hasValidPoint = true;
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Update hidden input
+            updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step);
+        }
+
+        // Helper function to update hidden input
+        function updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step) {
+            const hiddenInput = container.nextElementSibling;
+            if (hiddenInput && hiddenInput.classList.contains('function-content-hidden')) {
+                hiddenInput.value = JSON.stringify({
+                    function: funcExpr,
+                    x_min: xMin,
+                    x_max: xMax,
+                    y_min: yMin,
+                    y_max: yMax,
+                    color: color,
+                    step: step
+                });
             }
         }
+
+        // Auto-render on input change
+        document.addEventListener('input', function(e) {
+            if (e.target.closest('.function-editor')) {
+                const blockId = e.target.closest('.function-editor').dataset.blockId;
+                // Debounce
+                clearTimeout(window.funcRenderTimeout);
+                window.funcRenderTimeout = setTimeout(() => renderFunctionPreview(blockId), 100);
+            }
+        });
+
+        // Initial render for existing function blocks
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for styles to load
+            setTimeout(() => {
+                document.querySelectorAll('.function-editor').forEach(editor => {
+                    renderFunctionPreview(editor.dataset.blockId);
+                });
+            }, 100);
+        });
     </script>
 
 @endsection
