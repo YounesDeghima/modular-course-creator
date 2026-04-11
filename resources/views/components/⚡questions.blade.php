@@ -8,7 +8,9 @@ new class extends Component {
     public $questions = [];
     public $course;
 
-    protected $listeners = ['questionCreated' => 'addQuestion'];
+    protected $listeners = ['questionCreated' => 'addQuestion',
+                            'quizSaving'=>'save'];
+
 
     public function mount($course, $questions)
     {
@@ -148,7 +150,7 @@ new class extends Component {
         @endforelse
     </div>
 
-    <div class="save-container">
-        <button class="btn-save-all" wire:click="save">Save All Changes</button>
-    </div>
+{{--    <div class="save-container">--}}
+{{--        <button class="btn-save-all" wire:click="save">Save All Changes</button>--}}
+{{--    </div>--}}
 </div>

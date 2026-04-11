@@ -6,7 +6,7 @@ use Livewire\Component;
 
 new class extends Component {
     public $course;
-    public $content = 'enter the question here';
+    public $content;
     public $value = false;
     public $course_id;
 
@@ -24,6 +24,7 @@ new class extends Component {
 
     public function store()
     {
+        $this->content ='enter the question here';
         $validated = $this->validate([
             'course_id' => 'required|int',
             'content' => 'required|string|max:1000',
@@ -34,6 +35,7 @@ new class extends Component {
 
         $i = 4;
         while ($i != 0) {
+            $this->content ='enter the choice here';
             $this->coursequestion_id = $this->coursequestion->id;
 
 

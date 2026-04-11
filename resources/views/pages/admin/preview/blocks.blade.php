@@ -45,6 +45,11 @@
                href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">
                 ‹ Prev
             </a>
+        @elseif($prevchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$prevchapter]) }}">
+                ‹ Prev chapter
+            </a>
         @else
             <span class="sb-nav-btn disabled">‹ Prev</span>
         @endif
@@ -54,9 +59,19 @@
                href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
                 Next ›
             </a>
+        @elseif($nextchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$nextchapter]) }}">
+                Next chapter ›
+            </a>
         @else
-            <span class="sb-nav-btn disabled">Next ›</span>
+
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.courses.quiz', ['course'=>$course]) }}">
+                Take quiz ›
+            </a>
         @endif
+
     </div>
 @endsection
 
