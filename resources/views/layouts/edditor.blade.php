@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
+
+    <script src="{{ asset('vendor/chart.js') }}"></script>
+
+    <!-- For math (optional - if you want rendered math instead of raw LaTeX) -->
+    <link rel="stylesheet" href="{{ asset('vendor/katex/katex.min.css') }}">
+    <script src="{{ asset('vendor/katex/katex.min.js') }}"></script>
+
+
     @yield('css')
 
 

@@ -65,7 +65,7 @@ class blockcontroller extends Controller
 
     public function updateAll(Request $request, $courseId, $chapterId, $lessonId)
     {
-        // 1. HANDLE REORDERING (The Arrow Buttons)
+        // 1. HANDLE REORDERING
         if ($request->has('move')) {
             $parts = explode(':', $request->move);
             $currentBlockId = $parts[0];
@@ -97,33 +97,60 @@ class blockcontroller extends Controller
             }
         }
 
-        // 2. BULK UPDATE (Content, Types, and ALL Solution Logic)
+        // 2. BULK UPDATE
         if ($request->has('blocks')) {
             foreach ($request->blocks as $id => $data) {
                 $block = \App\Models\block::find($id);
                 if (!$block) continue;
 
-                $content = trim($data['content'] ?? '');
                 $type = $data['type'] ?? $block->type;
-                $number = $data['block_number'] ?? $block->block_number;
+                $content = '';
 
-                // Delete blocks with empty content (unless it's an exercise)
-                if ($content === '') {
+                // Handle file-based blocks
+                if (in_array($type, ['photo', 'video'])) {
+                    if (isset($data['content_file']) && $data['content_file'] instanceof \Illuminate\Http\UploadedFile) {
+                        if ($block->content && \Storage::exists('public/' . $block->content)) {
+                            \Storage::delete('public/' . $block->content);
+                        }
+                        $content = $data['content_file']->store('blocks', 'public');
+                    } else {
+                        $content = $data['content'] ?? $block->content;
+                    }
+                }
+                // Handle table JSON
+                elseif ($type === 'table') {
+                    $content = json_encode($data['table_data'] ?? json_decode($block->content, true) ?? []);
+                }
+                // Handle graph JSON
+                elseif ($type === 'graph') {
+                    $lines = explode("\n", $data['chart_data'] ?? '');
+                    $labels = isset($lines[0]) ? array_map('trim', explode(',', $lines[0])) : [];
+                    $values = isset($lines[1]) ? array_map('trim', explode(',', $lines[1])) : [];
+                    $content = json_encode([
+                        'type' => $data['chart_type'] ?? 'line',
+                        'labels' => $labels,
+                        'data' => $values
+                    ]);
+                }
+                // Standard text content
+                else {
+                    $content = trim($data['content'] ?? '');
+                }
+
+                // Delete empty blocks (except file/exercise types)
+                if ($content === '' && !in_array($type, ['photo', 'video', 'exercise'])) {
                     $block->delete();
                     continue;
                 }
 
-                // Update core block data
                 $block->update([
                     'content' => $content,
                     'type'    => $type,
-                    'block_number'  => $number,
+                    'block_number'  => $data['block_number'] ?? $block->block_number,
                 ]);
 
-                // 3. SOLUTION LOGIC (Existing, New, and Empty-Check)
+                // Handle exercise solutions
                 if ($type === 'exercise') {
-
-                    // A. Ensure a solution exists if it's a fresh conversion
                     if ($block->solutions()->count() === 0) {
                         $block->solutions()->create([
                             'solution_number' => 1,
@@ -131,18 +158,14 @@ class blockcontroller extends Controller
                         ]);
                     }
 
-                    // B. Handle Solution Updates/Creation from the request
                     if (isset($data['solutions'])) {
                         foreach ($data['solutions'] as $solutionId => $solContent) {
                             if (is_numeric($solutionId)) {
-                                // Update existing solution
                                 $solution = $block->solutions()->find($solutionId);
                                 if ($solution) {
                                     $solution->update(['content' => $solContent]);
                                 }
                             } else {
-                                // Create new solutions (Your custom logic for dynamic adding)
-                                // Expecting $solContent to be an array of strings
                                 if (is_array($solContent)) {
                                     foreach ($solContent as $newContent) {
                                         if (trim($newContent) !== '') {
@@ -173,30 +196,50 @@ class blockcontroller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request,course $course,chapter $chapter,lesson $lesson)
+    public function store(Request $request, Course $course, Chapter $chapter, Lesson $lesson)
     {
-
         $validated = $request->validate([
-            'type' => 'required|in:header,description,note,exercise,code',
-            'content' => 'required|string',
-            'block_number'=>'required|integer',
+            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext',
+            'block_number' => 'required|integer',
         ]);
-        $validated['content']   = $validated['content'] ?? '';
-
 
         $validated['lesson_id'] = $lesson->id;
 
-        $block=block::create($validated);
-
-        if($block->type == 'exercise'){            $block->solutions()->create([
-                'solution_number'=>1,
-                'block_id'=>$block->id,
-                'content'=>'nothing here yet',
+        // Handle file uploads for photo/video
+        if (in_array($request->type, ['photo', 'video'])) {
+            if ($request->hasFile('content_file')) {
+                $validated['content'] = $request->file('content_file')->store('blocks', 'public');
+            } else {
+                $validated['content'] = '';
+            }
+        }
+        // Handle structured data
+        elseif ($request->type === 'table') {
+            $validated['content'] = json_encode($request->input('table_data', [['Column 1', 'Column 2'], ['Row 1', 'Data']]));
+        }
+        elseif ($request->type === 'graph') {
+            $lines = explode("\n", $request->input('chart_data', "Jan,Feb,Mar\n10,20,15"));
+            $labels = isset($lines[0]) ? array_map('trim', explode(',', $lines[0])) : [];
+            $values = isset($lines[1]) ? array_map('trim', explode(',', $lines[1])) : [];
+            $validated['content'] = json_encode([
+                'type' => $request->input('chart_type', 'line'),
+                'labels' => $labels,
+                'data' => $values
             ]);
-
+        }
+        else {
+            $validated['content'] = $request->input('content', '');
         }
 
+        $block = Block::create($validated);
 
+        if ($block->type == 'exercise') {
+            $block->solutions()->create([
+                'solution_number' => 1,
+                'block_id' => $block->id,
+                'content' => 'nothing here yet',
+            ]);
+        }
 
         return response()->json(['block' => $block], 201);
     }
@@ -271,7 +314,7 @@ class blockcontroller extends Controller
 
         $validated = $request->validate([
 
-            'type' => 'required|in:header,description,note,exercise,code',
+            'type' => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext',
             'block_number'=>'required|integer',
             'content' => 'required|string',
         ]);

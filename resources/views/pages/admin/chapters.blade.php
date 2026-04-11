@@ -20,7 +20,6 @@
 
 
 
-
 @section('main')
 
     @fragment('main-content')
@@ -34,7 +33,7 @@
             </div>
 
             {{-- Single form wrapper for bulk saving --}}
-            <form onsubmit="saveAllBlocks(event, this)" class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
+            <form onsubmit="saveAllBlocks(event, this)" enctype="multipart/form-data" class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -44,59 +43,127 @@
                             <input type="hidden" name="blocks[{{ $block->id }}][id]" value="{{ $block->id }}">
                             <input type="hidden" name="blocks[{{ $block->id }}][block_number]" value="{{ $block->block_number }}">
 
-
-
                             <div class="block-main-content">
-                                @if($block->type == 'header')
-                                    <textarea type="text" name="blocks[{{ $block->id }}][content]"
-                                              class="input-ghost title-style"
-                                              placeholder="Enter Title...">{{ $block->content }}</textarea>
+                                @switch($block->type)
+                                    @case('header')
+                                        <textarea type="text" name="blocks[{{ $block->id }}][content]" class="input-ghost title-style" placeholder="Enter Title...">{{ $block->content }}</textarea>
+                                        @break
 
-                                @else
+                                    @case('description')
+                                    @case('note')
+                                    @case('code')
+                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
+                                        @break
 
-                                    @if($block->type == 'exercise')
+                                    @case('exercise')
                                         <div class="exercise-container">
                                             <label>Question:</label>
-                                            <textarea name="blocks[{{ $block->id }}][content]"
-                                                      class="input-ghost content-style"
-                                                      rows="1"
-                                                      oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
-
-
-
-
-
+                                            <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'">{{ $block->content }}</textarea>
                                             @foreach($block->solutions as $solution)
                                                 <label>Solution</label>
-                                                <textarea class="input-ghost content-style"
-                                                          oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"
-                                                          name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
+                                                <textarea class="input-ghost content-style" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
                                             @endforeach
                                         </div>
+                                        @break
 
+                                    @case('photo')
+                                        <div class="file-block">
+                                            @if($block->content && \Storage::exists('public/' . $block->content))
+                                                <div class="file-preview">
+                                                    <img src="{{ asset('storage/' . $block->content) }}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
+                                                    <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
+                                                </div>
+                                            @endif
+                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                            <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
+                                        </div>
+                                        @break
 
-                                    @else
-                                        <textarea name="blocks[{{ $block->id }}][content]"
-                                                  class="input-ghost content-style"
-                                                  rows="1"
-                                                  oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
-                                    @endif
-                                @endif
+                                    @case('video')
+                                        <div class="file-block">
+                                            @if($block->content && \Storage::exists('public/' . $block->content))
+                                                <div class="file-preview">
+                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:200px;max-height:200px;border-radius:8px;" controls></video>
+                                                    <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
+                                                </div>
+                                            @endif
+                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                            <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
+                                        </div>
+                                        @break
+
+                                    @case('math')
+                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style math-input" placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)" oninput="updateMathPreview(this)" rows="2">{{ $block->content }}</textarea>
+                                        <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
+                                            @if($block->content) ${{ $block->content }} $ @endif
+                                        </div>
+                                        @break
+
+                                    @case('graph')
+                                        @php $graphData = json_decode($block->content, true) ?? ['type' => 'line', 'labels' => ['Jan','Feb','Mar'], 'data' => [10,20,15]]; @endphp
+                                        <div class="graph-editor">
+                                            <select name="blocks[{{ $block->id }}][chart_type]" class="mini-type-select" style="margin-bottom:8px;width:auto;display:inline-block;">
+                                                <option value="line" {{ ($graphData['type'] ?? 'line') == 'line' ? 'selected' : '' }}>Line Chart</option>
+                                                <option value="bar" {{ ($graphData['type'] ?? '') == 'bar' ? 'selected' : '' }}>Bar Chart</option>
+                                                <option value="pie" {{ ($graphData['type'] ?? '') == 'pie' ? 'selected' : '' }}>Pie Chart</option>
+                                            </select>
+                                            <textarea name="blocks[{{ $block->id }}][chart_data]" class="input-ghost content-style" placeholder="Labels: Jan, Feb, Mar (comma separated)&#10;Values: 10, 20, 15 (comma separated)" rows="3" style="font-family:monospace;font-size:12px;">{{ implode(',', $graphData['labels'] ?? []) }}&#10;{{ implode(',', $graphData['data'] ?? []) }}</textarea>
+                                            <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels (comma separated) | Line 2: Values</small>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
+                                        @break
+
+                                    @case('table')
+                                        @php $tableData = json_decode($block->content, true) ?? [['Header 1', 'Header 2'], ['Row 1 Col 1', 'Row 1 Col 2']]; @endphp
+                                        <div class="table-editor" data-block-id="{{ $block->id }}">
+                                            <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
+                                                <button type="button" onclick="addTableRow({{ $block->id }})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row</button>
+                                                <button type="button" onclick="addTableCol({{ $block->id }})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Column</button>
+                                            </div>
+                                            <div style="overflow-x:auto;">
+                                                <table class="editable-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                                                    @foreach($tableData as $rowIndex => $row)
+                                                        <tr>
+                                                            @foreach($row as $colIndex => $cell)
+                                                                <td style="border:1px solid var(--border);padding:0;min-width:80px;">
+                                                                    <input type="text" name="blocks[{{ $block->id }}][table_data][{{ $rowIndex }}][{{ $colIndex }}]" value="{{ $cell }}" style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);" onchange="updateTableJSON({{ $block->id }})">
+                                                                </td>
+                                                            @endforeach
+                                                        </tr>
+                                                    @endforeach
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="table-content-hidden" value="{{ $block->content }}">
+                                        @break
+
+                                    @case('ext')
+                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
+                                        <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw HTML - Be careful with external scripts</small>
+                                        @break
+
+                                    @default
+                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1">{{ $block->content }}</textarea>
+                                @endswitch
                             </div>
-
 
                             <div class="block-controls">
                                 <div class="control-group">
                                     <span class="control-icon" onclick="toggleTypeSelect('{{ $block->id }}')">✏️</span>
-                                    <select  onchange="updateBlockType(this)" name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
+                                    <select onchange="updateBlockType(this)" name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
                                         <option value="header" {{ $block->type == 'header' ? 'selected' : '' }}>H1</option>
                                         <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>Text</option>
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
                                         <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
-                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>exercise</option>
+                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>Exercise</option>
+                                        <option value="photo" {{ $block->type == 'photo' ? 'selected' : '' }}>Photo</option>
+                                        <option value="video" {{ $block->type == 'video' ? 'selected' : '' }}>Video</option>
+                                        <option value="math" {{ $block->type == 'math' ? 'selected' : '' }}>Math</option>
+                                        <option value="graph" {{ $block->type == 'graph' ? 'selected' : '' }}>Graph</option>
+                                        <option value="table" {{ $block->type == 'table' ? 'selected' : '' }}>Table</option>
+                                        <option value="ext" {{ $block->type == 'ext' ? 'selected' : '' }}>HTML/Ext</option>
                                     </select>
                                 </div>
-
 
                                 <button type="button" value="{{ $block->id }}:up" class="arrow-btn">∧</button>
                                 <button type="button" value="{{ $block->id }}:down" class="arrow-btn">∨</button>
@@ -126,22 +193,56 @@
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal('block-popup')">&times;</span>
                 <h3>Add New Content Block</h3>
-                <form method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}">
+                <form method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}" enctype="multipart/form-data">
                     @csrf
 
                     <div class="form-group">
                         <label>Block Type</label>
-                        <select name="type" class="modal-input">
-                            <option value="header">header</option>
+                        <select name="type" class="modal-input" id="new-block-type" onchange="toggleNewBlockFields(this)">
+                            <option value="header">Header</option>
                             <option value="description">Description</option>
                             <option value="note">Note</option>
                             <option value="code">Code</option>
-                            <option value="exercise">exercise</option>
+                            <option value="exercise">Exercise</option>
+                            <option value="photo">Photo</option>
+                            <option value="video">Video</option>
+                            <option value="math">Math (LaTeX)</option>
+                            <option value="graph">Graph/Chart</option>
+                            <option value="table">Table</option>
+                            <option value="ext">HTML/Embed</option>
                         </select>
                     </div>
-                    <div class="form-group">
+
+                    {{-- Text content field (shown for most types) --}}
+                    <div class="form-group" id="text-content-group">
                         <label>Initial Content</label>
-                        <textarea class="modal-input" name="content" rows="4" required></textarea>
+                        <textarea class="modal-input" name="content" rows="4"></textarea>
+                    </div>
+
+                    {{-- File upload for photo/video --}}
+                    <div class="form-group" id="file-content-group" style="display:none;">
+                        <label>Upload File</label>
+                        <input type="file" name="content_file" class="modal-input" style="padding:8px;">
+                    </div>
+
+                    {{-- Graph specific fields --}}
+                    <div class="form-group" id="graph-content-group" style="display:none;">
+                        <label>Chart Type</label>
+                        <select name="chart_type" class="modal-input" style="margin-bottom:8px;">
+                            <option value="line">Line Chart</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="pie">Pie Chart</option>
+                        </select>
+                        <label style="margin-top:12px;">Chart Data</label>
+                        <textarea name="chart_data" class="modal-input" rows="3" placeholder="Jan, Feb, Mar&#10;10, 20, 15">Jan, Feb, Mar&#10;10, 20, 15</textarea>
+                        <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels | Line 2: Values (comma separated)</small>
+                    </div>
+
+                    {{-- Table specific fields --}}
+                    <div class="form-group" id="table-content-group" style="display:none;">
+                        <label>Initial Table (JSON format)</label>
+                        <textarea name="table_data" class="modal-input" rows="4">[["Header 1","Header 2"],["Row 1 Col 1","Row 1 Col 2"]]</textarea>
+                        <small style="color:var(--text-faint);font-size:11px;">Format: [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
                     </div>
 
                     <div class="form-group">
@@ -971,6 +1072,7 @@
                 .then(() => {
                     if (saveBtn) {
                         saveBtn.innerText = 'Saved ✓';
+                        saveBtn.style.background = ''; // Reset to default green
                         setTimeout(() => {
                             saveBtn.innerText = 'Save All Changes';
                             saveBtn.disabled = false;
@@ -980,115 +1082,138 @@
                 .catch(() => {
                     if (saveBtn) {
                         saveBtn.innerText = 'Save Failed';
+                        saveBtn.style.background = '#ef4444'; // Red for error
                         saveBtn.disabled = false;
                     }
-
                     alert('Failed to save changes');
                 });
         }
 
         function updateBlockType(select) {
             const blockRow = select.closest('.block-row');
-            if (!blockRow) return;
-
             const blockId = blockRow.querySelector('input[name*="[id]"]').value;
             const newType = select.value;
+            const oldType = blockRow.className.match(/type-(\w+)/)?.[1];
 
-            const mainContent = blockRow.querySelector('.block-main-content');
+            if (newType === oldType) return;
 
-            // Update class
-            blockRow.classList.remove(
-                'type-header',
-                'type-description',
-                'type-note',
-                'type-code',
-                'type-exercise'
-            );
+            // Update visual class immediately
+            blockRow.classList.remove(`type-${oldType}`);
             blockRow.classList.add(`type-${newType}`);
 
-            // --------------------------------
-            // SWITCH → EXERCISE
-            // --------------------------------
-            if (newType === 'exercise') {
+            // Get current content to preserve if possible
+            const oldContent = blockRow.querySelector('textarea[name*="[content]"]')?.value || '';
 
-                // 1. Extract existing content BEFORE deleting
-                const oldTextarea = mainContent.querySelector('textarea[name*="[content]"]');
-                const previousQuestionValue = oldTextarea ? oldTextarea.value : '';
+            // Generate new HTML based on type
+            const mainContent = blockRow.querySelector('.block-main-content');
+            mainContent.innerHTML = generateBlockHTML(blockId, newType, oldContent);
 
-                // 2. Clear entire container
-                mainContent.innerHTML = '';
-
-                // 3. Create new exercise container
-                const exerciseContainer = document.createElement('div');
-                exerciseContainer.classList.add('exercise-container');
-
-                // Question label
-                const labelQ = document.createElement('label');
-                labelQ.innerText = 'Question:';
-
-                // Question textarea (with preserved value)
-                const question = document.createElement('textarea');
-                question.name = `blocks[${blockId}][content]`;
-                question.classList.add('input-ghost','content-style');
-                question.rows = 1;
-                question.value = previousQuestionValue; // ✅ PRESERVED VALUE
-
-                question.oninput = function () {
-                    this.style.height = '';
-                    this.style.height = this.scrollHeight + 'px';
-                };
-
-                // Append question
-                exerciseContainer.appendChild(labelQ);
-                exerciseContainer.appendChild(question);
-
-                // Solution (initial state)
-                const labelS = document.createElement('label');
-                labelS.innerText = 'Solution';
-
-                const solution = document.createElement('textarea');
-                solution.name = `blocks[${blockId}][solutions][new]`;
-                solution.placeholder = 'nothing here yet';
-
-                // Append solution (same container)
-                exerciseContainer.appendChild(labelS);
-                exerciseContainer.appendChild(solution);
-
-                // Add to DOM
-                mainContent.appendChild(exerciseContainer);
+            // Re-initialize any special handlers
+            if (newType === 'math') {
+                const textarea = mainContent.querySelector('.math-input');
+                if (textarea) updateMathPreview(textarea);
             }
+        }
 
-                // --------------------------------
-                // SWITCH → NON-EXERCISE
-            // --------------------------------
-            else {
+        function generateBlockHTML(blockId, type, existingContent) {
+            switch(type) {
+                case 'header':
+                    return `<textarea type="text" name="blocks[${blockId}][content]" class="input-ghost title-style" placeholder="Enter Title...">${existingContent}</textarea>`;
 
-                // Extract current content before removing
-                const oldTextarea = mainContent.querySelector('textarea[name*="[content]"]');
-                const previousValue = oldTextarea ? oldTextarea.value : '';
+                case 'description':
+                case 'note':
+                case 'code':
+                    return `<textarea name="blocks[${blockId}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">${existingContent}</textarea>`;
 
-                // Clear everything
-                mainContent.innerHTML = '';
+                case 'exercise':
+                    return `
+                <div class="exercise-container">
+                    <label>Question:</label>
+                    <textarea name="blocks[${blockId}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'">${existingContent}</textarea>
+                    <label>Solution</label>
+                    <textarea class="input-ghost content-style" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" name="blocks[${blockId}][solutions][new]" placeholder="nothing here yet"></textarea>
+                </div>`;
 
-                // Recreate normal textarea
-                const textarea = document.createElement('textarea');
-                textarea.name = `blocks[${blockId}][content]`;
-                textarea.classList.add('input-ghost', 'content-style');
-                textarea.rows = 1;
-                textarea.value = previousValue; // preserve value
+                case 'photo':
+                    return `
+                <div class="file-block">
+                    <input type="file" name="blocks[${blockId}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
+                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
+                </div>`;
 
-                textarea.oninput = function () {
-                    this.style.height = '';
-                    this.style.height = this.scrollHeight + 'px';
-                };
+                case 'video':
+                    return `
+                <div class="file-block">
+                    <input type="file" name="blocks[${blockId}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
+                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
+                </div>`;
 
-                mainContent.appendChild(textarea);
+                case 'math':
+                    return `
+                <textarea name="blocks[${blockId}][content]" class="input-ghost content-style math-input" placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)" oninput="updateMathPreview(this)" rows="2">${existingContent}</textarea>
+                <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
+                    ${existingContent ? '$' + existingContent + '$' : 'Preview will appear here...'}
+                </div>`;
+
+                case 'graph':
+                    // Try to parse existing content as JSON, or use defaults
+                    let graphData = {type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.labels) graphData = parsed;
+                    } catch(e) {}
+
+                    return `
+                <div class="graph-editor">
+                    <select name="blocks[${blockId}][chart_type]" class="mini-type-select" style="margin-bottom:8px;width:auto;display:inline-block;">
+                        <option value="line" ${graphData.type == 'line' ? 'selected' : ''}>Line Chart</option>
+                        <option value="bar" ${graphData.type == 'bar' ? 'selected' : ''}>Bar Chart</option>
+                        <option value="pie" ${graphData.type == 'pie' ? 'selected' : ''}>Pie Chart</option>
+                    </select>
+                    <textarea name="blocks[${blockId}][chart_data]" class="input-ghost content-style" placeholder="Labels: Jan, Feb, Mar (comma separated)&#10;Values: 10, 20, 15 (comma separated)" rows="3" style="font-family:monospace;font-size:12px;">${graphData.labels.join(',')}\n${graphData.data.join(',')}</textarea>
+                    <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels | Line 2: Values</small>
+                </div>
+                <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(graphData)}'>`;
+
+                case 'table':
+                    let tableData = [['Header 1', 'Header 2'], ['Row 1', 'Row 2']];
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (Array.isArray(parsed)) tableData = parsed;
+                    } catch(e) {}
+
+                    let tableHTML = '<table class="editable-table" style="width:100%;border-collapse:collapse;font-size:13px;">';
+                    tableData.forEach((row, rIdx) => {
+                        tableHTML += '<tr>';
+                        row.forEach((cell, cIdx) => {
+                            tableHTML += `<td style="border:1px solid var(--border);padding:0;min-width:80px;"><input type="text" name="blocks[${blockId}][table_data][${rIdx}][${cIdx}]" value="${cell}" style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);" onchange="updateTableJSON(${blockId})"></td>`;
+                        });
+                        tableHTML += '</tr>';
+                    });
+                    tableHTML += '</table>';
+
+                    return `
+                <div class="table-editor" data-block-id="${blockId}">
+                    <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
+                        <button type="button" onclick="addTableRow(${blockId})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row</button>
+                        <button type="button" onclick="addTableCol(${blockId})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Column</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        ${tableHTML}
+                    </div>
+                </div>
+                <input type="hidden" name="blocks[${blockId}][content]" class="table-content-hidden" value='${JSON.stringify(tableData)}'>`;
+
+                case 'ext':
+                    return `
+                <textarea name="blocks[${blockId}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">${existingContent}</textarea>
+                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw HTML - Be careful with external scripts</small>`;
+
+                default:
+                    return `<textarea name="blocks[${blockId}][content]" class="input-ghost content-style" rows="1">${existingContent}</textarea>`;
             }
-
-            // Send update
-            axios.put(`/admin/blocks/${blockId}`, { type: newType })
-                .then(() => console.log('Updated'))
-                .catch(() => console.error('Error'));
         }
 
         function createChapter(event, form) {
@@ -1315,43 +1440,79 @@
 
         function createHeaderBlock() {
             const btn = document.getElementById('block-adder');
+            const typeSelect = document.querySelector('#block-popup select[name="type"]');
+            const selectedType = typeSelect ? typeSelect.value : 'header';
+
             btn.disabled = true;
             btn.innerText = '...';
 
             const url = btn.dataset.url;
             const blockCount = document.querySelectorAll('.blocks-list .block-row').length;
 
-            axios.post(url, {
-                type: 'header',
-                content: 'enter content here',
-                block_number: blockCount + 1
+            // Prepare data based on type
+            const formData = new FormData();
+            formData.append('type', selectedType);
+            formData.append('block_number', blockCount + 1);
+
+            // Set appropriate default content based on type
+            let defaultContent = '';
+            if (selectedType === 'graph') {
+                defaultContent = JSON.stringify({type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]});
+                formData.append('chart_type', 'line');
+                formData.append('chart_data', "Jan,Feb,Mar\n10,20,15");
+            } else if (selectedType === 'table') {
+                defaultContent = JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]);
+                formData.append('table_data', JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]));
+            } else if (selectedType === 'photo' || selectedType === 'video') {
+                const fileInput = document.querySelector('#block-popup input[name="content_file"]');
+                if (fileInput && fileInput.files[0]) {
+                    formData.append('content_file', fileInput.files[0]);
+                }
+                defaultContent = '';
+            } else {
+                defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
+                formData.append('content', defaultContent);
+            }
+
+            axios.post(url, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             })
                 .then((response) => {
-                    const block = response.data.block; // adjust to your actual response shape
+                    const block = response.data.block;
                     const list = document.querySelector('.blocks-list');
 
+                    // Generate the HTML for the selected type
+                    const contentHTML = generateBlockHTML(block.id, selectedType, block.content || defaultContent);
+
+                    const optionsHTML = `
+            <option value="header" ${selectedType == 'header' ? 'selected' : ''}>H1</option>
+            <option value="description" ${selectedType == 'description' ? 'selected' : ''}>Text</option>
+            <option value="note" ${selectedType == 'note' ? 'selected' : ''}>Note</option>
+            <option value="code" ${selectedType == 'code' ? 'selected' : ''}>Code</option>
+            <option value="exercise" ${selectedType == 'exercise' ? 'selected' : ''}>Exercise</option>
+            <option value="photo" ${selectedType == 'photo' ? 'selected' : ''}>Photo</option>
+            <option value="video" ${selectedType == 'video' ? 'selected' : ''}>Video</option>
+            <option value="math" ${selectedType == 'math' ? 'selected' : ''}>Math</option>
+            <option value="graph" ${selectedType == 'graph' ? 'selected' : ''}>Graph</option>
+            <option value="table" ${selectedType == 'table' ? 'selected' : ''}>Table</option>
+            <option value="ext" ${selectedType == 'ext' ? 'selected' : ''}>HTML/Ext</option>
+        `;
+
                     const newRow = document.createElement('div');
-                    newRow.classList.add('block-row', 'type-header');
+                    newRow.classList.add('block-row', `type-${selectedType}`);
                     newRow.innerHTML = `
             <input type="hidden" name="blocks[${block.id}][id]" value="${block.id}">
             <input type="hidden" name="blocks[${block.id}][block_number]" value="${block.block_number}">
 
             <div class="block-main-content">
-                <textarea type="text" name="blocks[${block.id}][content]"
-                    class="input-ghost title-style"
-                    placeholder="Enter Title..."
-                    oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
+                ${contentHTML}
             </div>
 
             <div class="block-controls">
                 <div class="control-group">
                     <span class="control-icon" onclick="toggleTypeSelect('${block.id}')">✏️</span>
                     <select onchange="updateBlockType(this)" name="blocks[${block.id}][type]" id="select-${block.id}" class="mini-type-select">
-                        <option value="header" selected>H1</option>
-                        <option value="description">Text</option>
-                        <option value="note">Note</option>
-                        <option value="code">Code</option>
-                        <option value="exercise">exercise</option>
+                        ${optionsHTML}
                     </select>
                 </div>
                 <button type="button" value="${block.id}:up" class="arrow-btn">∧</button>
@@ -1363,10 +1524,23 @@
                     list.querySelector('.empty-state')?.remove();
                     list.appendChild(newRow);
 
-                    // Focus the new textarea
-                    newRow.querySelector('textarea')?.focus();
+                    // Focus the new input
+                    const firstInput = newRow.querySelector('textarea, input[type="text"]');
+                    if (firstInput) firstInput.focus();
 
                     updateBlockNumbers();
+
+                    // Close modal and reset
+                    closeModal('block-popup');
+                    if (typeSelect) typeSelect.value = 'header';
+                    toggleNewBlockFields(typeSelect);
+
+                    // Show "unsaved changes" indicator if you have one
+                    const saveBtn = document.querySelector('.btn-save-all');
+                    if (saveBtn) {
+                        saveBtn.style.background = '#f59e0b'; // Orange to indicate unsaved
+                        saveBtn.innerText = 'Save Changes *';
+                    }
                 })
                 .catch(() => {
                     alert('Failed to create block.');
@@ -1374,7 +1548,89 @@
                 .finally(() => {
                     btn.disabled = false;
                     btn.innerText = '+';
-                });}
+                });
+        }
+
+        // Table management functions
+        function addTableRow(blockId) {
+            const container = document.querySelector(`.table-editor[data-block-id="${blockId}"]`);
+            const table = container.querySelector('table');
+            const colCount = table.rows[0]?.cells.length || 2;
+            const rowIndex = table.rows.length;
+
+            const newRow = document.createElement('tr');
+            for(let i=0; i<colCount; i++) {
+                newRow.innerHTML += `<td style="border:1px solid var(--border);padding:0;"><input type="text" name="blocks[${blockId}][table_data][${rowIndex}][${i}]" value="" style="width:100%;border:none;background:transparent;padding:8px;" onchange="updateTableJSON(${blockId})"></td>`;
+            }
+            table.appendChild(newRow);
+            updateTableJSON(blockId);
+        }
+
+        function addTableCol(blockId) {
+            const container = document.querySelector(`.table-editor[data-block-id="${blockId}"]`);
+            const rows = container.querySelectorAll('tr');
+            rows.forEach((row, idx) => {
+                const colIndex = row.cells.length;
+                const td = document.createElement('td');
+                td.style.cssText = 'border:1px solid var(--border);padding:0;';
+                td.innerHTML = `<input type="text" name="blocks[${blockId}][table_data][${idx}][${colIndex}]" value="" style="width:100%;border:none;background:transparent;padding:8px;" onchange="updateTableJSON(${blockId})">`;
+                row.appendChild(td);
+            });
+            updateTableJSON(blockId);
+        }
+
+        function updateTableJSON(blockId) {
+            const container = document.querySelector(`.table-editor[data-block-id="${blockId}"]`);
+            const rows = container.querySelectorAll('tr');
+            const data = [];
+            rows.forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('input').forEach(input => rowData.push(input.value));
+                if(rowData.some(cell => cell !== '')) data.push(rowData);
+            });
+            container.nextElementSibling.value = JSON.stringify(data);
+        }
+
+        // Math preview updater (simple text representation)
+        function updateMathPreview(textarea) {
+            const preview = textarea.nextElementSibling;
+            const val = textarea.value.trim();
+            preview.textContent = val ? `$ ${val} $` : 'Preview will appear here...';
+        }
+
+        // Update the updateBlockType function to handle new types
+
+
+        // Toggle fields in new block modal based on type
+        function toggleNewBlockFields(select) {
+            const type = select.value;
+            const textGroup = document.getElementById('text-content-group');
+            const fileGroup = document.getElementById('file-content-group');
+            const graphGroup = document.getElementById('graph-content-group');
+            const tableGroup = document.getElementById('table-content-group');
+
+            // Hide all first
+            textGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            graphGroup.style.display = 'none';
+            tableGroup.style.display = 'none';
+
+            // Show relevant
+            if (type === 'photo' || type === 'video') {
+                fileGroup.style.display = 'flex';
+                fileGroup.style.flexDirection = 'column';
+            } else if (type === 'graph') {
+                graphGroup.style.display = 'flex';
+                graphGroup.style.flexDirection = 'column';
+            } else if (type === 'table') {
+                tableGroup.style.display = 'flex';
+                tableGroup.style.flexDirection = 'column';
+            } else {
+                textGroup.style.display = 'flex';
+                textGroup.style.flexDirection = 'column';
+            }
+        }
     </script>
+
 @endsection
 
