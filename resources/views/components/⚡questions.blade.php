@@ -130,8 +130,8 @@ new class extends Component {
 
                                 <select
                                     wire:model="questions.{{ $qIndex }}.questionchoices.{{ $cIndex }}.value">
-                                    <option value="0">true</option>
-                                    <option value="1">false</option>
+                                    <option value="1">true</option>
+                                    <option value="0">false</option>
                                 </select>
 
                             </div>
