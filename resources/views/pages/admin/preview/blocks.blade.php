@@ -3,6 +3,126 @@
 @section('css')
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
+
+
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+    <style>
+        /* ── Photo & Video blocks ── */
+        .block-media {
+            margin: 1.5rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-subtle, #f8f9fa);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border, #e5e7eb);
+        }
+        .block-media img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .block-media img:hover { transform: scale(1.01); }
+        .block-media video {
+            max-width: 100%;
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+            background: #000;
+        }
+        .block-media-caption {
+            font-size: 0.78rem;
+            color: var(--text-faint, #9ca3af);
+            text-align: center;
+        }
+
+        /* ── Math (LaTeX) block ── */
+        .block-math {
+            margin: 1.5rem 0;
+            padding: 1rem 1.25rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border-left: 3px solid var(--accent, #4f46e5);
+            border-radius: 0 8px 8px 0;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1rem;
+            overflow-x: auto;
+        }
+
+        /* ── Graph (Chart.js) block ── */
+        .block-graph {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 10px;
+        }
+        .block-graph canvas {
+            max-width: 100%;
+            height: 280px !important;
+        }
+
+        /* ── Function plot block ── */
+        .block-function {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 10px;
+        }
+        .block-function canvas {
+            width: 100% !important;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* ── Table block ── */
+        .block-table {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+        .block-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .block-table th,
+        .block-table td {
+            padding: 0.6rem 0.9rem;
+            border: 1px solid var(--border, #e5e7eb);
+            text-align: left;
+        }
+        .block-table tr:first-child th,
+        .block-table tr:first-child td {
+            background: var(--bg-subtle, #f3f4f6);
+            font-weight: 600;
+        }
+        .block-table tr:nth-child(even) td {
+            background: var(--bg-alt, #fafafa);
+        }
+
+        /* ── Ext (raw HTML embed) block ── */
+        .block-ext {
+            margin: 1.5rem 0;
+        }
+        .block-ext iframe,
+        .block-ext embed,
+        .block-ext object {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border, #e5e7eb);
+        }
+    </style>
+@endsection
+
+@section('progress-bar')
+    <div id="scroll-progress"></div>
 @endsection
 
 @section('sidebar-elements')
@@ -65,13 +185,11 @@
                 Next chapter ›
             </a>
         @else
-
             <a class="sb-nav-btn"
-               href="{{ route('admin.preview.courses.quiz', ['course'=>$course]) }}">
-                Take quiz ›
+               href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">
+                Back to course ›
             </a>
         @endif
-
     </div>
 @endsection
 
@@ -99,13 +217,20 @@
 
 @section('main')
 
-    <div id="scroll-progress"></div>
 
     <div class="lesson-wrapper">
+
+        {{-- Prev nav button --}}
         @if($prevlesson)
             <div class="nav-button">
                 <a href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
             </div>
+        @elseif($prevchapter)
+            <div class="nav-button">
+                <a href="{{ route('admin.preview.lessons',['course'=>$course,'chapter'=>$prevchapter]) }}" title="Previous chapter">«</a>
+            </div>
+        @else
+            <div class="nav-button" style="visibility:hidden;"><a>‹</a></div>
         @endif
 
         <div class="blocks-container">
@@ -144,6 +269,55 @@
                             </div>
                             @break
 
+                        @case('list')
+                            @php $listData = json_decode($block->content, true); @endphp
+                            @if($listData && !empty($listData['items']))
+                                <div class="block-list" style="margin: 1.5rem 0; padding: 0 0.5rem;">
+                                    @if(($listData['style'] ?? 'bullet') === 'numbered')
+                                        <ol style="margin: 0; padding-left: 1.5rem; color: var(--text); line-height: 1.7;">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.4rem;">{{ $item }}</li>
+                                            @endforeach
+                                        </ol>
+                                    @elseif(($listData['style'] ?? '') === 'checklist')
+                                        <ul style="margin: 0; padding-left: 0.5rem; list-style: none; color: var(--text);">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; background: var(--bg); flex-shrink: 0;">☐</span>
+                                                    <span>{{ $item }}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <ul style="margin: 0; padding-left: 1.5rem; color: var(--text); line-height: 1.7; list-style-type: disc;">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.4rem;">{{ $item }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            @endif
+                            @break
+
+                        @case('separator')
+                            @php $sepData = json_decode($block->content, true); @endphp
+                            @if(($sepData['type'] ?? 'divider') === 'page_break')
+                                <div class="block-separator page-break" style="margin: 2rem 0; border: 2px dashed var(--border); padding: 1rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; border-radius: 8px; background: var(--bg-subtle); page-break-after: always;">
+                                    <span style="letter-spacing: 0.2em; text-transform: uppercase;">Page Break</span>
+                                </div>
+                            @elseif(($sepData['type'] ?? '') === 'section_break')
+                                <div class="block-separator section-break" style="margin: 3rem 0; display: flex; align-items: center; gap: 1rem;">
+                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                    <span style="color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;">§</span>
+                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                </div>
+                            @else
+                                <div class="block-separator divider" style="margin: 2rem 0;">
+                                    <hr style="border: none; border-top: 1px solid var(--border); opacity: 0.6;">
+                                </div>
+                            @endif
+                            @break
+
                         @case('photo')
                             @if($block->content)
                                 <div style="margin: 20px 0;">
@@ -166,9 +340,9 @@
                         @case('math')
                             <div style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
                                 <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
-                                    {{ $block->content }}
+                                    $${{ $block->content }}$$
                                 </div>
-                                <small style="display:block;margin-top:8px;color:var(--text-faint);text-align:center;">LaTeX: {{ $block->content }}</small>
+
                             </div>
                             @break
 
@@ -209,92 +383,29 @@
                         @case('function')
                             @php $funcData = json_decode($block->content, true); @endphp
                             @if($funcData)
-                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-                                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);margin-bottom:12px;padding:8px 12px;background:var(--bg-subtle);border-radius:4px;display:inline-block;">
-                                        f(x) = {{ $funcData['function'] ?? 'sin(x)' }}
+                                <div class="func-block-preview"
+                                     style="margin:20px 0;padding:16px;background:var(--bg);
+                    border:1px solid var(--border);border-radius:10px;">
+                                    {{-- equation label (KaTeX rendered if available) --}}
+                                    <div class="func-eq-label"
+                                         style="font-family:'JetBrains Mono',monospace;font-size:13px;
+                        color:var(--text);margin-bottom:10px;padding:6px 12px;
+                        background:var(--bg-subtle);border-radius:5px;
+                        display:inline-block;border:1px solid var(--border);">
+                <span class="katex-eq" data-eq="{{ htmlspecialchars($funcData['function'] ?? '') }}">
+                    {{ $funcData['function'] ?? '' }}
+                </span>
                                     </div>
-                                    <canvas id="preview-func-{{ $block->id }}" width="600" height="300" style="width:100%;max-width:100%;height:auto;"></canvas>
+                                    <canvas id="preview-func-{{ $block->id }}"
+                                            style="width:100%;height:auto;display:block;border-radius:6px;
+                           background:var(--bg);">
+                                    </canvas>
                                 </div>
                                 <script>
-                                    (function() {
-                                        const canvas = document.getElementById('preview-func-{{ $block->id }}');
-                                        if (!canvas) return;
-                                        const ctx = canvas.getContext('2d');
-                                        const width = canvas.width;
-                                        const height = canvas.height;
-
-                                        const xMin = {{ $funcData['x_min'] ?? -10 }};
-                                        const xMax = {{ $funcData['x_max'] ?? 10 }};
-                                        const yMin = {{ $funcData['y_min'] ?? -5 }};
-                                        const yMax = {{ $funcData['y_max'] ?? 5 }};
-                                        const color = '{{ $funcData['color'] ?? '#4f46e5' }}';
-                                        const step = {{ $funcData['step'] ?? 0.1 }};
-                                        const funcExpr = '{{ $funcData['function'] ?? 'sin(x)' }}'
-                                            .replace(/\^/g, '**')
-                                            .replace(/sin/g, 'Math.sin')
-                                            .replace(/cos/g, 'Math.cos')
-                                            .replace(/tan/g, 'Math.tan')
-                                            .replace(/sqrt/g, 'Math.sqrt')
-                                            .replace(/log/g, 'Math.log')
-                                            .replace(/abs/g, 'Math.abs')
-                                            .replace(/pi/g, 'Math.PI')
-                                            .replace(/e(?![a-z])/g, 'Math.E');
-
-                                        // Clear
-                                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg') || '#ffffff';
-                                        ctx.fillRect(0, 0, width, height);
-
-                                        // Grid
-                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e5e7eb';
-                                        ctx.lineWidth = 1;
-                                        ctx.beginPath();
-                                        for (let i = 0; i <= 10; i++) {
-                                            const x = (i / 10) * width;
-                                            ctx.moveTo(x, 0);
-                                            ctx.lineTo(x, height);
-                                            const y = (i / 10) * height;
-                                            ctx.moveTo(0, y);
-                                            ctx.lineTo(width, y);
-                                        }
-                                        ctx.stroke();
-
-                                        // Axes
-                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-faint') || '#9ca3af';
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        const yZero = height - ((0 - yMin) / (yMax - yMin)) * height;
-                                        if (yZero >= 0 && yZero <= height) {
-                                            ctx.moveTo(0, yZero);
-                                            ctx.lineTo(width, yZero);
-                                        }
-                                        const xZero = ((0 - xMin) / (xMax - xMin)) * width;
-                                        if (xZero >= 0 && xZero <= width) {
-                                            ctx.moveTo(xZero, 0);
-                                            ctx.lineTo(xZero, height);
-                                        }
-                                        ctx.stroke();
-
-                                        // Function
-                                        ctx.strokeStyle = color;
-                                        ctx.lineWidth = 3;
-                                        ctx.beginPath();
-                                        let first = true;
-                                        for (let x = xMin; x <= xMax; x += step) {
-                                            let y;
-                                            try {
-                                                y = eval(funcExpr.replace(/x/g, '(' + x + ')'));
-                                            } catch(e) { continue; }
-                                            if (!isFinite(y) || isNaN(y)) continue;
-                                            const cx = ((x - xMin) / (xMax - xMin)) * width;
-                                            const cy = height - ((y - yMin) / (yMax - yMin)) * height;
-                                            if (first) {
-                                                ctx.moveTo(cx, cy);
-                                                first = false;
-                                            } else {
-                                                ctx.lineTo(cx, cy);
-                                            }
-                                        }
-                                        ctx.stroke();
+                                    (function(){
+                                        const funcData = {!! json_encode($funcData) !!};
+                                        window._funcBlocks = window._funcBlocks || [];
+                                        window._funcBlocks.push({ id: '{{ $block->id }}', data: funcData });
                                     })();
                                 </script>
                             @endif
@@ -347,6 +458,14 @@
 @endsection
 
 @section('js')
+
+
+
+
+
+    <script src="{{ asset('js/function.js') }}"></script>
+
+
     <script>
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {
@@ -411,6 +530,27 @@
                     localStorage.setItem(key, main.scrollTop);
                 });
             }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // THIS IS THE TRIGGER YOU ARE MISSING
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // Your existing KaTeX logic for function blocks
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    katex.render(eq, el, { throwOnError: false });
+                }
+            });
         });
     </script>
 @endsection

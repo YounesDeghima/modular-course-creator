@@ -1002,3 +1002,62 @@ textarea{
     font-size: 16px;
     color: var(--text);
 }
+
+/* ── List block ── */
+.block-list {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    background: var(--bg-subtle, #f8f9fa);
+    border-radius: 8px;
+    border: 1px solid var(--border, #e5e7eb);
+}
+.block-list ul, .block-list ol {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+.block-list li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+.block-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Separator block ── */
+.block-separator {
+    margin: 2rem 0;
+}
+.block-separator.page-break {
+    border: 2px dashed var(--border);
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+    border-radius: 8px;
+    background: var(--bg-subtle);
+    page-break-after: always;
+}
+.block-separator.section-break {
+    margin: 3rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.block-separator.section-break::before,
+.block-separator.section-break::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+}
+.block-separator.section-break span {
+    color: var(--text-faint);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+.block-separator.divider hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    opacity: 0.6;
+}

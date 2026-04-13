@@ -6,11 +6,12 @@
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
-
-
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
+
+
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
 @endsection
 
 @section('back-button')
@@ -68,26 +69,32 @@
 
                                     @case('photo')
                                         <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
+                                            <div class="file-preview" style="{{ ($block->content && \Storage::exists('public/' . $block->content)) ? '' : 'display:none' }}">
+                                                @if($block->content && \Storage::exists('public/' . $block->content))
                                                     <img src="{{ asset('storage/' . $block->content) }}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
                                                     <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                                @endif
+                                            </div>
+                                            <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                                                   data-block-id="{{ $block->id }}" data-media-type="photo"
+                                                   onchange="uploadMediaFile(this)">
+                                            <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                                             <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
                                         </div>
                                         @break
 
                                     @case('video')
                                         <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
-                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:200px;max-height:200px;border-radius:8px;" controls></video>
+                                            <div class="file-preview" style="{{ ($block->content && \Storage::exists('public/' . $block->content)) ? '' : 'display:none' }}">
+                                                @if($block->content && \Storage::exists('public/' . $block->content))
+                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video>
                                                     <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                                @endif
+                                            </div>
+                                            <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                                                   data-block-id="{{ $block->id }}" data-media-type="video"
+                                                   onchange="uploadMediaFile(this)">
+                                            <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                                             <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
                                         </div>
                                         @break
@@ -95,7 +102,7 @@
                                     @case('math')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style math-input" placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)" oninput="updateMathPreview(this)" rows="2">{{ $block->content }}</textarea>
                                         <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
-                                            @if($block->content) ${{ $block->content }} $ @endif
+                                            @if($block->content) <div>$${{ $block->content }}$$</div>@endif
                                         </div>
                                         @break
 
@@ -140,73 +147,155 @@
                                     @case('function')
                                         @php
                                             $funcData = json_decode($block->content, true) ?? [
-                                                'function' => 'sin(x)',
-                                                'x_min' => -10,
-                                                'x_max' => 10,
-                                                'y_min' => -5,
-                                                'y_max' => 5,
-                                                'color' => '#4f46e5',
-                                                'step' => 0.1
+                                                'function' => 'y = sin(x)',
+                                                'x_min'    => -10,
+                                                'x_max'    => 10,
+                                                'y_min'    => -6,
+                                                'y_max'    => 6,
+                                                'color'    => '#4f46e5',
+                                                'step'     => 0.05,
                                             ];
                                         @endphp
+
                                         <div class="function-editor" data-block-id="{{ $block->id }}">
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:2;min-width:200px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x) =</label>
-                                                    <input type="text" name="blocks[{{ $block->id }}][func_expression]"
-                                                           value="{{ $funcData['function'] ?? 'sin(x)' }}"
-                                                           class="input-ghost"
-                                                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;"
-                                                           placeholder="e.g., sin(x), x^2, cos(x)*x">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Min</label>
+
+                                            {{-- Row 1: equation input --}}
+                                            <div style="margin-bottom:8px;">
+                                                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">
+                                                    Equation (any form: <code>y=sin(x)</code>, <code>x^2+y^2=1</code>, <code>y-x^2=0</code> …)
+                                                </label>
+                                                <input type="text"
+                                                       name="blocks[{{ $block->id }}][func_expression]"
+                                                       value="{{ $funcData['function'] ?? 'y = sin(x)' }}"
+                                                       class="input-ghost func-eq-input"
+                                                       style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 10px;letter-spacing:.02em;"
+                                                       placeholder="e.g.  y = x^2   or   x^2 + y^2 = 25   or   sin(y) = cos(x)">
+                                            </div>
+
+                                            {{-- Row 2: ranges + color --}}
+                                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X min</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][x_min]"
                                                            value="{{ $funcData['x_min'] ?? -10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Max</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X max</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][x_max]"
                                                            value="{{ $funcData['x_max'] ?? 10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                            </div>
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Min</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y min</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][y_min]"
-                                                           value="{{ $funcData['y_min'] ?? -5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           value="{{ $funcData['y_min'] ?? -6 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Max</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y max</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][y_max]"
-                                                           value="{{ $funcData['y_max'] ?? 5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           value="{{ $funcData['y_max'] ?? 6 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
+                                                <div style="flex:0 0 auto;">
                                                     <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
                                                     <input type="color" name="blocks[{{ $block->id }}][color]"
                                                            value="{{ $funcData['color'] ?? '#4f46e5' }}"
-                                                           style="width:100%;height:32px;border:none;cursor:pointer;">
+                                                           style="width:48px;height:32px;border:none;cursor:pointer;border-radius:4px;">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Resolution</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][step]"
-                                                           value="{{ $funcData['step'] ?? 0.1 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01" min="0.01" max="1">
+                                                           value="{{ $funcData['step'] ?? 0.05 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;"
+                                                           step="0.005" min="0.005" max="0.5">
                                                 </div>
                                             </div>
-                                            <div class="function-preview" style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
-                                                <canvas id="func-canvas-{{ $block->id }}" width="400" height="200" style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
+
+                                            {{-- Canvas preview --}}
+                                            <div class="function-preview"
+                                                 style="position:relative;margin-top:10px;padding:10px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                                <canvas id="func-canvas-{{ $block->id }}"
+                                                        style="width:100%;height:auto;display:block;border-radius:4px;background:var(--bg);">
+                                                </canvas>
+                                                <div id="func-error-{{ $block->id }}"
+                                                     style="display:none;position:absolute;bottom:14px;left:14px;font-size:11px;
+                                                     color:#ef4444;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:4px;"></div>
                                             </div>
-                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
-                                                Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x), etc.
+
+                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:5px;">
+                                                Supports: +  −  *  /  ^  sin cos tan asin acos atan sqrt abs log ln exp pi e — both x and y variables.
                                             </small>
                                         </div>
-                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="function-content-hidden" value="{{ $block->content }}">
+
+                                        {{-- Hidden input keeps JSON for blockcontroller —
+                                             its name must NOT conflict with func_expression / x_min etc.
+                                             The JS below writes to it on every change.                  --}}
+                                        <input type="hidden"
+                                               name="blocks[{{ $block->id }}][content]"
+                                               class="function-content-hidden"
+                                               value="{{ $block->content }}">
                                         @break
+
+                                    @case('list')
+                                        @php $listData = json_decode($block->content, true) ?? ['style' => 'bullet', 'items' => []]; @endphp
+                                        <div class="list-editor" data-block-id="{{ $block->id }}">
+                                            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                                <select name="blocks[{{ $block->id }}][list_style]" class="mini-type-select" style="width:auto;">
+                                                    <option value="bullet" {{ ($listData['style'] ?? 'bullet') == 'bullet' ? 'selected' : '' }}>• Bullet List</option>
+                                                    <option value="numbered" {{ ($listData['style'] ?? '') == 'numbered' ? 'selected' : '' }}>1. Numbered</option>
+                                                    <option value="checklist" {{ ($listData['style'] ?? '') == 'checklist' ? 'selected' : '' }}>☑ Checklist</option>
+                                                </select>
+                                            </div>
+                                            <textarea name="blocks[{{ $block->id }}][list_items]"
+                                                      class="input-ghost content-style"
+                                                      placeholder="Enter list items, one per line..."
+                                                      rows="{{ max(3, count($listData['items'] ?? []) + 1) }}"
+                                                      style="font-family:inherit;">{{ implode("\n", $listData['items'] ?? []) }}</textarea>
+                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="list-content-hidden" value="{{ $block->content }}">
+                                        @break
+
+                                    @case('separator')
+                                        @php $sepData = json_decode($block->content, true) ?? ['type' => 'divider']; @endphp
+                                        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                            <div style="display:flex;gap:12px;align-items:center;">
+                                                <select name="blocks[{{ $block->id }}][separator_type]" class="mini-type-select" style="width:auto;">
+                                                    <option value="divider" {{ ($sepData['type'] ?? 'divider') == 'divider' ? 'selected' : '' }}>— Horizontal Line</option>
+                                                    <option value="section_break" {{ ($sepData['type'] ?? '') == 'section_break' ? 'selected' : '' }}>§ Section Break</option>
+                                                    <option value="page_break" {{ ($sepData['type'] ?? '') == 'page_break' ? 'selected' : '' }}>↲ Page Break</option>
+                                                </select>
+                                                <span style="font-size:12px;color:var(--text-faint);">
+                                                     @if(($sepData['type'] ?? 'divider') == 'page_break')
+                                                        Inserts page break when printing
+                                                    @elseif(($sepData['type'] ?? '') == 'section_break')
+                                                        Visual section divider with spacing
+                                                    @else
+                                                        Simple horizontal line
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <div class="separator-preview" style="margin-top:12px;">
+                                                @if(($sepData['type'] ?? 'divider') == 'page_break')
+                                                    <div style="border:2px dashed var(--border);padding:8px 12px;text-align:center;color:var(--text-faint);font-size:12px;border-radius:6px;background:var(--bg);">
+                                                        ——— Page Break ———
+                                                    </div>
+                                                @elseif(($sepData['type'] ?? '') == 'section_break')
+                                                    <div style="display:flex;align-items:center;gap:12px;color:var(--text-faint);">
+                                                        <div style="flex:1;height:1px;background:var(--border);"></div>
+                                                        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;">Section End</span>
+                                                        <div style="flex:1;height:1px;background:var(--border);"></div>
+                                                    </div>
+                                                @else
+                                                    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
+                                        @break
+
 
                                     @case('ext')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
@@ -229,6 +318,8 @@
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
                                         <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
                                         <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>Exercise</option>
+                                        <option value="list" {{ $block->type == 'list' ? 'selected' : '' }}>List</option>
+                                        <option value="separator" {{ $block->type == 'separator' ? 'selected' : '' }}>Separator</option>
                                         <option value="photo" {{ $block->type == 'photo' ? 'selected' : '' }}>Photo</option>
                                         <option value="video" {{ $block->type == 'video' ? 'selected' : '' }}>Video</option>
                                         <option value="function" {{ $block->type == 'function' ? 'selected' : '' }}>Function</option>
@@ -284,6 +375,8 @@
                             <option value="math">Math (LaTeX)</option>
                             <option value="graph">Graph/Chart</option>
                             <option value="table">Table</option>
+                            <option value="list">List</option>
+                            <option value="separator">Separator</option>
                             <option value="function">Math Function</option>
                             <option value="ext">HTML/Embed</option>
                         </select>
@@ -319,6 +412,28 @@
                         <label>Initial Table (JSON format)</label>
                         <textarea name="table_data" class="modal-input" rows="4">[["Header 1","Header 2"],["Row 1 Col 1","Row 1 Col 2"]]</textarea>
                         <small style="color:var(--text-faint);font-size:11px;">Format: [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
+                    </div>
+
+                    {{-- List specific fields --}}
+                    <div class="form-group" id="list-content-group" style="display:none;">
+                        <label>List Style</label>
+                        <select name="list_style" class="modal-input" style="margin-bottom:8px;">
+                            <option value="bullet">Bullet Points (•)</option>
+                            <option value="numbered">Numbered (1, 2, 3)</option>
+                            <option value="checklist">Checklist (☑)</option>
+                        </select>
+                        <label style="margin-top:12px;">Items (one per line)</label>
+                        <textarea name="list_items" class="modal-input" rows="4" placeholder="Item 1&#10;Item 2&#10;Item 3"></textarea>
+                    </div>
+
+                    {{-- Separator specific fields --}}
+                    <div class="form-group" id="separator-content-group" style="display:none;">
+                        <label>Separator Type</label>
+                        <select name="separator_type" class="modal-input">
+                            <option value="divider">Horizontal Line</option>
+                            <option value="section_break">Section Break (with spacing)</option>
+                            <option value="page_break">Page Break (for print/PDF)</option>
+                        </select>
                     </div>
 
                     {{-- Function specific fields --}}
@@ -605,11 +720,40 @@
 
 
 @section('js')
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
+    <script src="{{ asset('js/function.js') }}"></script>
+
     <script>
 
         document.addEventListener('DOMContentLoaded', function() {
-            initAutoResize();
 
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // 2. Handle KaTeX for function blocks specifically
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    // Use inline rendering for the small labels
+                    katex.render(eq, el, { throwOnError: false, displayMode: false });
+                }
+            });
+
+
+            initAutoResize();
             // --- 1. CORE UTILITIES ---
             const COURSE_ID = "{{ $course->id }}";
             const savedUrl = localStorage.getItem('activeLessonUrl');
@@ -1158,35 +1302,106 @@
             const url = form.action;
             const formData = new FormData(form);
 
+            // Read CSRF from the form's own hidden _token field (blade @csrf always outputs this)
+            const csrfToken = form.querySelector('input[name="_token"]')?.value || '';
+
             const saveBtn = form.querySelector('.btn-save-all');
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.innerText = 'Saving...';
             }
 
-            axios.post(url, formData, {
+            // Use native fetch — axios drops file binary data from FormData
+            fetch(url, {
+                method: 'POST',
+                body: formData,
                 headers: {
-                    'X-HTTP-Method-Override': 'PUT',
-                    'Content-Type': 'multipart/form-data'
-                }
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     if (saveBtn) {
                         saveBtn.innerText = 'Saved ✓';
-                        saveBtn.style.background = ''; // Reset to default green
+                        saveBtn.style.background = '';
                         setTimeout(() => {
                             saveBtn.innerText = 'Save All Changes';
                             saveBtn.disabled = false;
                         }, 1500);
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     if (saveBtn) {
-                        saveBtn.innerText = 'Save Failed';
-                        saveBtn.style.background = '#ef4444'; // Red for error
+                        saveBtn.innerText = 'Save Failed (' + (err.message || 'error') + ')';
+                        saveBtn.style.background = '#ef4444';
                         saveBtn.disabled = false;
                     }
-                    alert('Failed to save changes');
+                });
+        }
+
+        function uploadMediaFile(input) {
+            const blockId   = input.dataset.blockId;
+            const mediaType = input.dataset.mediaType;
+            const file      = input.files[0];
+            if (!file) return;
+
+            const fileBlock   = input.closest('.file-block');
+            const statusEl    = fileBlock.querySelector('.upload-status');
+            const hiddenInput = fileBlock.querySelector('input[type="hidden"]');
+            const previewEl   = fileBlock.querySelector('.file-preview');
+
+            statusEl.style.color = '#6b7280';
+            statusEl.innerText   = '⏫ Uploading ' + file.name + '…';
+            input.disabled       = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', mediaType);
+
+            const csrf = document.querySelector('input[name="_token"]')?.value || '';
+
+            fetch('/admin/blocks/upload-media', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(res => res.text().then(txt => {
+                    try {
+                        const data = JSON.parse(txt);
+                        if (!res.ok) throw new Error((data.error || 'HTTP ' + res.status));
+                        return data;
+                    } catch(e) {
+                        throw new Error('Server said: ' + txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,400));
+                    }
+                }))
+                .then(data => {
+                    hiddenInput.value = data.path;
+
+                    previewEl.style.display = '';
+                    if (mediaType === 'video') {
+                        previewEl.innerHTML = `<video src="/storage/${data.path}" style="max-width:300px;max-height:200px;border-radius:8px;margin-top:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    } else {
+                        previewEl.innerHTML = `<img src="/storage/${data.path}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    }
+
+                    statusEl.style.color = '#22c55e';
+                    statusEl.innerText   = '✓ Uploaded — press Save All to keep';
+                    input.disabled       = false;
+
+                    const saveBtn = document.querySelector('.btn-save-all');
+                    if (saveBtn) {
+                        saveBtn.style.background = '#f59e0b';
+                        saveBtn.innerText = 'Save Changes *';
+                    }
+                })
+                .catch(err => {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText   = '✗ Upload failed: ' + err.message;
+                    input.disabled       = false;
                 });
         }
 
@@ -1238,17 +1453,25 @@
                 case 'photo':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<img src="/storage/${existingContent}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="photo" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'video':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<video src="/storage/${existingContent}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="video" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'math':
@@ -1257,6 +1480,49 @@
                 <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
                     ${existingContent ? '$' + existingContent + '$' : 'Preview will appear here...'}
                 </div>`;
+                case 'list':
+                    let listData = {style: 'bullet', items: []};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.items) listData = parsed;
+                    } catch(e) {}
+                    const listItems = (listData.items || []).join('\n');
+                    return `
+        <div class="list-editor" data-block-id="${blockId}">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <select name="blocks[${blockId}][list_style]" class="mini-type-select" style="width:auto;">
+                    <option value="bullet" ${listData.style == 'bullet' ? 'selected' : ''}>• Bullet List</option>
+                    <option value="numbered" ${listData.style == 'numbered' ? 'selected' : ''}>1. Numbered</option>
+                    <option value="checklist" ${listData.style == 'checklist' ? 'selected' : ''}>☑ Checklist</option>
+                </select>
+            </div>
+            <textarea name="blocks[${blockId}][list_items]" class="input-ghost content-style" placeholder="Enter list items, one per line..." rows="3" style="font-family:inherit;">${listItems}</textarea>
+            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" class="list-content-hidden" value='${JSON.stringify(listData)}'>`;
+
+                case 'separator':
+                    let sepData = {type: 'divider'};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.type) sepData = parsed;
+                    } catch(e) {}
+                    return `
+        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+            <select name="blocks[${blockId}][separator_type]" class="mini-type-select" style="width:auto;margin-bottom:8px;">
+                <option value="divider" ${sepData.type == 'divider' ? 'selected' : ''}>— Horizontal Line</option>
+                <option value="section_break" ${sepData.type == 'section_break' ? 'selected' : ''}>§ Section Break</option>
+                <option value="page_break" ${sepData.type == 'page_break' ? 'selected' : ''}>↲ Page Break</option>
+            </select>
+            <div class="separator-preview">
+                ${sepData.type == 'page_break'
+                        ? '<div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:12px;">——— Page Break ———</div>'
+                        : sepData.type == 'section_break'
+                            ? '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;">SECTION</span><div style="flex:1;height:1px;background:var(--border);"></div></div>'
+                            : '<hr style="border:none;border-top:1px solid var(--border);">'}
+            </div>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(sepData)}'>`;
 
                 case 'graph':
                     // Try to parse existing content as JSON, or use defaults
@@ -1280,7 +1546,7 @@
 
                 case 'function':
                     let funcData = {
-                        function: 'sin(x)',
+                        function: 'sin(x)=y',
                         x_min: -10,
                         x_max: 10,
                         y_min: -5,
@@ -1643,10 +1909,20 @@
 
             // Set appropriate default content based on type
             let defaultContent = '';
+
             if (selectedType === 'graph') {
                 defaultContent = JSON.stringify({type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]});
                 formData.append('chart_type', 'line');
                 formData.append('chart_data', "Jan,Feb,Mar\n10,20,15");
+            } else if (selectedType === 'list') {
+                defaultContent = JSON.stringify({
+                    style: document.querySelector('#block-popup select[name="list_style"]')?.value || 'bullet',
+                    items: document.querySelector('#block-popup textarea[name="list_items"]')?.value.split('\n').filter(i => i.trim()) || ['Item 1', 'Item 2']
+                });
+            } else if (selectedType === 'separator') {
+                defaultContent = JSON.stringify({
+                    type: document.querySelector('#block-popup select[name="separator_type"]')?.value || 'divider'
+                });
             } else if (selectedType === 'table') {
                 defaultContent = JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]);
                 formData.append('table_data', JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]));
@@ -1658,27 +1934,37 @@
                 defaultContent = '';
 
             }else if (selectedType === 'function') {
-                    defaultContent = JSON.stringify({
-                        function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
-                        x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
-                        x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
-                        y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
-                        y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
-                        color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
-                        step: 0.1
-                    });
-                    formData.append('content', defaultContent);
+                defaultContent = JSON.stringify({
+                    function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
+                    x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
+                    x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
+                    y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
+                    y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
+                    color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
+                    step: 0.1
+                });
+                formData.append('content', defaultContent);
 
             } else {
                 defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
                 formData.append('content', defaultContent);
             }
 
-            axios.post(url, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const _csrf = document.querySelector('input[name="_token"]')?.value || '';
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': _csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then((response) => {
-                    const block = response.data.block;
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then((data) => {
+                    const block = data.block;
                     const list = document.querySelector('.blocks-list');
 
                     // Generate the HTML for the selected type
@@ -1690,6 +1976,8 @@
             <option value="note" ${selectedType == 'note' ? 'selected' : ''}>Note</option>
             <option value="code" ${selectedType == 'code' ? 'selected' : ''}>Code</option>
             <option value="exercise" ${selectedType == 'exercise' ? 'selected' : ''}>Exercise</option>
+            <option value="list" ${selectedType == 'list' ? 'selected' : ''}>List</option>
+            <option value="separator" ${selectedType == 'separator' ? 'selected' : ''}>Separator</option>
             <option value="photo" ${selectedType == 'photo' ? 'selected' : ''}>Photo</option>
             <option value="video" ${selectedType == 'video' ? 'selected' : ''}>Video</option>
             <option value="math" ${selectedType == 'math' ? 'selected' : ''}>Math</option>
@@ -1736,10 +2024,9 @@
                     if (typeSelect) typeSelect.value = 'header';
                     toggleNewBlockFields(typeSelect);
 
-                    // Show "unsaved changes" indicator if you have one
                     const saveBtn = document.querySelector('.btn-save-all');
                     if (saveBtn) {
-                        saveBtn.style.background = '#f59e0b'; // Orange to indicate unsaved
+                        saveBtn.style.background = '#f59e0b';
                         saveBtn.innerText = 'Save Changes *';
                     }
                 })
@@ -1804,39 +2091,54 @@
 
         // Toggle fields in new block modal based on type
 
-            function toggleNewBlockFields(select) {
-                const type = select.value;
-                const textGroup = document.getElementById('text-content-group');
-                const fileGroup = document.getElementById('file-content-group');
-                const graphGroup = document.getElementById('graph-content-group');
-                const tableGroup = document.getElementById('table-content-group');
-                const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
+        function toggleNewBlockFields(select) {
+            const type = select.value;
+            const textGroup = document.getElementById('text-content-group');
+            const fileGroup = document.getElementById('file-content-group');
+            const graphGroup = document.getElementById('graph-content-group');
+            const tableGroup = document.getElementById('table-content-group');
+            const functionGroup = document.getElementById('function-content-group');
+            const listGroup = document.getElementById('list-content-group');
+            const separatorGroup = document.getElementById('separator-content-group');
 
-                // Hide all first
-                textGroup.style.display = 'none';
-                fileGroup.style.display = 'none';
-                graphGroup.style.display = 'none';
-                tableGroup.style.display = 'none';
-                functionGroup.style.display = 'none';
+// Hide others...
+            if (listGroup) listGroup.style.display = 'none';
+            if (separatorGroup) separatorGroup.style.display = 'none';
 
-                // Show relevant
-                if (type === 'photo' || type === 'video') {
-                    fileGroup.style.display = 'flex';
-                    fileGroup.style.flexDirection = 'column';
-                } else if (type === 'graph') {
-                    graphGroup.style.display = 'flex';
-                    graphGroup.style.flexDirection = 'column';
-                } else if (type === 'table') {
-                    tableGroup.style.display = 'flex';
-                    tableGroup.style.flexDirection = 'column';
-                } else if (type === 'function') {  // ← FIXED: Proper condition
-                    functionGroup.style.display = 'flex';
-                    functionGroup.style.flexDirection = 'column';
-                } else {
-                    textGroup.style.display = 'flex';
-                    textGroup.style.flexDirection = 'column';
-                }
+// Show logic:
+
+
+            // Hide all first
+            textGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            graphGroup.style.display = 'none';
+            tableGroup.style.display = 'none';
+            functionGroup.style.display = 'none';
+
+            // Show relevant
+            if (type === 'photo' || type === 'video') {
+                fileGroup.style.display = 'flex';
+                fileGroup.style.flexDirection = 'column';
+            } else if (type === 'graph') {
+                graphGroup.style.display = 'flex';
+                graphGroup.style.flexDirection = 'column';
+            } else if (type === 'table') {
+                tableGroup.style.display = 'flex';
+                tableGroup.style.flexDirection = 'column';
+            } else if (type === 'function') {
+                functionGroup.style.display = 'flex';
+                functionGroup.style.flexDirection = 'column';
+            } else if (type === 'list') {
+                listGroup.style.display = 'flex';
+                listGroup.style.flexDirection = 'column';
+            } else if (type === 'separator') {
+                separatorGroup.style.display = 'flex';
+                separatorGroup.style.flexDirection = 'column';
+            } else {
+                textGroup.style.display = 'flex';
+                textGroup.style.flexDirection = 'column';
             }
+        }
 
         // Function graph rendering
         // Function graph rendering
@@ -2024,4 +2326,3 @@
     </script>
 
 @endsection
-
