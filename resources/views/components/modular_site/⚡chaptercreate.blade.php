@@ -25,6 +25,7 @@ new class extends Component {
     }
 
     public function store(){
+        $this->chapter_count +=1;
         $this->course_id = $this->course->id;
 
         $validated = $this->validate([
@@ -38,16 +39,21 @@ new class extends Component {
 
 
         $this->chapter = chapter::create($validated);
+        $this->chapter_number = $this->chapter_count;
 
 
         $this->dispatch('chapterCreated',id:$this->chapter->id);
+
+
+        $this->resetExcept(['chapters', 'course', 'chapter_number','chapter_count','openChapters']);
+
 
     }
 
 
 };
 ?>
-<div id="add-chapter-modal" class="modal-overlay">
+<div id="add-chapter-modal" class="modal-overlay" x-data="{chapter_count : {{$chapter_count}}}">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('add-chapter-modal')">&times;</span>
         <h3>Create New Chapter</h3>
@@ -59,7 +65,7 @@ new class extends Component {
             </div>
             <div class="form-group">
                 <label>Chapter Number:</label>
-                <input class="modal-input" type="number" name="chapter_number" value="{{$chapter_count}}" wire:model="chapter_number" readonly>
+                <input class="modal-input" type="number" name="chapter_number" wire:model="chapter_number" readonly>
             </div>
             <div class="form-group">
                 <label>Description:</label>

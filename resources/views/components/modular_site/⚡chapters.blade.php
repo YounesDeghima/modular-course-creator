@@ -6,8 +6,7 @@ use Livewire\Component;
 new class extends Component {
     public $course;
     public $chapters;
-
-
+    public $openChapters = [];
 
     protected $listeners = ['chapterCreated' => 'addChapter'];
 
@@ -29,17 +28,25 @@ new class extends Component {
         }
     }
 
+    public function toggleLessons($chapterId){
+        if (in_array($chapterId, $this->openChapters)) {
+            $this->openChapters = array_diff($this->openChapters, [$chapterId]);
+        } else {
+            $this->openChapters[] = $chapterId;
+        }
+    }
+
 };
 ?>
 
 <div>
     @if($chapters)
         @foreach($chapters as $chapter)
-            <div class="chapter-group">
+            <div class="chapter-group" x-data="{open : false}">
 
-                <div class="chapter-header" onclick="toggleLessons('{{$chapter->id}}')">
+                <div class="chapter-header" @click="open=!open">
                     <div class="header-left">
-                        <span class="arrow-icon" id="arrow-{{$chapter->id}}">▶</span>
+                        <span class="arrow-icon" x-text="open  ? '▼' : '▶'"></span>
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
 
                         <button type="button"
@@ -57,7 +64,7 @@ new class extends Component {
                     </div>
                 </div>
 
-                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" style="display: none;">
+                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" x-show="open" style="display:none;">
                     @if($chapter->lessons->count() > 0)
                         <div class="lesson-row bulk-lesson-action">
                             <form action="{{ route('admin.courses.chapters.lessons.toggle-all', [$course->id, $chapter->id]) }}"

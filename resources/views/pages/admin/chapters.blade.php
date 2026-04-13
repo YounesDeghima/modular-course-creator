@@ -486,20 +486,20 @@
                 }
             }
 
-            const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
-
-            openChapters.forEach(id => {
-                const container = document.getElementById('lessons-container-' + id);
-                const arrow = document.getElementById('arrow-' + id);
-
-                if (container) {
-                    container.style.display = 'flex';
-                }
-
-                if (arrow) {
-                    arrow.style.transform = 'rotate(90deg)';
-                }
-            });
+            // const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
+            //
+            // openChapters.forEach(id => {
+            //     const container = document.getElementById('lessons-container-' + id);
+            //     const arrow = document.getElementById('arrow-' + id);
+            //
+            //     if (container) {
+            //         container.style.display = 'flex';
+            //     }
+            //
+            //     if (arrow) {
+            //         arrow.style.transform = 'rotate(90deg)';
+            //     }
+            // });
 
             // Auto-resize textareas based on content
             function initAutoResize() {
@@ -728,38 +728,7 @@
         }
 
 
-        function toggleSingleChapter(btn, event) {
 
-            if (event) {
-                event.stopPropagation();
-            }
-
-
-            const chapterId = btn.dataset.chapterId;
-            const currentStatus = btn.dataset.status;
-            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
-            const courseId = "{{ $course->id }}"; // Blade variable
-
-            // 1. Immediate UI Feedback (Oogabooga speed)
-            const chapterNumber = btn.closest('.chapter-group')
-                .querySelector('input[name="chapter_number"]')?.value;
-
-            updateButtonUI(btn, newStatus);
-
-            // 2. Send to Server
-            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}`, {
-                status: newStatus,
-                title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
-                description: "Updated via toggle",
-                chapter_number: chapterNumber
-            })
-                .then(() => {
-                    checkMasterToggle();
-                })
-                .catch(() => {
-                    checkMasterToggle();
-                });
-        }
 
         function updateButtonUI(btn, status) {
             btn.dataset.status = status;
