@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
+use App\Models\coursequestion;
 use App\Models\lesson;
+use App\Models\questionchoice;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
@@ -29,6 +31,12 @@ class AISeeder extends Seeder
                 'description' => $data['description'],
                 'status' => $data['status'],
             ]);
+
+            coursequestion::factory()
+                ->count(100)
+                ->for($course)
+                ->has(questionchoice::factory()->count(4))
+                ->create();
 
             foreach ($data['chapters'] as $chapterData) {
 

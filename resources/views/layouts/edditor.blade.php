@@ -34,7 +34,7 @@
         <div class="nav-right">
 
 
-
+            @yield('right-side')
             <div class="user-badge" id="right-side">
                 <div class="user-avatar">{{substr($name, 0, 1)}}</div>
                 <span class="user-id">{{ $name }}</span>

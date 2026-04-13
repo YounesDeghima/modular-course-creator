@@ -9,6 +9,7 @@ use App\Http\Controllers\courseprogresscontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
+use App\Http\Controllers\quizcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
@@ -66,6 +67,12 @@ Route::prefix('admin')
             Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
                 ->name('courses.chapters.lessons.toggle-all');
 
+            Route::resource('courses.quiz', quizcontroller::class);
+
+
+
+
+
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
 
@@ -90,6 +97,10 @@ Route::prefix('admin')
 
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+
+        route::get('preview/courses/{course}/quiz',[previewcontroller::class , 'loadquiz'])->name('preview.courses.quiz');
+
+
     });});
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {
