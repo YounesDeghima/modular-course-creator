@@ -238,6 +238,64 @@
                                                value="{{ $block->content }}">
                                         @break
 
+                                    @case('list')
+                                        @php $listData = json_decode($block->content, true) ?? ['style' => 'bullet', 'items' => []]; @endphp
+                                        <div class="list-editor" data-block-id="{{ $block->id }}">
+                                            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                                <select name="blocks[{{ $block->id }}][list_style]" class="mini-type-select" style="width:auto;">
+                                                    <option value="bullet" {{ ($listData['style'] ?? 'bullet') == 'bullet' ? 'selected' : '' }}>• Bullet List</option>
+                                                    <option value="numbered" {{ ($listData['style'] ?? '') == 'numbered' ? 'selected' : '' }}>1. Numbered</option>
+                                                    <option value="checklist" {{ ($listData['style'] ?? '') == 'checklist' ? 'selected' : '' }}>☑ Checklist</option>
+                                                </select>
+                                            </div>
+                                            <textarea name="blocks[{{ $block->id }}][list_items]"
+                                                      class="input-ghost content-style"
+                                                      placeholder="Enter list items, one per line..."
+                                                      rows="{{ max(3, count($listData['items'] ?? []) + 1) }}"
+                                                      style="font-family:inherit;">{{ implode("\n", $listData['items'] ?? []) }}</textarea>
+                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="list-content-hidden" value="{{ $block->content }}">
+                                        @break
+
+                                    @case('separator')
+                                        @php $sepData = json_decode($block->content, true) ?? ['type' => 'divider']; @endphp
+                                        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                            <div style="display:flex;gap:12px;align-items:center;">
+                                                <select name="blocks[{{ $block->id }}][separator_type]" class="mini-type-select" style="width:auto;">
+                                                    <option value="divider" {{ ($sepData['type'] ?? 'divider') == 'divider' ? 'selected' : '' }}>— Horizontal Line</option>
+                                                    <option value="section_break" {{ ($sepData['type'] ?? '') == 'section_break' ? 'selected' : '' }}>§ Section Break</option>
+                                                    <option value="page_break" {{ ($sepData['type'] ?? '') == 'page_break' ? 'selected' : '' }}>↲ Page Break</option>
+                                                </select>
+                                                <span style="font-size:12px;color:var(--text-faint);">
+                                                     @if(($sepData['type'] ?? 'divider') == 'page_break')
+                                                        Inserts page break when printing
+                                                    @elseif(($sepData['type'] ?? '') == 'section_break')
+                                                        Visual section divider with spacing
+                                                    @else
+                                                        Simple horizontal line
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <div class="separator-preview" style="margin-top:12px;">
+                                                @if(($sepData['type'] ?? 'divider') == 'page_break')
+                                                    <div style="border:2px dashed var(--border);padding:8px 12px;text-align:center;color:var(--text-faint);font-size:12px;border-radius:6px;background:var(--bg);">
+                                                        ——— Page Break ———
+                                                    </div>
+                                                @elseif(($sepData['type'] ?? '') == 'section_break')
+                                                    <div style="display:flex;align-items:center;gap:12px;color:var(--text-faint);">
+                                                        <div style="flex:1;height:1px;background:var(--border);"></div>
+                                                        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;">Section End</span>
+                                                        <div style="flex:1;height:1px;background:var(--border);"></div>
+                                                    </div>
+                                                @else
+                                                    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
+                                        @break
+
 
                                     @case('ext')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
@@ -260,6 +318,8 @@
                                         <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
                                         <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
                                         <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>Exercise</option>
+                                        <option value="list" {{ $block->type == 'list' ? 'selected' : '' }}>List</option>
+                                        <option value="separator" {{ $block->type == 'separator' ? 'selected' : '' }}>Separator</option>
                                         <option value="photo" {{ $block->type == 'photo' ? 'selected' : '' }}>Photo</option>
                                         <option value="video" {{ $block->type == 'video' ? 'selected' : '' }}>Video</option>
                                         <option value="function" {{ $block->type == 'function' ? 'selected' : '' }}>Function</option>
@@ -315,6 +375,8 @@
                             <option value="math">Math (LaTeX)</option>
                             <option value="graph">Graph/Chart</option>
                             <option value="table">Table</option>
+                            <option value="list">List</option>
+                            <option value="separator">Separator</option>
                             <option value="function">Math Function</option>
                             <option value="ext">HTML/Embed</option>
                         </select>
@@ -350,6 +412,28 @@
                         <label>Initial Table (JSON format)</label>
                         <textarea name="table_data" class="modal-input" rows="4">[["Header 1","Header 2"],["Row 1 Col 1","Row 1 Col 2"]]</textarea>
                         <small style="color:var(--text-faint);font-size:11px;">Format: [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
+                    </div>
+
+                    {{-- List specific fields --}}
+                    <div class="form-group" id="list-content-group" style="display:none;">
+                        <label>List Style</label>
+                        <select name="list_style" class="modal-input" style="margin-bottom:8px;">
+                            <option value="bullet">Bullet Points (•)</option>
+                            <option value="numbered">Numbered (1, 2, 3)</option>
+                            <option value="checklist">Checklist (☑)</option>
+                        </select>
+                        <label style="margin-top:12px;">Items (one per line)</label>
+                        <textarea name="list_items" class="modal-input" rows="4" placeholder="Item 1&#10;Item 2&#10;Item 3"></textarea>
+                    </div>
+
+                    {{-- Separator specific fields --}}
+                    <div class="form-group" id="separator-content-group" style="display:none;">
+                        <label>Separator Type</label>
+                        <select name="separator_type" class="modal-input">
+                            <option value="divider">Horizontal Line</option>
+                            <option value="section_break">Section Break (with spacing)</option>
+                            <option value="page_break">Page Break (for print/PDF)</option>
+                        </select>
                     </div>
 
                     {{-- Function specific fields --}}
@@ -1396,6 +1480,49 @@
                 <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
                     ${existingContent ? '$' + existingContent + '$' : 'Preview will appear here...'}
                 </div>`;
+                case 'list':
+                    let listData = {style: 'bullet', items: []};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.items) listData = parsed;
+                    } catch(e) {}
+                    const listItems = (listData.items || []).join('\n');
+                    return `
+        <div class="list-editor" data-block-id="${blockId}">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <select name="blocks[${blockId}][list_style]" class="mini-type-select" style="width:auto;">
+                    <option value="bullet" ${listData.style == 'bullet' ? 'selected' : ''}>• Bullet List</option>
+                    <option value="numbered" ${listData.style == 'numbered' ? 'selected' : ''}>1. Numbered</option>
+                    <option value="checklist" ${listData.style == 'checklist' ? 'selected' : ''}>☑ Checklist</option>
+                </select>
+            </div>
+            <textarea name="blocks[${blockId}][list_items]" class="input-ghost content-style" placeholder="Enter list items, one per line..." rows="3" style="font-family:inherit;">${listItems}</textarea>
+            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" class="list-content-hidden" value='${JSON.stringify(listData)}'>`;
+
+                case 'separator':
+                    let sepData = {type: 'divider'};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.type) sepData = parsed;
+                    } catch(e) {}
+                    return `
+        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+            <select name="blocks[${blockId}][separator_type]" class="mini-type-select" style="width:auto;margin-bottom:8px;">
+                <option value="divider" ${sepData.type == 'divider' ? 'selected' : ''}>— Horizontal Line</option>
+                <option value="section_break" ${sepData.type == 'section_break' ? 'selected' : ''}>§ Section Break</option>
+                <option value="page_break" ${sepData.type == 'page_break' ? 'selected' : ''}>↲ Page Break</option>
+            </select>
+            <div class="separator-preview">
+                ${sepData.type == 'page_break'
+                        ? '<div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:12px;">——— Page Break ———</div>'
+                        : sepData.type == 'section_break'
+                            ? '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;">SECTION</span><div style="flex:1;height:1px;background:var(--border);"></div></div>'
+                            : '<hr style="border:none;border-top:1px solid var(--border);">'}
+            </div>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(sepData)}'>`;
 
                 case 'graph':
                     // Try to parse existing content as JSON, or use defaults
@@ -1782,10 +1909,20 @@
 
             // Set appropriate default content based on type
             let defaultContent = '';
+
             if (selectedType === 'graph') {
                 defaultContent = JSON.stringify({type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]});
                 formData.append('chart_type', 'line');
                 formData.append('chart_data', "Jan,Feb,Mar\n10,20,15");
+            } else if (selectedType === 'list') {
+                defaultContent = JSON.stringify({
+                    style: document.querySelector('#block-popup select[name="list_style"]')?.value || 'bullet',
+                    items: document.querySelector('#block-popup textarea[name="list_items"]')?.value.split('\n').filter(i => i.trim()) || ['Item 1', 'Item 2']
+                });
+            } else if (selectedType === 'separator') {
+                defaultContent = JSON.stringify({
+                    type: document.querySelector('#block-popup select[name="separator_type"]')?.value || 'divider'
+                });
             } else if (selectedType === 'table') {
                 defaultContent = JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]);
                 formData.append('table_data', JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]));
@@ -1839,6 +1976,8 @@
             <option value="note" ${selectedType == 'note' ? 'selected' : ''}>Note</option>
             <option value="code" ${selectedType == 'code' ? 'selected' : ''}>Code</option>
             <option value="exercise" ${selectedType == 'exercise' ? 'selected' : ''}>Exercise</option>
+            <option value="list" ${selectedType == 'list' ? 'selected' : ''}>List</option>
+            <option value="separator" ${selectedType == 'separator' ? 'selected' : ''}>Separator</option>
             <option value="photo" ${selectedType == 'photo' ? 'selected' : ''}>Photo</option>
             <option value="video" ${selectedType == 'video' ? 'selected' : ''}>Video</option>
             <option value="math" ${selectedType == 'math' ? 'selected' : ''}>Math</option>
@@ -1958,7 +2097,16 @@
             const fileGroup = document.getElementById('file-content-group');
             const graphGroup = document.getElementById('graph-content-group');
             const tableGroup = document.getElementById('table-content-group');
-            const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
+            const functionGroup = document.getElementById('function-content-group');
+            const listGroup = document.getElementById('list-content-group');
+            const separatorGroup = document.getElementById('separator-content-group');
+
+// Hide others...
+            if (listGroup) listGroup.style.display = 'none';
+            if (separatorGroup) separatorGroup.style.display = 'none';
+
+// Show logic:
+
 
             // Hide all first
             textGroup.style.display = 'none';
@@ -1977,9 +2125,15 @@
             } else if (type === 'table') {
                 tableGroup.style.display = 'flex';
                 tableGroup.style.flexDirection = 'column';
-            } else if (type === 'function') {  // ← FIXED: Proper condition
+            } else if (type === 'function') {
                 functionGroup.style.display = 'flex';
                 functionGroup.style.flexDirection = 'column';
+            } else if (type === 'list') {
+                listGroup.style.display = 'flex';
+                listGroup.style.flexDirection = 'column';
+            } else if (type === 'separator') {
+                separatorGroup.style.display = 'flex';
+                separatorGroup.style.flexDirection = 'column';
             } else {
                 textGroup.style.display = 'flex';
                 textGroup.style.flexDirection = 'column';

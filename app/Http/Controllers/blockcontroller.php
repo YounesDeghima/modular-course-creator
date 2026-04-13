@@ -132,7 +132,17 @@ class blockcontroller extends Controller
                         'labels' => $labels,
                         'data'   => $values,
                     ]);
-                } else {
+                } elseif ($type === 'list') {
+                    $items = array_filter(array_map('trim', explode("\n", $data['list_items'] ?? '')));
+                    $content = json_encode([
+                        'style' => $data['list_style'] ?? 'bullet',
+                        'items' => $items,
+                    ]);
+                } elseif ($type === 'separator') {
+                    $content = json_encode([
+                        'type' => $data['separator_type'] ?? 'divider',
+                    ]);
+                }else {
                     // For photo/video: content field already holds the storage path
                     // (uploaded eagerly via uploadMedia endpoint)
                     // For text types: content field holds the text
@@ -191,7 +201,10 @@ class blockcontroller extends Controller
     public function store(Request $request, Course $course, Chapter $chapter, Lesson $lesson)
     {
         $validated = $request->validate([
-            'type'         => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function',
+            'type'         => 'required|in:header,description,note,exercise,
+                                code,photo,video,math,graph,table,ext,function,
+                                list,separator',
+
             'block_number' => 'required|integer',
         ]);
 
@@ -220,7 +233,16 @@ class blockcontroller extends Controller
                 'labels' => $labels,
                 'data'   => $values,
             ]);
-        } else {
+        } elseif ($request->type === 'list') {
+            $validated['content'] = json_encode([
+                'style' => $request->input('list_style', 'bullet'), // bullet, numbered, checklist
+                'items' => array_filter(array_map('trim', explode("\n", $request->input('list_items', '')))),
+            ]);
+        } elseif ($request->type === 'separator') {
+            $validated['content'] = json_encode([
+                'type' => $request->input('separator_type', 'divider'), // page_break, section_break, divider
+            ]);
+        }else {
             $validated['content'] = $request->input('content', '');
         }
 

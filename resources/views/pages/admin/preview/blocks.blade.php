@@ -269,6 +269,55 @@
                             </div>
                             @break
 
+                        @case('list')
+                            @php $listData = json_decode($block->content, true); @endphp
+                            @if($listData && !empty($listData['items']))
+                                <div class="block-list" style="margin: 1.5rem 0; padding: 0 0.5rem;">
+                                    @if(($listData['style'] ?? 'bullet') === 'numbered')
+                                        <ol style="margin: 0; padding-left: 1.5rem; color: var(--text); line-height: 1.7;">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.4rem;">{{ $item }}</li>
+                                            @endforeach
+                                        </ol>
+                                    @elseif(($listData['style'] ?? '') === 'checklist')
+                                        <ul style="margin: 0; padding-left: 0.5rem; list-style: none; color: var(--text);">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; background: var(--bg); flex-shrink: 0;">☐</span>
+                                                    <span>{{ $item }}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <ul style="margin: 0; padding-left: 1.5rem; color: var(--text); line-height: 1.7; list-style-type: disc;">
+                                            @foreach($listData['items'] as $item)
+                                                <li style="margin-bottom: 0.4rem;">{{ $item }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            @endif
+                            @break
+
+                        @case('separator')
+                            @php $sepData = json_decode($block->content, true); @endphp
+                            @if(($sepData['type'] ?? 'divider') === 'page_break')
+                                <div class="block-separator page-break" style="margin: 2rem 0; border: 2px dashed var(--border); padding: 1rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; border-radius: 8px; background: var(--bg-subtle); page-break-after: always;">
+                                    <span style="letter-spacing: 0.2em; text-transform: uppercase;">Page Break</span>
+                                </div>
+                            @elseif(($sepData['type'] ?? '') === 'section_break')
+                                <div class="block-separator section-break" style="margin: 3rem 0; display: flex; align-items: center; gap: 1rem;">
+                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                    <span style="color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;">§</span>
+                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                </div>
+                            @else
+                                <div class="block-separator divider" style="margin: 2rem 0;">
+                                    <hr style="border: none; border-top: 1px solid var(--border); opacity: 0.6;">
+                                </div>
+                            @endif
+                            @break
+
                         @case('photo')
                             @if($block->content)
                                 <div style="margin: 20px 0;">
