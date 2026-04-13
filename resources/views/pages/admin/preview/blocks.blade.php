@@ -84,7 +84,6 @@
 
 @section('main')
 
-    <div id="scroll-progress"></div>
 
     <div class="lesson-wrapper">
         @if($prevlesson)
@@ -194,92 +193,29 @@
                         @case('function')
                             @php $funcData = json_decode($block->content, true); @endphp
                             @if($funcData)
-                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-                                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);margin-bottom:12px;padding:8px 12px;background:var(--bg-subtle);border-radius:4px;display:inline-block;">
-                                        f(x) = {{ $funcData['function'] ?? 'sin(x)' }}
+                                <div class="func-block-preview"
+                                     style="margin:20px 0;padding:16px;background:var(--bg);
+                    border:1px solid var(--border);border-radius:10px;">
+                                    {{-- equation label (KaTeX rendered if available) --}}
+                                    <div class="func-eq-label"
+                                         style="font-family:'JetBrains Mono',monospace;font-size:13px;
+                        color:var(--text);margin-bottom:10px;padding:6px 12px;
+                        background:var(--bg-subtle);border-radius:5px;
+                        display:inline-block;border:1px solid var(--border);">
+                <span class="katex-eq" data-eq="{{ htmlspecialchars($funcData['function'] ?? '') }}">
+                    {{ $funcData['function'] ?? '' }}
+                </span>
                                     </div>
-                                    <canvas id="preview-func-{{ $block->id }}" width="600" height="300" style="width:100%;max-width:100%;height:auto;"></canvas>
+                                    <canvas id="preview-func-{{ $block->id }}"
+                                            style="width:100%;height:auto;display:block;border-radius:6px;
+                           background:var(--bg);">
+                                    </canvas>
                                 </div>
                                 <script>
-                                    (function() {
-                                        const canvas = document.getElementById('preview-func-{{ $block->id }}');
-                                        if (!canvas) return;
-                                        const ctx = canvas.getContext('2d');
-                                        const width = canvas.width;
-                                        const height = canvas.height;
-
-                                        const xMin = {{ $funcData['x_min'] ?? -10 }};
-                                        const xMax = {{ $funcData['x_max'] ?? 10 }};
-                                        const yMin = {{ $funcData['y_min'] ?? -5 }};
-                                        const yMax = {{ $funcData['y_max'] ?? 5 }};
-                                        const color = '{{ $funcData['color'] ?? '#4f46e5' }}';
-                                        const step = {{ $funcData['step'] ?? 0.1 }};
-                                        const funcExpr = '{{ $funcData['function'] ?? 'sin(x)' }}'
-                                            .replace(/\^/g, '**')
-                                            .replace(/sin/g, 'Math.sin')
-                                            .replace(/cos/g, 'Math.cos')
-                                            .replace(/tan/g, 'Math.tan')
-                                            .replace(/sqrt/g, 'Math.sqrt')
-                                            .replace(/log/g, 'Math.log')
-                                            .replace(/abs/g, 'Math.abs')
-                                            .replace(/pi/g, 'Math.PI')
-                                            .replace(/e(?![a-z])/g, 'Math.E');
-
-                                        // Clear
-                                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg') || '#ffffff';
-                                        ctx.fillRect(0, 0, width, height);
-
-                                        // Grid
-                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e5e7eb';
-                                        ctx.lineWidth = 1;
-                                        ctx.beginPath();
-                                        for (let i = 0; i <= 10; i++) {
-                                            const x = (i / 10) * width;
-                                            ctx.moveTo(x, 0);
-                                            ctx.lineTo(x, height);
-                                            const y = (i / 10) * height;
-                                            ctx.moveTo(0, y);
-                                            ctx.lineTo(width, y);
-                                        }
-                                        ctx.stroke();
-
-                                        // Axes
-                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-faint') || '#9ca3af';
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        const yZero = height - ((0 - yMin) / (yMax - yMin)) * height;
-                                        if (yZero >= 0 && yZero <= height) {
-                                            ctx.moveTo(0, yZero);
-                                            ctx.lineTo(width, yZero);
-                                        }
-                                        const xZero = ((0 - xMin) / (xMax - xMin)) * width;
-                                        if (xZero >= 0 && xZero <= width) {
-                                            ctx.moveTo(xZero, 0);
-                                            ctx.lineTo(xZero, height);
-                                        }
-                                        ctx.stroke();
-
-                                        // Function
-                                        ctx.strokeStyle = color;
-                                        ctx.lineWidth = 3;
-                                        ctx.beginPath();
-                                        let first = true;
-                                        for (let x = xMin; x <= xMax; x += step) {
-                                            let y;
-                                            try {
-                                                y = eval(funcExpr.replace(/x/g, '(' + x + ')'));
-                                            } catch(e) { continue; }
-                                            if (!isFinite(y) || isNaN(y)) continue;
-                                            const cx = ((x - xMin) / (xMax - xMin)) * width;
-                                            const cy = height - ((y - yMin) / (yMax - yMin)) * height;
-                                            if (first) {
-                                                ctx.moveTo(cx, cy);
-                                                first = false;
-                                            } else {
-                                                ctx.lineTo(cx, cy);
-                                            }
-                                        }
-                                        ctx.stroke();
+                                    (function(){
+                                        const funcData = {!! json_encode($funcData) !!};
+                                        window._funcBlocks = window._funcBlocks || [];
+                                        window._funcBlocks.push({ id: '{{ $block->id }}', data: funcData });
                                     })();
                                 </script>
                             @endif
@@ -332,6 +268,8 @@
 @endsection
 
 @section('js')
+    <script src="{{ asset('js/function.js') }}"></script>
+
     <script>
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {

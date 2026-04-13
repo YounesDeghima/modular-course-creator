@@ -146,73 +146,97 @@
                                     @case('function')
                                         @php
                                             $funcData = json_decode($block->content, true) ?? [
-                                                'function' => 'sin(x)',
-                                                'x_min' => -10,
-                                                'x_max' => 10,
-                                                'y_min' => -5,
-                                                'y_max' => 5,
-                                                'color' => '#4f46e5',
-                                                'step' => 0.1
+                                                'function' => 'y = sin(x)',
+                                                'x_min'    => -10,
+                                                'x_max'    => 10,
+                                                'y_min'    => -6,
+                                                'y_max'    => 6,
+                                                'color'    => '#4f46e5',
+                                                'step'     => 0.05,
                                             ];
                                         @endphp
+
                                         <div class="function-editor" data-block-id="{{ $block->id }}">
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:2;min-width:200px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x) =</label>
-                                                    <input type="text" name="blocks[{{ $block->id }}][func_expression]"
-                                                           value="{{ $funcData['function'] ?? 'sin(x)' }}"
-                                                           class="input-ghost"
-                                                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;"
-                                                           placeholder="e.g., sin(x), x^2, cos(x)*x">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Min</label>
+
+                                            {{-- Row 1: equation input --}}
+                                            <div style="margin-bottom:8px;">
+                                                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">
+                                                    Equation (any form: <code>y=sin(x)</code>, <code>x^2+y^2=1</code>, <code>y-x^2=0</code> …)
+                                                </label>
+                                                <input type="text"
+                                                       name="blocks[{{ $block->id }}][func_expression]"
+                                                       value="{{ $funcData['function'] ?? 'y = sin(x)' }}"
+                                                       class="input-ghost func-eq-input"
+                                                       style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 10px;letter-spacing:.02em;"
+                                                       placeholder="e.g.  y = x^2   or   x^2 + y^2 = 25   or   sin(y) = cos(x)">
+                                            </div>
+
+                                            {{-- Row 2: ranges + color --}}
+                                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X min</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][x_min]"
                                                            value="{{ $funcData['x_min'] ?? -10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Max</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X max</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][x_max]"
                                                            value="{{ $funcData['x_max'] ?? 10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                            </div>
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Min</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y min</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][y_min]"
-                                                           value="{{ $funcData['y_min'] ?? -5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           value="{{ $funcData['y_min'] ?? -6 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Max</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y max</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][y_max]"
-                                                           value="{{ $funcData['y_max'] ?? 5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                                           value="{{ $funcData['y_max'] ?? 6 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
+                                                <div style="flex:0 0 auto;">
                                                     <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
                                                     <input type="color" name="blocks[{{ $block->id }}][color]"
                                                            value="{{ $funcData['color'] ?? '#4f46e5' }}"
-                                                           style="width:100%;height:32px;border:none;cursor:pointer;">
+                                                           style="width:48px;height:32px;border:none;cursor:pointer;border-radius:4px;">
                                                 </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
+                                                <div style="flex:1;min-width:70px;">
+                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Resolution</label>
                                                     <input type="number" name="blocks[{{ $block->id }}][step]"
-                                                           value="{{ $funcData['step'] ?? 0.1 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01" min="0.01" max="1">
+                                                           value="{{ $funcData['step'] ?? 0.05 }}"
+                                                           class="input-ghost" style="width:100%;padding:5px 8px;"
+                                                           step="0.005" min="0.005" max="0.5">
                                                 </div>
                                             </div>
-                                            <div class="function-preview" style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
-                                                <canvas id="func-canvas-{{ $block->id }}" width="400" height="200" style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
+
+                                            {{-- Canvas preview --}}
+                                            <div class="function-preview"
+                                                 style="position:relative;margin-top:10px;padding:10px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                                <canvas id="func-canvas-{{ $block->id }}"
+                                                        style="width:100%;height:auto;display:block;border-radius:4px;background:var(--bg);">
+                                                </canvas>
+                                                <div id="func-error-{{ $block->id }}"
+                                                     style="display:none;position:absolute;bottom:14px;left:14px;font-size:11px;
+                                                     color:#ef4444;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:4px;"></div>
                                             </div>
-                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
-                                                Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x), etc.
+
+                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:5px;">
+                                                Supports: +  −  *  /  ^  sin cos tan asin acos atan sqrt abs log ln exp pi e — both x and y variables.
                                             </small>
                                         </div>
-                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="function-content-hidden" value="{{ $block->content }}">
+
+                                        {{-- Hidden input keeps JSON for blockcontroller —
+                                             its name must NOT conflict with func_expression / x_min etc.
+                                             The JS below writes to it on every change.                  --}}
+                                        <input type="hidden"
+                                               name="blocks[{{ $block->id }}][content]"
+                                               class="function-content-hidden"
+                                               value="{{ $block->content }}">
                                         @break
+
 
                                     @case('ext')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
@@ -611,6 +635,7 @@
 
 
 @section('js')
+    <script src="{{ asset('js/function.js') }}"></script>
     <script>
 
         document.addEventListener('DOMContentLoaded', function() {
