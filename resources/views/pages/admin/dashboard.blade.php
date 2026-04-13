@@ -241,7 +241,7 @@
             </thead>
             <tbody id="users-tbody">
             @foreach($users as $user)
-                <livewire:user :user="$user"/>
+                <livewire:user_info.user :user="$user"/>
             @endforeach
             </tbody>
         </table>

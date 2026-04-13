@@ -128,7 +128,7 @@
 @endsection
 
 @section('right-side')
-    <livewire:savequiz :course="$course"/>
+    <livewire:quiz.savequiz :course="$course"/>
 @endsection
 
 
@@ -143,9 +143,9 @@
     @section('main')
 
         @fragment('main-content')
-            <livewire:questions :questions="$questions"
+            <livewire:quiz.questions :questions="$questions"
                                 :course="$course"/>
-            <livewire:questioncreate :course="$course"/>
+            <livewire:quiz.questioncreate :course="$course"/>
 
 
 

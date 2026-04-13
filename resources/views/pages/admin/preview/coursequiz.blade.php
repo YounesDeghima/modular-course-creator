@@ -136,7 +136,7 @@
 @section('main')
 
     @fragment('main-content')
-        <livewire:coursequizpreview :course="$course" :questions="$questions"/>
+        <livewire:quiz.coursequizpreview :course="$course" :questions="$questions"/>
 
     @endfragment
 @endsection
