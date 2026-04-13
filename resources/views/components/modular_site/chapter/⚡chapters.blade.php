@@ -8,7 +8,9 @@ new class extends Component {
     public $chapters;
     public $openChapters = [];
 
-    protected $listeners = ['chapterCreated' => 'addChapter'];
+    protected $listeners = ['chapterCreated' => 'addChapter' ,
+                            'ChapterUpdated'=>'updateChapter',
+                            'ChapterDeleted'=>'deleteChapter'];
 
     public function mount($course,$chapters)
     {
@@ -35,6 +37,30 @@ new class extends Component {
             $this->openChapters[] = $chapterId;
         }
     }
+    public function updateChapter($id){
+        $updatedChapter = \App\Models\Chapter::find($id);
+
+        if ($updatedChapter) {
+            // Map through the current collection and replace the matching ID
+            $this->chapters = $this->chapters->map(function ($chapter) use ($updatedChapter) {
+                return $chapter->id === $updatedChapter->id ? $updatedChapter : $chapter;
+            });
+        }
+    }
+
+    public function deleteChapter($id){
+        $this->chapters = $this->chapters->reject(function ($chapter) use ($id) {
+            return $chapter->id === $id;
+        });
+    }
+
+    public function togglestatus($id){
+        $chapter = chapter::findOrFail($id);
+        $newStatus = ($chapter->status === 'published') ? 'draft' : 'published';
+
+        $chapter->update(['status' => $newStatus]);
+    }
+
 
 };
 ?>
@@ -42,7 +68,7 @@ new class extends Component {
 <div>
     @if($chapters)
         @foreach($chapters as $chapter)
-            <div class="chapter-group" x-data="{open : false}">
+            <div class="chapter-group" x-data="{open : false,open_update_modal : false,status : '{{$chapter->status}}'}" wire:key="">
 
                 <div class="chapter-header" @click="open=!open">
                     <div class="header-left">
@@ -50,21 +76,27 @@ new class extends Component {
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
 
                         <button type="button"
-                                class="status-toggle-btn {{ $chapter->status }}"
-                                data-chapter-id="{{ $chapter->id }}"
+                                :class="status"
+                                class="status-toggle-btn"
+                                data-chapter-id="{{ $chapter->id}}"
                                 data-status="{{ $chapter->status }}"
-                                onclick="toggleSingleChapter(this)">
-                            {{ ucfirst($chapter->status) }}
+
+                                @click.stop="status=(status === 'published') ? 'draft' :'published';
+                                             $wire.togglestatus({{$chapter->id}})">
+                            <span x-text="status.charAt(0).toUpperCase() + status.slice(1)"></span>
+
                         </button>
                     </div>
 
                     <div class="header-right">
-                        <span class="pen-icon" onclick="openModal('chapter-modal-{{$chapter->id}}')">✏️</span>
+                        <span class="pen-icon" @click.stop="open_update_modal = true">✏️</span>
 
                     </div>
                 </div>
 
-                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" x-show="open" style="display:none;">
+                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" x-show="open"
+                     @open-chapter-modal-{{$chapter->id}}.window="open = true"
+                     style="display:none;">
                     @if($chapter->lessons->count() > 0)
                         <div class="lesson-row bulk-lesson-action">
                             <form action="{{ route('admin.courses.chapters.lessons.toggle-all', [$course->id, $chapter->id]) }}"
@@ -190,60 +222,10 @@ new class extends Component {
                     </div>
                 </div>
 
-                <div id="chapter-modal-{{$chapter->id}}" class="modal-overlay">
-                    <div class="modal-content">
-                        <span class="close-btn" onclick="closeModal('chapter-modal-{{$chapter->id}}')">&times;</span>
-                        <h3>Edit Chapter</h3>
 
-                        <form onsubmit="updateChapter(event, this)"
-                              action="{{ route('admin.courses.chapters.update', [$course->id, $chapter->id]) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <div class="form-group">
-                                <label>Title</label>
-                                <input type="text" name="title" value="{{ $chapter->title }}" class="modal-input">
-                            </div>
 
-                            <div class="form-group">
-                                <label>Chapter Number</label>
 
-                                <input type="number" name="chapter_number" value="{{ $chapter->chapter_number }}"
-                                       class="modal-input">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Visibility Status</label>
-                                <select name="status" class="modal-input">
-                                    <option value="draft" {{ $chapter->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)
-                                    </option>
-                                    <option value="published" {{ $chapter->status == 'published' ? 'selected' : '' }}>Published
-                                        (Live)
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Description</label>
-                                <textarea name="description" class="modal-input"
-                                          style="height:120px">{{ $chapter->description }}</textarea>
-                            </div>
-                            <button type="submit" class="btn-update">Update Chapter</button>
-                        </form>
-
-                        <form action="{{ route('admin.courses.chapters.destroy', [$course, $chapter]) }}" method="POST"
-                              class="delete-form">
-                            @csrf
-                            @method('DELETE')
-                            <button type="button"
-                                    class="btn-delete"
-                                    onclick="deleteChapter(event, this)"
-                                    data-url="{{ route('admin.courses.chapters.destroy', [$course, $chapter]) }}"
-                                    data-chapter-id="{{ $chapter->id }}">
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter"/>
 
             </div>
 

@@ -10,7 +10,12 @@
 
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
+    <style>
 
+        .chapter-modal{
+            display: flex;
+        }
+    </style>
 @endsection
 
 @section('back-button')
@@ -370,22 +375,10 @@
         </form>
     </div>
 
-    <livewire:modular_site.chapters :course="$course" :chapters="$chapters"/>
+    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters"/>
 
 
-
-
-
-    <div class="chapter-group add-chapter-trigger">
-        <div class="chapter-header add-header" onclick="openModal('add-chapter-modal')">
-            <div class="header-left">
-                <span class="plus-icon-lg">+</span>
-                <strong class="chapter-title">Add New Chapter</strong>
-            </div>
-        </div>
-    </div>
-
-    <livewire:modular_site.chaptercreate :course="$course"/>
+    <livewire:modular_site.chapter.chaptercreate :course="$course"/>
 
 
 {{--    <div id="add-chapter-modal" class="modal-overlay">--}}
@@ -597,29 +590,7 @@
                 localStorage.setItem('openChapters', JSON.stringify(openChapters));
             };
 
-            // Open/Close Modals
-            window.openModal = function(id) {
-                const modal = document.getElementById(id);
-                if (modal) modal.style.display = 'flex';
-            }
 
-            window.closeModal = function(id) {
-                const modal = document.getElementById(id);
-                if (modal) modal.style.display = 'none';
-            }
-
-            // The Pen button toggles the type dropdown (Using ID)
-            window.toggleTypeSelect = function(id) {
-                const el = document.getElementById('select-' + id);
-                if (el) el.classList.toggle('active');
-            }
-
-            // Close modals on background click
-            window.onclick = function(event) {
-                if (event.target.classList.contains('modal-overlay')) {
-                    event.target.style.display = 'none';
-                }
-            }
 
             // --- 4. INITIALIZATION ---
             // initBlockEditor();
@@ -810,10 +781,10 @@
         // If you use the AJAX toggle from the previous step,
         // make sure to call updateMasterButtonUI() inside the .then() block!
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) modal.style.display = 'none';
-        }
+        // function closeModal(id) {
+        //     const modal = document.getElementById(id);
+        //     if (modal) modal.style.display = 'none';
+        // }
 
         function deleteLesson(event, courseId, chapterId, lessonId) {
             event.stopPropagation(); // 🔥 critical
