@@ -3,6 +3,8 @@
 @section('css')
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
+
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
     <style>
         /* ── Photo & Video blocks ── */
         .block-media {
@@ -226,9 +228,8 @@
 
         <div class="blocks-container">
             <div class="preview" id="preview">
-                @forelse$blocks as $block)
+                @foreach($blocks as $block)
                     @switch($block->type)
-
                         @case('header')
                             <h1>{{ $block->content }}</h1>
                             @break
@@ -262,21 +263,18 @@
                             @break
 
                         @case('photo')
-                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                <div class="block-media">
-                                    <img src="{{ asset('storage/' . $block->content) }}"
-                                         alt="Image"
-                                         onclick="this.requestFullscreen ? this.requestFullscreen() : window.open(this.src)">
+                            @if($block->content)
+                                <div style="margin: 20px 0;">
+                                    <img src="{{ asset('storage/' . $block->content) }}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
                                 </div>
                             @endif
                             @break
 
                         @case('video')
-                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                <div class="block-media">
-                                    <video src="{{ asset('storage/' . $block->content) }}"
-                                           controls
-                                           preload="metadata">
+                            @if($block->content)
+                                <div style="margin: 20px 0;">
+                                    <video controls style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                        <source src="{{ asset('storage/' . $block->content) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
                                 </div>
@@ -284,38 +282,88 @@
                             @break
 
                         @case('math')
-                            <div class="block-math">
-                                \( {{ $block->content }} \)
+                            <div style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
+                                <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
+                                    $${{ $block->content }}$$
+                                </div>
+                                <small style="display:block;margin-top:8px;color:var(--text-faint);text-align:center;">LaTeX: {{ $block->content }}</small>
                             </div>
                             @break
 
                         @case('graph')
-                            @php $graphData = json_decode($block->content, true) ?? []; @endphp
-                            <div class="block-graph">
-                                <canvas id="graph-{{ $block->id }}"></canvas>
-                            </div>
+                            @php $graphData = json_decode($block->content, true); @endphp
+                            @if($graphData)
+                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                                    <canvas id="chart-{{ $block->id }}" width="400" height="200" style="max-width:100%;"></canvas>
+                                </div>
+                                <script>
+                                    (function() {
+                                        var ctx = document.getElementById('chart-{{ $block->id }}');
+                                        if(ctx && typeof Chart !== 'undefined') {
+                                            new Chart(ctx, {
+                                                type: '{{ $graphData['type'] ?? 'line' }}',
+                                                data: {
+                                                    labels: {!! json_encode($graphData['labels'] ?? []) !!},
+                                                    datasets: [{
+                                                        label: 'Values',
+                                                        data: {!! json_encode($graphData['data'] ?? []) !!},
+                                                        borderColor: '#4f46e5',
+                                                        backgroundColor: '{{ $graphData['type'] == 'pie' ? json_encode(['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']) : 'rgba(79, 70, 229, 0.1)' }}',
+                                                        tension: 0.4
+                                                    }]
+                                                },
+                                                options: {
+                                                    responsive: true,
+                                                    maintainAspectRatio: true,
+                                                    plugins: { legend: { display: {{ ($graphData['type'] ?? 'line') == 'pie' ? 'true' : 'false' }} } }
+                                                }
+                                            });
+                                        }
+                                    })();
+                                </script>
+                            @endif
                             @break
 
                         @case('function')
-                            @php $funcData = json_decode($block->content, true) ?? []; @endphp
-                            <div class="block-function">
-                                <canvas id="func-{{ $block->id }}" width="600" height="260"></canvas>
-                            </div>
+                            @php $funcData = json_decode($block->content, true); @endphp
+                            @if($funcData)
+                                <div class="func-block-preview"
+                                     style="margin:20px 0;padding:16px;background:var(--bg);
+                    border:1px solid var(--border);border-radius:10px;">
+                                    {{-- equation label (KaTeX rendered if available) --}}
+                                    <div class="func-eq-label"
+                                         style="font-family:'JetBrains Mono',monospace;font-size:13px;
+                        color:var(--text);margin-bottom:10px;padding:6px 12px;
+                        background:var(--bg-subtle);border-radius:5px;
+                        display:inline-block;border:1px solid var(--border);">
+                <span class="katex-eq" data-eq="{{ htmlspecialchars($funcData['function'] ?? '') }}">
+                    {{ $funcData['function'] ?? '' }}
+                </span>
+                                    </div>
+                                    <canvas id="preview-func-{{ $block->id }}"
+                                            style="width:100%;height:auto;display:block;border-radius:6px;
+                           background:var(--bg);">
+                                    </canvas>
+                                </div>
+                                <script>
+                                    (function(){
+                                        const funcData = {!! json_encode($funcData) !!};
+                                        window._funcBlocks = window._funcBlocks || [];
+                                        window._funcBlocks.push({ id: '{{ $block->id }}', data: funcData });
+                                    })();
+                                </script>
+                            @endif
                             @break
 
                         @case('table')
-                            @php $tableData = json_decode($block->content, true) ?? []; @endphp
-                            @if(!empty($tableData))
-                                <div class="block-table">
-                                    <table>
+                            @php $tableData = json_decode($block->content, true); @endphp
+                            @if($tableData && count($tableData) > 0)
+                                <div style="margin: 20px 0; overflow-x: auto;">
+                                    <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); font-size: 14px;">
                                         @foreach($tableData as $rowIndex => $row)
-                                            <tr>
+                                            <tr style="{{ $rowIndex === 0 ? 'background: var(--bg-subtle); font-weight: 600;' : 'background: var(--bg);' }}">
                                                 @foreach($row as $cell)
-                                                    @if($rowIndex === 0)
-                                                        <th>{{ $cell }}</th>
-                                                    @else
-                                                        <td>{{ $cell }}</td>
-                                                    @endif
+                                                    <td style="border: 1px solid var(--border); padding: 12px; text-align: left;">{{ $cell }}</td>
                                                 @endforeach
                                             </tr>
                                         @endforeach
@@ -325,13 +373,13 @@
                             @break
 
                         @case('ext')
-                            <div class="block-ext">
+                            <div style="margin: 20px 0; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto;">
                                 {!! $block->content !!}
                             </div>
                             @break
 
                     @endswitch
-                @endforelse
+                @endforeach
             </div>
         </div>
 
@@ -387,19 +435,47 @@
 @endsection
 
 @section('js')
-    {{-- KaTeX for math rendering --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-            onload="renderMathInElement(document.getElementById('preview'), { delimiters: [{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}] });">
-    </script>
 
-    {{-- Chart.js for graph blocks --}}
-    @if($graphBlocks->count())
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    @endif
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+    <script src="{{ asset('vendors/chart.js') }}"></script>
 
+
+    <script src="{{ asset('js/function.js') }}"></script>
     <script>
+        // ── Scroll progress + lesson completion ──
+        let maxProgress = 0;
+        let sent = document.querySelector('.completed_checkbox').checked;
+        const main = document.querySelector('main');
+
+        main.addEventListener('scroll', () => {
+            const scrollable = main.scrollHeight - main.clientHeight;
+            if (scrollable <= 0) return;
+
+            const progress = (main.scrollTop / scrollable) * 100;
+            if (progress > maxProgress) {
+                maxProgress = progress;
+                document.getElementById('scroll-progress').style.width = maxProgress + '%';
+            }
+
+            if (maxProgress >= 90 && !sent) {
+                sent = true;
+                document.getElementById('progress-input').value = Math.round(maxProgress);
+                document.getElementById('progress-form').submit();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // THIS IS THE TRIGGER YOU ARE MISSING
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {
             const blockId   = btn.dataset.blockid;
@@ -471,85 +547,76 @@
             });
         });
 
-        function drawFunction(canvas, d) {
-            const ctx    = canvas.getContext('2d');
-            const W      = canvas.width;
-            const H      = canvas.height;
-            const xMin   = parseFloat(d.x_min ?? -10);
-            const xMax   = parseFloat(d.x_max ?? 10);
-            const yMin   = parseFloat(d.y_min ?? -5);
-            const yMax   = parseFloat(d.y_max ?? 5);
-            const color  = d.color || '#4f46e5';
-            const step   = parseFloat(d.step ?? 0.05);
-            const expr   = (d.function || 'sin(x)')
-                .replace(/\^/g,    '**')
-                .replace(/sin/g,   'Math.sin')
-                .replace(/cos/g,   'Math.cos')
-                .replace(/tan/g,   'Math.tan')
-                .replace(/sqrt/g,  'Math.sqrt')
-                .replace(/log/g,   'Math.log')
-                .replace(/abs/g,   'Math.abs')
-                .replace(/pi/g,    'Math.PI')
-                .replace(/e(?![a-z])/g, 'Math.E');
+        // function drawFunction(canvas, d) {
+        //     const ctx    = canvas.getContext('2d');
+        //     const W      = canvas.width;
+        //     const H      = canvas.height;
+        //     const xMin   = parseFloat(d.x_min ?? -10);
+        //     const xMax   = parseFloat(d.x_max ?? 10);
+        //     const yMin   = parseFloat(d.y_min ?? -5);
+        //     const yMax   = parseFloat(d.y_max ?? 5);
+        //     const color  = d.color || '#4f46e5';
+        //     const step   = parseFloat(d.step ?? 0.05);
+        //     const expr   = (d.function || 'sin(x)')
+        //         .replace(/\^/g,    '**')
+        //         .replace(/sin/g,   'Math.sin')
+        //         .replace(/cos/g,   'Math.cos')
+        //         .replace(/tan/g,   'Math.tan')
+        //         .replace(/sqrt/g,  'Math.sqrt')
+        //         .replace(/log/g,   'Math.log')
+        //         .replace(/abs/g,   'Math.abs')
+        //         .replace(/pi/g,    'Math.PI')
+        //         .replace(/e(?![a-z])/g, 'Math.E');
+        //
+        //     ctx.clearRect(0, 0, W, H);
+        //     ctx.fillStyle = '#ffffff';
+        //     ctx.fillRect(0, 0, W, H);
+        //
+        //     // Grid
+        //     ctx.strokeStyle = '#e5e7eb';
+        //     ctx.lineWidth   = 1;
+        //     for (let i = 0; i <= 10; i++) {
+        //         ctx.beginPath(); ctx.moveTo((i/10)*W, 0); ctx.lineTo((i/10)*W, H); ctx.stroke();
+        //         ctx.beginPath(); ctx.moveTo(0, (i/10)*H); ctx.lineTo(W, (i/10)*H); ctx.stroke();
+        //     }
+        //
+        //     // Axes
+        //     ctx.strokeStyle = '#9ca3af';
+        //     ctx.lineWidth   = 1.5;
+        //     const yZero = H - ((0 - yMin) / (yMax - yMin)) * H;
+        //     const xZero = ((0 - xMin) / (xMax - xMin)) * W;
+        //     if (yZero >= 0 && yZero <= H) { ctx.beginPath(); ctx.moveTo(0, yZero); ctx.lineTo(W, yZero); ctx.stroke(); }
+        //     if (xZero >= 0 && xZero <= W) { ctx.beginPath(); ctx.moveTo(xZero, 0); ctx.lineTo(xZero, H); ctx.stroke(); }
+        //
+        //     // Curve
+        //     ctx.strokeStyle = color;
+        //     ctx.lineWidth   = 2.5;
+        //     ctx.beginPath();
+        //     let first = true;
+        //     const fn = new Function('x', `try { return ${expr}; } catch(e) { return NaN; }`);
+        //     for (let x = xMin; x <= xMax; x += step) {
+        //         const y = fn(x);
+        //         if (!isFinite(y) || isNaN(y)) { first = true; continue; }
+        //         const cx = ((x - xMin) / (xMax - xMin)) * W;
+        //         const cy = H - ((y - yMin) / (yMax - yMin)) * H;
+        //         if (cy < -500 || cy > H + 500) { first = true; continue; }
+        //         first ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+        //         first = false;
+        //     }
+        //     ctx.stroke();
+        // }
 
-            ctx.clearRect(0, 0, W, H);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, W, H);
 
-            // Grid
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth   = 1;
-            for (let i = 0; i <= 10; i++) {
-                ctx.beginPath(); ctx.moveTo((i/10)*W, 0); ctx.lineTo((i/10)*W, H); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, (i/10)*H); ctx.lineTo(W, (i/10)*H); ctx.stroke();
-            }
 
-            // Axes
-            ctx.strokeStyle = '#9ca3af';
-            ctx.lineWidth   = 1.5;
-            const yZero = H - ((0 - yMin) / (yMax - yMin)) * H;
-            const xZero = ((0 - xMin) / (xMax - xMin)) * W;
-            if (yZero >= 0 && yZero <= H) { ctx.beginPath(); ctx.moveTo(0, yZero); ctx.lineTo(W, yZero); ctx.stroke(); }
-            if (xZero >= 0 && xZero <= W) { ctx.beginPath(); ctx.moveTo(xZero, 0); ctx.lineTo(xZero, H); ctx.stroke(); }
 
-            // Curve
-            ctx.strokeStyle = color;
-            ctx.lineWidth   = 2.5;
-            ctx.beginPath();
-            let first = true;
-            const fn = new Function('x', `try { return ${expr}; } catch(e) { return NaN; }`);
-            for (let x = xMin; x <= xMax; x += step) {
-                const y = fn(x);
-                if (!isFinite(y) || isNaN(y)) { first = true; continue; }
-                const cx = ((x - xMin) / (xMax - xMin)) * W;
-                const cy = H - ((y - yMin) / (yMax - yMin)) * H;
-                if (cy < -500 || cy > H + 500) { first = true; continue; }
-                first ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
-                first = false;
-            }
-            ctx.stroke();
-        }
 
-        // ── Scroll progress + lesson completion ──
-        let maxProgress = 0;
-        let sent = document.querySelector('.completed_checkbox').checked;
-        const main = document.querySelector('main');
-
-        main.addEventListener('scroll', () => {
-            const scrollable = main.scrollHeight - main.clientHeight;
-            if (scrollable <= 0) return;
-
-            const progress = (main.scrollTop / scrollable) * 100;
-            if (progress > maxProgress) {
-                maxProgress = progress;
-                document.getElementById('scroll-progress').style.width = maxProgress + '%';
-            }
-
-            if (maxProgress >= 90 && !sent) {
-                sent = true;
-                document.getElementById('progress-input').value = Math.round(maxProgress);
-                document.getElementById('progress-form').submit();
-            }
+            // Your existing KaTeX logic for function blocks
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    katex.render(eq, el, { throwOnError: false });
+                }
+            });
         });
 
         // ── Restore scroll position ──

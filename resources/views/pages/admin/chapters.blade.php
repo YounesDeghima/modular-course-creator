@@ -6,11 +6,12 @@
 @section('css')
 
     <link rel="stylesheet" href="{{asset('css/modular-site.css')}}">
-
-
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
+
+
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
 @endsection
 
 @section('back-button')
@@ -101,7 +102,7 @@
                                     @case('math')
                                         <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style math-input" placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)" oninput="updateMathPreview(this)" rows="2">{{ $block->content }}</textarea>
                                         <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
-                                            @if($block->content) ${{ $block->content }} $ @endif
+                                            @if($block->content) <div>$${{ $block->content }}$$</div>@endif
                                         </div>
                                         @break
 
@@ -635,12 +636,40 @@
 
 
 @section('js')
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
     <script src="{{ asset('js/function.js') }}"></script>
+
     <script>
 
         document.addEventListener('DOMContentLoaded', function() {
-            initAutoResize();
 
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // 2. Handle KaTeX for function blocks specifically
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    // Use inline rendering for the small labels
+                    katex.render(eq, el, { throwOnError: false, displayMode: false });
+                }
+            });
+
+
+            initAutoResize();
             // --- 1. CORE UTILITIES ---
             const COURSE_ID = "{{ $course->id }}";
             const savedUrl = localStorage.getItem('activeLessonUrl');
@@ -1390,7 +1419,7 @@
 
                 case 'function':
                     let funcData = {
-                        function: 'sin(x)',
+                        function: 'sin(x)=y',
                         x_min: -10,
                         x_max: 10,
                         y_min: -5,

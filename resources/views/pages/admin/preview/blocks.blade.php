@@ -3,6 +3,9 @@
 @section('css')
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
+
+
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
 @endsection
 
 @section('sidebar-elements')
@@ -150,9 +153,9 @@
                         @case('math')
                             <div style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
                                 <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
-                                    {{ $block->content }}
+                                    $${{ $block->content }}$$
                                 </div>
-                                <small style="display:block;margin-top:8px;color:var(--text-faint);text-align:center;">LaTeX: {{ $block->content }}</small>
+
                             </div>
                             @break
 
@@ -268,7 +271,15 @@
 @endsection
 
 @section('js')
+
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
     <script src="{{ asset('js/function.js') }}"></script>
+
 
     <script>
         // ── Solution toggle ──
@@ -334,6 +345,27 @@
                     localStorage.setItem(key, main.scrollTop);
                 });
             }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // THIS IS THE TRIGGER YOU ARE MISSING
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // Your existing KaTeX logic for function blocks
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    katex.render(eq, el, { throwOnError: false });
+                }
+            });
         });
     </script>
 @endsection
