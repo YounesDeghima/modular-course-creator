@@ -4,6 +4,7 @@
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
 
+
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
     <style>
         /* ── Photo & Video blocks ── */
@@ -211,6 +212,8 @@
 @endsection
 
 @section('main')
+
+
     <div class="lesson-wrapper">
 
         {{-- Prev nav button --}}
@@ -286,7 +289,6 @@
                                 <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
                                     $${{ $block->content }}$$
                                 </div>
-                                <small style="display:block;margin-top:8px;color:var(--text-faint);text-align:center;">LaTeX: {{ $block->content }}</small>
                             </div>
                             @break
 
@@ -409,73 +411,21 @@
                value="{{ $lesson_progress ? $lesson_progress->progress : 0 }}">
         <button type="submit">Send</button>
     </form>
-
-    {{-- Pass graph/function data to JS --}}
-    @php
-        $graphBlocks    = $blocks->where('type', 'graph');
-        $functionBlocks = $blocks->where('type', 'function');
-    @endphp
-
-    @if($graphBlocks->count() || $functionBlocks->count())
-        <script>
-            window.__blockData = {
-                graphs: {
-                    @foreach($graphBlocks as $b)
-                    "{{ $b->id }}": @json(json_decode($b->content, true) ?? []),
-                    @endforeach
-                },
-                functions: {
-                    @foreach($functionBlocks as $b)
-                    "{{ $b->id }}": @json(json_decode($b->content, true) ?? []),
-                    @endforeach
-                }
-            };
-        </script>
-    @endif
 @endsection
 
 @section('js')
 
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
     <script src="{{ asset('vendors/chart.js') }}"></script>
 
 
     <script src="{{ asset('js/function.js') }}"></script>
+
+
     <script>
-        // ── Scroll progress + lesson completion ──
-        let maxProgress = 0;
-        let sent = document.querySelector('.completed_checkbox').checked;
-        const main = document.querySelector('main');
-
-        main.addEventListener('scroll', () => {
-            const scrollable = main.scrollHeight - main.clientHeight;
-            if (scrollable <= 0) return;
-
-            const progress = (main.scrollTop / scrollable) * 100;
-            if (progress > maxProgress) {
-                maxProgress = progress;
-                document.getElementById('scroll-progress').style.width = maxProgress + '%';
-            }
-
-            if (maxProgress >= 90 && !sent) {
-                sent = true;
-                document.getElementById('progress-input').value = Math.round(maxProgress);
-                document.getElementById('progress-form').submit();
-            }
-        });
-
-        document.addEventListener("DOMContentLoaded", function() {
-            // THIS IS THE TRIGGER YOU ARE MISSING
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError : false
-            });
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {
             const blockId   = btn.dataset.blockid;
@@ -493,122 +443,65 @@
         // ── Copy code buttons ──
         document.querySelectorAll('.preview pre').forEach(pre => {
             const btn = document.createElement('button');
-            btn.className   = 'copy-code-btn';
+            btn.className = 'copy-code-btn';
             btn.textContent = 'Copy';
             pre.style.position = 'relative';
             pre.appendChild(btn);
             btn.addEventListener('click', () => {
-                navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
+                const code = pre.querySelector('code');
+                navigator.clipboard.writeText(code.innerText).then(() => {
                     btn.textContent = 'Copied!';
                     setTimeout(() => btn.textContent = 'Copy', 2000);
                 });
             });
         });
 
-        // ── Chart.js graphs ──
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.__blockData) return;
+        // ── Scroll progress + lesson completion ──
+        let maxProgress = 0;
+        let sent = document.querySelector('.completed_checkbox').checked;
+        const main = document.querySelector('main');
 
-            // Graphs
-            Object.entries(window.__blockData.graphs || {}).forEach(([id, data]) => {
-                const canvas = document.getElementById('graph-' + id);
-                if (!canvas || !data.labels) return;
-                new Chart(canvas, {
-                    type: data.type || 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: '',
-                            data: data.data.map(Number),
-                            backgroundColor: 'rgba(79,70,229,0.15)',
-                            borderColor: '#4f46e5',
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            tension: 0.3,
-                            fill: data.type === 'line',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: data.type === 'pie' ? {} : {
-                            x: { grid: { color: 'rgba(0,0,0,0.05)' } },
-                            y: { grid: { color: 'rgba(0,0,0,0.05)' } }
-                        }
-                    }
-                });
-            });
+        main.addEventListener('scroll', () => {
+            const scrollable = main.scrollHeight - main.clientHeight;
+            if (scrollable <= 0) return;
 
-            // Function plots
-            Object.entries(window.__blockData.functions || {}).forEach(([id, d]) => {
-                const canvas = document.getElementById('func-' + id);
-                if (!canvas) return;
-                drawFunction(canvas, d);
-            });
+            const progress = (main.scrollTop / scrollable) * 100;
+
+            if (progress > maxProgress) {
+                maxProgress = progress;
+                document.getElementById('scroll-progress').style.width = maxProgress + '%';
+            }
+
+            if (maxProgress >= 90 && !sent) {
+                sent = true;
+                document.getElementById('progress-input').value = Math.round(maxProgress);
+                document.getElementById('progress-form').submit();
+            }
         });
 
-        // function drawFunction(canvas, d) {
-        //     const ctx    = canvas.getContext('2d');
-        //     const W      = canvas.width;
-        //     const H      = canvas.height;
-        //     const xMin   = parseFloat(d.x_min ?? -10);
-        //     const xMax   = parseFloat(d.x_max ?? 10);
-        //     const yMin   = parseFloat(d.y_min ?? -5);
-        //     const yMax   = parseFloat(d.y_max ?? 5);
-        //     const color  = d.color || '#4f46e5';
-        //     const step   = parseFloat(d.step ?? 0.05);
-        //     const expr   = (d.function || 'sin(x)')
-        //         .replace(/\^/g,    '**')
-        //         .replace(/sin/g,   'Math.sin')
-        //         .replace(/cos/g,   'Math.cos')
-        //         .replace(/tan/g,   'Math.tan')
-        //         .replace(/sqrt/g,  'Math.sqrt')
-        //         .replace(/log/g,   'Math.log')
-        //         .replace(/abs/g,   'Math.abs')
-        //         .replace(/pi/g,    'Math.PI')
-        //         .replace(/e(?![a-z])/g, 'Math.E');
-        //
-        //     ctx.clearRect(0, 0, W, H);
-        //     ctx.fillStyle = '#ffffff';
-        //     ctx.fillRect(0, 0, W, H);
-        //
-        //     // Grid
-        //     ctx.strokeStyle = '#e5e7eb';
-        //     ctx.lineWidth   = 1;
-        //     for (let i = 0; i <= 10; i++) {
-        //         ctx.beginPath(); ctx.moveTo((i/10)*W, 0); ctx.lineTo((i/10)*W, H); ctx.stroke();
-        //         ctx.beginPath(); ctx.moveTo(0, (i/10)*H); ctx.lineTo(W, (i/10)*H); ctx.stroke();
-        //     }
-        //
-        //     // Axes
-        //     ctx.strokeStyle = '#9ca3af';
-        //     ctx.lineWidth   = 1.5;
-        //     const yZero = H - ((0 - yMin) / (yMax - yMin)) * H;
-        //     const xZero = ((0 - xMin) / (xMax - xMin)) * W;
-        //     if (yZero >= 0 && yZero <= H) { ctx.beginPath(); ctx.moveTo(0, yZero); ctx.lineTo(W, yZero); ctx.stroke(); }
-        //     if (xZero >= 0 && xZero <= W) { ctx.beginPath(); ctx.moveTo(xZero, 0); ctx.lineTo(xZero, H); ctx.stroke(); }
-        //
-        //     // Curve
-        //     ctx.strokeStyle = color;
-        //     ctx.lineWidth   = 2.5;
-        //     ctx.beginPath();
-        //     let first = true;
-        //     const fn = new Function('x', `try { return ${expr}; } catch(e) { return NaN; }`);
-        //     for (let x = xMin; x <= xMax; x += step) {
-        //         const y = fn(x);
-        //         if (!isFinite(y) || isNaN(y)) { first = true; continue; }
-        //         const cx = ((x - xMin) / (xMax - xMin)) * W;
-        //         const cy = H - ((y - yMin) / (yMax - yMin)) * H;
-        //         if (cy < -500 || cy > H + 500) { first = true; continue; }
-        //         first ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
-        //         first = false;
-        //     }
-        //     ctx.stroke();
-        // }
+        // ── Restore scroll position ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const key   = `lessonScroll_{{ $lesson->id }}`;
+            const saved = localStorage.getItem(key);
+            if (saved && main) main.scrollTop = parseInt(saved);
+            if (main) {
+                main.addEventListener('scroll', () => {
+                    localStorage.setItem(key, main.scrollTop);
+                });
+            }
+        });
 
-
-
-
+        document.addEventListener("DOMContentLoaded", function() {
+            // THIS IS THE TRIGGER YOU ARE MISSING
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
 
             // Your existing KaTeX logic for function blocks
             document.querySelectorAll('.katex-eq').forEach(el => {
@@ -617,14 +510,6 @@
                     katex.render(eq, el, { throwOnError: false });
                 }
             });
-        });
-
-        // ── Restore scroll position ──
-        document.addEventListener('DOMContentLoaded', () => {
-            const key   = `lessonScroll_{{ $lesson->id }}`;
-            const saved = localStorage.getItem(key);
-            if (saved && main) main.scrollTop = parseInt(saved);
-            main.addEventListener('scroll', () => localStorage.setItem(key, main.scrollTop));
         });
     </script>
 @endsection

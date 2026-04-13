@@ -6,6 +6,123 @@
 
 
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+    <style>
+        /* ── Photo & Video blocks ── */
+        .block-media {
+            margin: 1.5rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-subtle, #f8f9fa);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border, #e5e7eb);
+        }
+        .block-media img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .block-media img:hover { transform: scale(1.01); }
+        .block-media video {
+            max-width: 100%;
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+            background: #000;
+        }
+        .block-media-caption {
+            font-size: 0.78rem;
+            color: var(--text-faint, #9ca3af);
+            text-align: center;
+        }
+
+        /* ── Math (LaTeX) block ── */
+        .block-math {
+            margin: 1.5rem 0;
+            padding: 1rem 1.25rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border-left: 3px solid var(--accent, #4f46e5);
+            border-radius: 0 8px 8px 0;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1rem;
+            overflow-x: auto;
+        }
+
+        /* ── Graph (Chart.js) block ── */
+        .block-graph {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 10px;
+        }
+        .block-graph canvas {
+            max-width: 100%;
+            height: 280px !important;
+        }
+
+        /* ── Function plot block ── */
+        .block-function {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--bg-subtle, #f8f9fa);
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 10px;
+        }
+        .block-function canvas {
+            width: 100% !important;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* ── Table block ── */
+        .block-table {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+        .block-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .block-table th,
+        .block-table td {
+            padding: 0.6rem 0.9rem;
+            border: 1px solid var(--border, #e5e7eb);
+            text-align: left;
+        }
+        .block-table tr:first-child th,
+        .block-table tr:first-child td {
+            background: var(--bg-subtle, #f3f4f6);
+            font-weight: 600;
+        }
+        .block-table tr:nth-child(even) td {
+            background: var(--bg-alt, #fafafa);
+        }
+
+        /* ── Ext (raw HTML embed) block ── */
+        .block-ext {
+            margin: 1.5rem 0;
+        }
+        .block-ext iframe,
+        .block-ext embed,
+        .block-ext object {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border, #e5e7eb);
+        }
+    </style>
+@endsection
+
+@section('progress-bar')
+    <div id="scroll-progress"></div>
 @endsection
 
 @section('sidebar-elements')
@@ -48,6 +165,11 @@
                href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">
                 ‹ Prev
             </a>
+        @elseif($prevchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$prevchapter]) }}">
+                ‹ Prev chapter
+            </a>
         @else
             <span class="sb-nav-btn disabled">‹ Prev</span>
         @endif
@@ -57,8 +179,16 @@
                href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
                 Next ›
             </a>
+        @elseif($nextchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$nextchapter]) }}">
+                Next chapter ›
+            </a>
         @else
-            <span class="sb-nav-btn disabled">Next ›</span>
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">
+                Back to course ›
+            </a>
         @endif
     </div>
 @endsection
@@ -89,10 +219,18 @@
 
 
     <div class="lesson-wrapper">
+
+        {{-- Prev nav button --}}
         @if($prevlesson)
             <div class="nav-button">
                 <a href="{{ route('admin.preview.blocks',['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">‹</a>
             </div>
+        @elseif($prevchapter)
+            <div class="nav-button">
+                <a href="{{ route('admin.preview.lessons',['course'=>$course,'chapter'=>$prevchapter]) }}" title="Previous chapter">«</a>
+            </div>
+        @else
+            <div class="nav-button" style="visibility:hidden;"><a>‹</a></div>
         @endif
 
         <div class="blocks-container">
@@ -276,6 +414,7 @@
     <script src="{{ asset('vendors/chart.js') }}"></script>
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+    <script src="{{ asset('vendors/chart.js') }}"></script>
 
 
     <script src="{{ asset('js/function.js') }}"></script>
