@@ -68,26 +68,32 @@
 
                                     @case('photo')
                                         <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
+                                            <div class="file-preview" style="{{ ($block->content && \Storage::exists('public/' . $block->content)) ? '' : 'display:none' }}">
+                                                @if($block->content && \Storage::exists('public/' . $block->content))
                                                     <img src="{{ asset('storage/' . $block->content) }}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
                                                     <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                                @endif
+                                            </div>
+                                            <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                                                   data-block-id="{{ $block->id }}" data-media-type="photo"
+                                                   onchange="uploadMediaFile(this)">
+                                            <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                                             <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
                                         </div>
                                         @break
 
                                     @case('video')
                                         <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
-                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:200px;max-height:200px;border-radius:8px;" controls></video>
+                                            <div class="file-preview" style="{{ ($block->content && \Storage::exists('public/' . $block->content)) ? '' : 'display:none' }}">
+                                                @if($block->content && \Storage::exists('public/' . $block->content))
+                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video>
                                                     <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                                                @endif
+                                            </div>
+                                            <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                                                   data-block-id="{{ $block->id }}" data-media-type="video"
+                                                   onchange="uploadMediaFile(this)">
+                                            <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                                             <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
                                         </div>
                                         @break
@@ -1158,35 +1164,106 @@
             const url = form.action;
             const formData = new FormData(form);
 
+            // Read CSRF from the form's own hidden _token field (blade @csrf always outputs this)
+            const csrfToken = form.querySelector('input[name="_token"]')?.value || '';
+
             const saveBtn = form.querySelector('.btn-save-all');
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.innerText = 'Saving...';
             }
 
-            axios.post(url, formData, {
+            // Use native fetch — axios drops file binary data from FormData
+            fetch(url, {
+                method: 'POST',
+                body: formData,
                 headers: {
-                    'X-HTTP-Method-Override': 'PUT',
-                    'Content-Type': 'multipart/form-data'
-                }
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     if (saveBtn) {
                         saveBtn.innerText = 'Saved ✓';
-                        saveBtn.style.background = ''; // Reset to default green
+                        saveBtn.style.background = '';
                         setTimeout(() => {
                             saveBtn.innerText = 'Save All Changes';
                             saveBtn.disabled = false;
                         }, 1500);
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     if (saveBtn) {
-                        saveBtn.innerText = 'Save Failed';
-                        saveBtn.style.background = '#ef4444'; // Red for error
+                        saveBtn.innerText = 'Save Failed (' + (err.message || 'error') + ')';
+                        saveBtn.style.background = '#ef4444';
                         saveBtn.disabled = false;
                     }
-                    alert('Failed to save changes');
+                });
+        }
+
+        function uploadMediaFile(input) {
+            const blockId   = input.dataset.blockId;
+            const mediaType = input.dataset.mediaType;
+            const file      = input.files[0];
+            if (!file) return;
+
+            const fileBlock   = input.closest('.file-block');
+            const statusEl    = fileBlock.querySelector('.upload-status');
+            const hiddenInput = fileBlock.querySelector('input[type="hidden"]');
+            const previewEl   = fileBlock.querySelector('.file-preview');
+
+            statusEl.style.color = '#6b7280';
+            statusEl.innerText   = '⏫ Uploading ' + file.name + '…';
+            input.disabled       = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', mediaType);
+
+            const csrf = document.querySelector('input[name="_token"]')?.value || '';
+
+            fetch('/admin/blocks/upload-media', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(res => res.text().then(txt => {
+                    try {
+                        const data = JSON.parse(txt);
+                        if (!res.ok) throw new Error((data.error || 'HTTP ' + res.status));
+                        return data;
+                    } catch(e) {
+                        throw new Error('Server said: ' + txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,400));
+                    }
+                }))
+                .then(data => {
+                    hiddenInput.value = data.path;
+
+                    previewEl.style.display = '';
+                    if (mediaType === 'video') {
+                        previewEl.innerHTML = `<video src="/storage/${data.path}" style="max-width:300px;max-height:200px;border-radius:8px;margin-top:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    } else {
+                        previewEl.innerHTML = `<img src="/storage/${data.path}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    }
+
+                    statusEl.style.color = '#22c55e';
+                    statusEl.innerText   = '✓ Uploaded — press Save All to keep';
+                    input.disabled       = false;
+
+                    const saveBtn = document.querySelector('.btn-save-all');
+                    if (saveBtn) {
+                        saveBtn.style.background = '#f59e0b';
+                        saveBtn.innerText = 'Save Changes *';
+                    }
+                })
+                .catch(err => {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText   = '✗ Upload failed: ' + err.message;
+                    input.disabled       = false;
                 });
         }
 
@@ -1238,17 +1315,25 @@
                 case 'photo':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<img src="/storage/${existingContent}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="photo" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'video':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<video src="/storage/${existingContent}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="video" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'math':
@@ -1658,27 +1743,37 @@
                 defaultContent = '';
 
             }else if (selectedType === 'function') {
-                    defaultContent = JSON.stringify({
-                        function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
-                        x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
-                        x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
-                        y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
-                        y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
-                        color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
-                        step: 0.1
-                    });
-                    formData.append('content', defaultContent);
+                defaultContent = JSON.stringify({
+                    function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
+                    x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
+                    x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
+                    y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
+                    y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
+                    color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
+                    step: 0.1
+                });
+                formData.append('content', defaultContent);
 
             } else {
                 defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
                 formData.append('content', defaultContent);
             }
 
-            axios.post(url, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const _csrf = document.querySelector('input[name="_token"]')?.value || '';
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': _csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then((response) => {
-                    const block = response.data.block;
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then((data) => {
+                    const block = data.block;
                     const list = document.querySelector('.blocks-list');
 
                     // Generate the HTML for the selected type
@@ -1736,10 +1831,9 @@
                     if (typeSelect) typeSelect.value = 'header';
                     toggleNewBlockFields(typeSelect);
 
-                    // Show "unsaved changes" indicator if you have one
                     const saveBtn = document.querySelector('.btn-save-all');
                     if (saveBtn) {
-                        saveBtn.style.background = '#f59e0b'; // Orange to indicate unsaved
+                        saveBtn.style.background = '#f59e0b';
                         saveBtn.innerText = 'Save Changes *';
                     }
                 })
@@ -1804,39 +1898,39 @@
 
         // Toggle fields in new block modal based on type
 
-            function toggleNewBlockFields(select) {
-                const type = select.value;
-                const textGroup = document.getElementById('text-content-group');
-                const fileGroup = document.getElementById('file-content-group');
-                const graphGroup = document.getElementById('graph-content-group');
-                const tableGroup = document.getElementById('table-content-group');
-                const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
+        function toggleNewBlockFields(select) {
+            const type = select.value;
+            const textGroup = document.getElementById('text-content-group');
+            const fileGroup = document.getElementById('file-content-group');
+            const graphGroup = document.getElementById('graph-content-group');
+            const tableGroup = document.getElementById('table-content-group');
+            const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
 
-                // Hide all first
-                textGroup.style.display = 'none';
-                fileGroup.style.display = 'none';
-                graphGroup.style.display = 'none';
-                tableGroup.style.display = 'none';
-                functionGroup.style.display = 'none';
+            // Hide all first
+            textGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            graphGroup.style.display = 'none';
+            tableGroup.style.display = 'none';
+            functionGroup.style.display = 'none';
 
-                // Show relevant
-                if (type === 'photo' || type === 'video') {
-                    fileGroup.style.display = 'flex';
-                    fileGroup.style.flexDirection = 'column';
-                } else if (type === 'graph') {
-                    graphGroup.style.display = 'flex';
-                    graphGroup.style.flexDirection = 'column';
-                } else if (type === 'table') {
-                    tableGroup.style.display = 'flex';
-                    tableGroup.style.flexDirection = 'column';
-                } else if (type === 'function') {  // ← FIXED: Proper condition
-                    functionGroup.style.display = 'flex';
-                    functionGroup.style.flexDirection = 'column';
-                } else {
-                    textGroup.style.display = 'flex';
-                    textGroup.style.flexDirection = 'column';
-                }
+            // Show relevant
+            if (type === 'photo' || type === 'video') {
+                fileGroup.style.display = 'flex';
+                fileGroup.style.flexDirection = 'column';
+            } else if (type === 'graph') {
+                graphGroup.style.display = 'flex';
+                graphGroup.style.flexDirection = 'column';
+            } else if (type === 'table') {
+                tableGroup.style.display = 'flex';
+                tableGroup.style.flexDirection = 'column';
+            } else if (type === 'function') {  // ← FIXED: Proper condition
+                functionGroup.style.display = 'flex';
+                functionGroup.style.flexDirection = 'column';
+            } else {
+                textGroup.style.display = 'flex';
+                textGroup.style.flexDirection = 'column';
             }
+        }
 
         // Function graph rendering
         // Function graph rendering
@@ -2024,4 +2118,3 @@
     </script>
 
 @endsection
-

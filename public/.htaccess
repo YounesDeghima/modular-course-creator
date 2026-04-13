@@ -2,6 +2,8 @@
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
+    php_value post_max_size 110M
+        php_value upload_max_filesize 110M
 
     RewriteEngine On
 
@@ -22,4 +24,6 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+
+
 </IfModule>
