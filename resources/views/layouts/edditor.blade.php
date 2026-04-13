@@ -82,7 +82,12 @@
 
 
 @yield('js')
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<<script src="{{ asset('vendors/chart.js') }}"></script>
+<script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+<script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
+<script src="{{ asset('js/function.js') }}"></script>
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarContent = document.querySelector('.sidebar-content');

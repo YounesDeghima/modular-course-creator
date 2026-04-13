@@ -411,10 +411,7 @@
 @section('js')
 
 
-    <script src="{{ asset('vendors/chart.js') }}"></script>
-    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
-    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
-    <script src="{{ asset('vendors/chart.js') }}"></script>
+
 
 
     <script src="{{ asset('js/function.js') }}"></script>

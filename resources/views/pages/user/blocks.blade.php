@@ -1,11 +1,13 @@
 @extends('layouts.user-base')
 
 @section('css')
+
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">
 
-
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+
+
     <style>
         /* ── Photo & Video blocks ── */
         .block-media {
@@ -61,9 +63,13 @@
             background: var(--bg-subtle, #f8f9fa);
             border: 1px solid var(--border, #e5e7eb);
             border-radius: 10px;
+            min-height: 300px; /* Force a minimum height */
+            position: relative;
         }
+
         .block-graph canvas {
-            max-width: 100%;
+            display: block !important;
+            width: 100% !important;
             height: 280px !important;
         }
 
@@ -416,13 +422,8 @@
 @section('js')
 
 
-    <script src="{{ asset('vendors/chart.js') }}"></script>
-    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
-    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
-    <script src="{{ asset('vendors/chart.js') }}"></script>
 
 
-    <script src="{{ asset('js/function.js') }}"></script>
 
 
     <script>
