@@ -155,6 +155,9 @@
 
     <script>
 
+
+
+
         document.addEventListener('DOMContentLoaded', function() {
 
 
@@ -566,204 +569,12 @@
         // Run it immediately on page load
         document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
 
-        function toggleSingleLesson(btn, event) {
-            if (event) event.stopPropagation();
 
-            const lessonId = btn.dataset.lessonId;
-            const chapterId = btn.dataset.chapterId;
-            const currentStatus = btn.dataset.status;
-            const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-            const courseId = "{{ $course->id }}";
-
-            updateButtonUI(btn, newStatus);
-
-            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
-                status: newStatus,
-                title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
-                lesson_number: 1,
-                description: "Status update"
-            })
-                .then(() => {
-                    // sync UI if needed
-                })
-                .catch(() => {
-
-                });
-        }
 
         // If you use the AJAX toggle from the previous step,
         // make sure to call updateMasterButtonUI() inside the .then() block!
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) modal.style.display = 'none';
-        }
 
-        function deleteLesson(event, courseId, chapterId, lessonId) {
-            event.stopPropagation(); // 🔥 critical
-
-            const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
-
-            axios.delete(url)
-                .then(() => {
-                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row')
-                        ?.remove();
-
-                    closeModal(`lesson-modal-${lessonId}`);
-                })
-                .catch((error) => {
-                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row')
-                        ?.remove();
-
-                    closeModal(`lesson-modal-${lessonId}`);
-
-                });
-        }
-
-        function deleteChapter(event, btn) {
-            event.stopPropagation();
-            const url = btn.dataset.url;
-            const chapterId = btn.dataset.chapterId;
-
-            axios.delete(url)
-                .then(() => {
-                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-                        ?.closest('.chapter-group');
-
-                    if (el) el.remove();
-
-                    closeModal('chapter-modal-' + chapterId);
-                })
-                .catch(() => {
-                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-                        ?.closest('.chapter-group');
-
-                    if (el) el.remove();
-
-                    closeModal('chapter-modal-' + chapterId);
-                });
-        }
-
-        function updateChapter(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            const chapterId = url.match(/chapters\/(\d+)/)[1]; // 🔥 reliable extraction
-
-            axios.put(url, data)
-                .then(() => {
-                    // Find the correct chapter in the sidebar
-                    const chapterEl = document.querySelector(
-                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
-                    )?.closest('.chapter-group');
-
-                    const titleEl = chapterEl?.querySelector('.chapter-title');
-
-                    if (titleEl) {
-                        titleEl.innerText = data.title;
-                    }
-
-                    closeModal(`chapter-modal-${chapterId}`);
-                })
-                .catch(() => {
-                    const chapterEl = document.querySelector(
-                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
-                    )?.closest('.chapter-group');
-
-                    const titleEl = chapterEl?.querySelector('.chapter-title');
-
-                    if (titleEl) {
-                        titleEl.innerText = data.title;
-                    }
-
-                    closeModal(`chapter-modal-${chapterId}`);
-                });
-        }
-
-        function updateLesson(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            axios.put(url, data)
-                .then(() => {
-                    const modal = form.closest('.modal-overlay');
-                    if (modal) modal.style.display = 'none';
-
-                    // Optional: update UI title in sidebar
-                    const lessonId = url.split('/').pop();
-                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row');
-
-                    if (row) {
-                        row.querySelector('.lesson-link').innerText = data.title;
-                    }
-                })
-                .catch(() => {
-                    const modal = form.closest('.modal-overlay');
-                    if (modal) modal.style.display = 'none';
-
-                    // Optional: update UI title in sidebar
-                    const lessonId = url.split('/').pop();
-                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row');
-
-                    if (row) {
-                        row.querySelector('.lesson-link').innerText = data.title;
-                    }
-                });
-        }
-
-        function saveAllBlocks(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-
-            // Read CSRF from the form's own hidden _token field (blade @csrf always outputs this)
-            const csrfToken = form.querySelector('input[name="_token"]')?.value || '';
-
-            const saveBtn = form.querySelector('.btn-save-all');
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.innerText = 'Saving...';
-            }
-
-            // Use native fetch — axios drops file binary data from FormData
-            fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    if (saveBtn) {
-                        saveBtn.innerText = 'Saved ✓';
-                        saveBtn.style.background = '';
-                        setTimeout(() => {
-                            saveBtn.innerText = 'Save All Changes';
-                            saveBtn.disabled = false;
-                        }, 1500);
-                    }
-                })
-                .catch(err => {
-                    if (saveBtn) {
-                        saveBtn.innerText = 'Save Failed (' + (err.message || 'error') + ')';
-                        saveBtn.style.background = '#ef4444';
-                        saveBtn.disabled = false;
-                    }
-                });
-        }
 
         function uploadMediaFile(input) {
             const blockId   = input.dataset.blockId;
@@ -830,31 +641,7 @@
                 });
         }
 
-        function updateBlockType(select) {
-            const blockRow = select.closest('.block-row');
-            const blockId = blockRow.querySelector('input[name*="[id]"]').value;
-            const newType = select.value;
-            const oldType = blockRow.className.match(/type-(\w+)/)?.[1];
 
-            if (newType === oldType) return;
-
-            // Update visual class immediately
-            blockRow.classList.remove(`type-${oldType}`);
-            blockRow.classList.add(`type-${newType}`);
-
-            // Get current content to preserve if possible
-            const oldContent = blockRow.querySelector('textarea[name*="[content]"]')?.value || '';
-
-            // Generate new HTML based on type
-            const mainContent = blockRow.querySelector('.block-main-content');
-            mainContent.innerHTML = generateBlockHTML(blockId, newType, oldContent);
-
-            // Re-initialize any special handlers
-            if (newType === 'math') {
-                const textarea = mainContent.querySelector('.math-input');
-                if (textarea) updateMathPreview(textarea);
-            }
-        }
 
         function generateBlockHTML(blockId, type, existingContent) {
             switch(type) {
@@ -1094,167 +881,7 @@
             }
         }
 
-        function createChapter(event, form) {
-            event.preventDefault();
 
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            axios.post(url, data)
-                .then((response) => {
-                    const chapter = response.data.chapter;
-
-                    // Create new chapter element
-                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
-
-                    const newChapter = document.createElement('div');
-                    newChapter.classList.add('chapter-group');
-
-                    newChapter.innerHTML = `
-                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
-                    <div class="header-left">
-                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
-                        <strong class="chapter-title">${chapter.title}</strong>
-
-                        <button type="button"
-                            class="status-toggle-btn ${chapter.status}"
-                            data-chapter-id="${chapter.id}"
-                            data-status="${chapter.status}"
-                            onclick="toggleSingleChapter(this)">
-                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
-                        </button>
-                    </div>
-                </div>
-
-                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
-            `;
-
-                    container.parentNode.insertBefore(newChapter, container);
-
-                    closeModal('add-chapter-modal');
-                    form.reset();
-                    window.location.reload();
-                })
-                .catch(() => {
-                    const chapter = response.data.chapter;
-
-                    // Create new chapter element
-                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
-
-                    const newChapter = document.createElement('div');
-                    newChapter.classList.add('chapter-group');
-
-                    newChapter.innerHTML = `
-                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
-                    <div class="header-left">
-                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
-                        <strong class="chapter-title">${chapter.title}</strong>
-
-                        <button type="button"
-                            class="status-toggle-btn ${chapter.status}"
-                            data-chapter-id="${chapter.id}"
-                            data-status="${chapter.status}"
-                            onclick="toggleSingleChapter(this)">
-                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
-                        </button>
-                    </div>
-                </div>
-
-                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
-            `;
-
-                    container.parentNode.insertBefore(newChapter, container);
-
-                    closeModal('add-chapter-modal');
-                    form.reset();
-                    window.location.reload();
-
-                });
-        }
-
-        function createLesson(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            axios.post(url, data)
-                .then((response) => {
-                    const lesson = response.data.lesson;
-                    const chapterId = response.data.chapter_id;
-                    const courseId = "{{ $course->id }}";
-
-                    const container = document.getElementById(`lessons-container-${chapterId}`);
-
-                    const newLesson = document.createElement('div');
-                    newLesson.classList.add('lesson-row');
-                    newLesson.dataset.href = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`;
-
-                    newLesson.innerHTML = `
-            <div class="lesson-content">
-                <span class="bullet">•</span>
-                <a class="lesson-link">${lesson.title}</a>
-
-                <button type="button"
-                    class="status-toggle-btn lesson-status ${lesson.status}"
-                    data-lesson-id="${lesson.id}"
-                    data-chapter-id="${chapterId}"
-                    data-status="${lesson.status}"
-                    onclick="toggleSingleLesson(this, event)">
-                    ${lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
-                </button>
-            </div>
-            <span class="pen-icon lesson-pen">✏️</span>
-        `;
-
-                    const addRow = container.querySelector('.add-lesson-row');
-                    container.insertBefore(newLesson, addRow);
-
-                    closeModal(`add-lesson-modal-${chapterId}`);
-
-                    form.reset();
-                    window.location.reload();
-                })
-                .catch((error) => {
-
-
-
-                    const lesson = response.data.lesson;
-                    const chapterId = response.data.chapter_id;
-                    const courseId = "{{ $course->id }}";
-
-                    const container = document.getElementById(`lessons-container-${chapterId}`);
-
-                    const newLesson = document.createElement('div');
-                    newLesson.classList.add('lesson-row');
-                    newLesson.dataset.href = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`;
-
-                    newLesson.innerHTML = `
-            <div class="lesson-content">
-                <span class="bullet">•</span>
-                <a class="lesson-link">${lesson.title}</a>
-
-                <button type="button"
-                    class="status-toggle-btn lesson-status ${lesson.status}"
-                    data-lesson-id="${lesson.id}"
-                    data-chapter-id="${chapterId}"
-                    data-status="${lesson.status}"
-                    onclick="toggleSingleLesson(this, event)">
-                    ${lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
-                </button>
-            </div>
-            <span class="pen-icon lesson-pen">✏️</span>
-        `;
-
-                    container.appendChild(newLesson);
-
-                    closeModal(`add-lesson-modal-${chapterId}`);
-                    form.reset();
-                    window.location.reload();
-                });
-        }
 
         document.getElementById('master-toggle-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -1748,6 +1375,23 @@
                 });
             }, 100);
         });
+
+        function syncTableToLivewire(blockId, livewireIndex) {
+            const editor = document.querySelector(`.table-editor[data-block-id="${blockId}"]`);
+            const rows = editor.querySelectorAll('tr');
+            const tableData = [];
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('input[type=text]');
+                tableData.push([...cells].map(c => c.value));
+            });
+
+            // Find the Livewire component by its root element, then call set
+            const componentEl = editor.closest('[wire\\:id]');
+            if (componentEl) {
+                const component = Livewire.find(componentEl.getAttribute('wire:id'));
+                component.set(`blocks.${livewireIndex}.table_json`, JSON.stringify(tableData));
+            }
+        }
     </script>
 
 @endsection

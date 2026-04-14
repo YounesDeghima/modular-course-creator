@@ -15,14 +15,17 @@ new class extends Component {
 
     public function mount($course, $chapter, $lesson, $blocks)
     {
-
         $this->course = $course;
         $this->chapter = $chapter;
         $this->lesson = $lesson;
         $this->blocks = $blocks->map(function ($block) {
-            return $block->toArray();
+            $arr = $block->toArray();
+            // Load solutions for exercise blocks
+            if ($block->type === 'exercise') {
+                $arr['solutions'] = $block->solutions->map(fn($s) => $s->toArray())->toArray();
+            }
+            return $arr;
         })->toArray();
-
     }
     public function addBlock($id){
         $block = block::findOrFail($id);
@@ -38,24 +41,66 @@ new class extends Component {
     {
         $this->blocks = block::where('lesson_id', $id)
             ->orderBy('block_number')
+            ->with('solutions') // eager load
             ->get()
-            ->map(fn($b) => $b->toArray())
+            ->map(function ($b) {
+                $arr = $b->toArray();
+                if ($b->type === 'exercise') {
+                    $arr['solutions'] = $b->solutions->map(fn($s) => $s->toArray())->toArray();
+                }
+                return $arr;
+            })
             ->toArray();
         $this->lesson = lesson::findorfail($id);
         $this->chapter = $this->lesson->chapter;
     }
 
-    public function saveAll() {
+    public function saveAll()
+    {
         foreach ($this->blocks as $blockData) {
-            block::where('id', $blockData['id'])
-                ->update([
-                    'content'      => $blockData['content'],
-                    'type'         => $blockData['type'],
-                    'block_number' => $blockData['block_number'],
+            $content = $blockData['content'] ?? null;
+
+            // Re-encode structured types
+            if ($blockData['type'] === 'graph') {
+                $content = json_encode([
+                    'type'   => $blockData['graph_type'] ?? 'line',
+                    'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
+                    'data'   => array_map('trim', explode(',', $blockData['graph_data']  ?? '')),
                 ]);
+            }
+
+            if ($blockData['type'] === 'table') {
+                $content = $blockData['table_json'] ?? $blockData['content'];
+            }
+
+            if ($blockData['type'] === 'function') {
+                $content = json_encode([
+                    'function' => $blockData['func_expression'] ?? 'sin(x)',
+                    'x_min'    => $blockData['x_min'] ?? -10,
+                    'x_max'    => $blockData['x_max'] ?? 10,
+                    'y_min'    => $blockData['y_min'] ?? -5,
+                    'y_max'    => $blockData['y_max'] ?? 5,
+                    'color'    => $blockData['color']  ?? '#4f46e5',
+                    'step'     => $blockData['step']   ?? 0.1,
+                ]);
+            }
+
+            block::where('id', $blockData['id'])->update([
+                'content'      => $content,
+                'type'         => $blockData['type'],
+                'block_number' => $blockData['block_number'],
+            ]);
+
+            // Save exercise solutions separately
+            if ($blockData['type'] === 'exercise') {
+                foreach ($blockData['solutions'] ?? [] as $solution) {
+                    \App\Models\Solution::where('id', $solution['id'])
+                        ->update(['content' => $solution['content']]);
+                }
+            }
         }
 
-        session()->flash('message', 'Saved!');
+        $this->dispatch('notify', message: 'Saved!');
     }
 
     public function deleteBlock(int $index) {
@@ -140,102 +185,105 @@ new class extends Component {
 
                         @case('photo')
                             <div class="file-block">
-                                @if($block['content'] && \Storage::exists('public/' . $block['content']))
+                                @if(!empty($block['content']) && \Storage::exists('public/' . $block['content']))
                                     <div class="file-preview">
                                         <img src="{{ asset('storage/' . $block['content']) }}"
                                              onclick="window.open(this.src)"
                                              style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
-                                        <small
-                                            style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block['content']) }}</small>
+                                        <small style="display:block;color:var(--text-faint);margin-top:4px;">
+                                            {{ basename($block['content']) }}
+                                        </small>
                                     </div>
-                                    @dd($block['content'])
                                 @endif
-                                <input type="file" name="blocks[{{ $block['id'] }}][content_file]" accept="image/*"
+                                {{-- File upload handled separately via dedicated upload method --}}
+                                <input type="file" accept="image/*"
+                                       onchange="uploadMedia(this, {{ $loop->index }}, 'photo')"
                                        class="file-input" style="margin-top:8px;font-size:12px;">
-                                <input type="hidden"
-                                       value="">
+                                <span class="upload-status-{{ $loop->index }}"
+                                      style="font-size:11px;display:block;margin-top:4px;"></span>
                             </div>
                             @break
 
                         @case('video')
                             <div class="file-block">
-                                @if($block['content'] && \Storage::exists('public/' . $block['content']))
+                                @if(!empty($block['content']) && \Storage::exists('public/' . $block['content']))
                                     <div class="file-preview">
                                         <video src="{{ asset('storage/' . $block['content']) }}"
-                                               style="max-width:200px;max-height:200px;border-radius:8px;"
-                                               controls></video>
-                                        <small
-                                            style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block['content']) }}</small>
+                                               style="max-width:300px;max-height:200px;border-radius:8px;" controls></video>
+                                        <small style="display:block;color:var(--text-faint);margin-top:4px;">
+                                            {{ basename($block['content']) }}
+                                        </small>
                                     </div>
                                 @endif
-                                <input type="file" name="blocks[{{ $block['id'] }}][content_file]" accept="video/*"
+                                <input type="file" accept="video/*"
+                                       onchange="uploadMedia(this, {{ $loop->index }}, 'video')"
                                        class="file-input" style="margin-top:8px;font-size:12px;">
-                                <input type="hidden"
-                                       value="">
+                                <span class="upload-status-{{ $loop->index }}"
+                                      style="font-size:11px;display:block;margin-top:4px;"></span>
                             </div>
                             @break
-
                         @case('math')
-                            <textarea
-                                      class="input-ghost content-style math-input"
+                            <textarea class="input-ghost content-style math-input"
                                       placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
-                                      oninput="updateMathPreview(this)" rows="2"  wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                                      rows="2"
+                                      wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content"></textarea>
                             <div class="math-preview"
-                                 style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
-                                @if($block['content'])
-                                    $ $
+                                 style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;">
+                                @if(!empty($block['content']))
+                                    <div>$${{ $block['content'] }}$$</div>
                                 @endif
                             </div>
                             @break
 
                         @case('graph')
-                            @php $graphData = json_decode($block['content'], true) ?? ['type' => 'line', 'labels' => ['Jan','Feb','Mar'], 'data' => [10,20,15]]; @endphp
+                            @php
+                                $graphData = json_decode($block['content'], true)
+                                    ?? ['type' => 'line', 'labels' => ['Jan','Feb','Mar'], 'data' => [10,20,15]];
+                                // Flatten into editable fields
+                                $this->blocks[$loop->index]['graph_type']   ??= $graphData['type']   ?? 'line';
+                                $this->blocks[$loop->index]['graph_labels'] ??= implode(',', $graphData['labels'] ?? []);
+                                $this->blocks[$loop->index]['graph_data']   ??= implode(',', $graphData['data']   ?? []);
+                            @endphp
                             <div class="graph-editor">
-                                <select name="blocks[{{ $block['id'] }}][chart_type]" class="mini-type-select"
-                                        style="margin-bottom:8px;width:auto;display:inline-block;">
-                                    <option
-                                        value="line" {{ ($graphData['type'] ?? 'line') == 'line' ? 'selected' : '' }}>
-                                        Line Chart
-                                    </option>
-                                    <option value="bar" {{ ($graphData['type'] ?? '') == 'bar' ? 'selected' : '' }}>Bar
-                                        Chart
-                                    </option>
-                                    <option value="pie" {{ ($graphData['type'] ?? '') == 'pie' ? 'selected' : '' }}>Pie
-                                        Chart
-                                    </option>
+                                <select wire:model="blocks.{{ $loop->index }}.graph_type"
+                                        class="mini-type-select" style="margin-bottom:8px;width:auto;display:inline-block;">
+                                    <option value="line">Line Chart</option>
+                                    <option value="bar">Bar Chart</option>
+                                    <option value="pie">Pie Chart</option>
                                 </select>
-                                <textarea name="blocks[{{ $block['id'] }}][chart_data]" class="input-ghost content-style"
-                                          placeholder="Labels: Jan, Feb, Mar (comma separated)&#10;Values: 10, 20, 15 (comma separated)"
-                                          rows="3" style="font-family:monospace;font-size:12px;">{{ implode(',', $graphData['labels'] ?? []) }}&#10;{{ implode(',', $graphData['data'] ?? []) }}</textarea>
-                                <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels (comma separated)
-                                    | Line 2: Values</small>
+                                <textarea wire:model="blocks.{{ $loop->index }}.graph_labels"
+                                          class="input-ghost content-style"
+                                          placeholder="Labels: Jan, Feb, Mar (comma separated)"
+                                          rows="2" style="font-family:monospace;font-size:12px;"></textarea>
+                                <textarea wire:model="blocks.{{ $loop->index }}.graph_data"
+                                          class="input-ghost content-style"
+                                          placeholder="Values: 10, 20, 15 (comma separated)"
+                                          rows="2" style="font-family:monospace;font-size:12px;"></textarea>
+                                <small style="color:var(--text-faint);font-size:11px;">Row 1: Labels | Row 2: Values</small>
                             </div>
-                            <input type="hidden"  value="">
                             @break
 
                         @case('table')
-                            @php $tableData = json_decode($block['content'], true) ?? [['Header 1', 'Header 2'], ['Row 1 Col 1', 'Row 1 Col 2']]; @endphp
-                            <div class="table-editor" data-block-id="{{ $block['id'] }}">
-                                <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
-                                    <button type="button" onclick="addTableRow({{ $block['id'] }})" class="arrow-btn"
-                                            style="width:auto;padding:4px 10px;font-size:11px;">+ Row
-                                    </button>
-                                    <button type="button" onclick="addTableCol({{ $block['id'] }})" class="arrow-btn"
-                                            style="width:auto;padding:4px 10px;font-size:11px;">+ Column
-                                    </button>
+                            @php
+                                $tableData = json_decode($block['content'], true)
+                                    ?? [['Header 1', 'Header 2'], ['Row 1 Col 1', 'Row 1 Col 2']];
+                            @endphp
+                            <div class="table-editor" data-block-id="{{ $block['id'] }}" data-index="{{ $loop->index }}">
+                                <div style="margin-bottom:8px;display:flex;gap:6px;">
+                                    <button type="button" onclick="addTableRow({{ $block['id'] }})"
+                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row</button>
+                                    <button type="button" onclick="addTableCol({{ $block['id'] }})"
+                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Col</button>
                                 </div>
                                 <div style="overflow-x:auto;">
-                                    <table class="editable-table"
-                                           style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <table class="editable-table" style="width:100%;border-collapse:collapse;font-size:13px;">
                                         @foreach($tableData as $rowIndex => $row)
                                             <tr>
                                                 @foreach($row as $colIndex => $cell)
                                                     <td style="border:1px solid var(--border);padding:0;min-width:80px;">
-                                                        <input type="text"
-                                                               name="blocks[{{ $block['id'] }}][table_data][{{ $rowIndex }}][{{ $colIndex }}]"
-                                                               value="{{ $cell }}"
+                                                        <input type="text" value="{{ $cell }}"
                                                                style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);"
-                                                               onchange="updateTableJSON({{ $block['id'] }})">
+                                                               onchange="syncTableToLivewire({{ $block['id'] }}, {{ $loop->index }})">
                                                     </td>
                                                 @endforeach
                                             </tr>
@@ -243,98 +291,73 @@ new class extends Component {
                                     </table>
                                 </div>
                             </div>
-                            <input type="hidden"  class="table-content-hidden"
-                                   value="">
                             @break
 
                         @case('function')
                             @php
                                 $funcData = json_decode($block['content'], true) ?? [
-                                    'function' => 'sin(x)',
-                                    'x_min' => -10,
-                                    'x_max' => 10,
-                                    'y_min' => -5,
-                                    'y_max' => 5,
-                                    'color' => '#4f46e5',
-                                    'step' => 0.1
+                                    'function' => 'sin(x)', 'x_min' => -10, 'x_max' => 10,
+                                    'y_min' => -5, 'y_max' => 5, 'color' => '#4f46e5', 'step' => 0.1
                                 ];
+                                $this->blocks[$loop->index]['func_expression'] ??= $funcData['function'] ?? 'sin(x)';
+                                $this->blocks[$loop->index]['x_min'] ??= $funcData['x_min'] ?? -10;
+                                $this->blocks[$loop->index]['x_max'] ??= $funcData['x_max'] ?? 10;
+                                $this->blocks[$loop->index]['y_min'] ??= $funcData['y_min'] ?? -5;
+                                $this->blocks[$loop->index]['y_max'] ??= $funcData['y_max'] ?? 5;
+                                $this->blocks[$loop->index]['color'] ??= $funcData['color'] ?? '#4f46e5';
+                                $this->blocks[$loop->index]['step']  ??= $funcData['step']  ?? 0.1;
                             @endphp
                             <div class="function-editor" data-block-id="{{ $block['id'] }}">
-                                <div class="function-input-row"
-                                     style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
                                     <div style="flex:2;min-width:200px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x)
-                                            =</label>
-                                        <input type="text" name="blocks[{{ $block['id'] }}][func_expression]"
-                                               value="{{ $funcData['function'] ?? 'sin(x)' }}"
-                                               class="input-ghost"
-                                               style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;"
-                                               placeholder="e.g., sin(x), x^2, cos(x)*x">
+                                        <label style="font-size:11px;color:var(--text-faint);">f(x) =</label>
+                                        <input type="text" class="input-ghost"
+                                               wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.func_expression"
+                                               style="width:100%;font-family:monospace;font-size:13px;padding:6px 8px;"
+                                               placeholder="e.g., sin(x), x^2">
                                     </div>
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
-                                            Min</label>
-                                        <input type="number" name="blocks[{{ $block['id'] }}][x_min]"
-                                               value="{{ $funcData['x_min'] ?? -10 }}"
-                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                        <label style="font-size:11px;color:var(--text-faint);">X Min</label>
+                                        <input type="number" class="input-ghost" step="any"
+                                               wire:model.live="blocks.{{ $loop->index }}.x_min"
+                                               style="width:100%;padding:6px 8px;">
                                     </div>
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
-                                            Max</label>
-                                        <input type="number" name="blocks[{{ $block['id'] }}][x_max]"
-                                               value="{{ $funcData['x_max'] ?? 10 }}"
-                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                        <label style="font-size:11px;color:var(--text-faint);">X Max</label>
+                                        <input type="number" class="input-ghost" step="any"
+                                               wire:model.live="blocks.{{ $loop->index }}.x_max"
+                                               style="width:100%;padding:6px 8px;">
                                     </div>
                                 </div>
-                                <div class="function-input-row"
-                                     style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
-                                            Min</label>
-                                        <input type="number" name="blocks[{{ $block['id'] }}][y_min]"
-                                               value="{{ $funcData['y_min'] ?? -5 }}"
-                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                        <label style="font-size:11px;color:var(--text-faint);">Y Min</label>
+                                        <input type="number" class="input-ghost" step="any"
+                                               wire:model.live="blocks.{{ $loop->index }}.y_min"
+                                               style="width:100%;padding:6px 8px;">
                                     </div>
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
-                                            Max</label>
-                                        <input type="number" name="blocks[{{ $block['id'] }}][y_max]"
-                                               value="{{ $funcData['y_max'] ?? 5 }}"
-                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
+                                        <label style="font-size:11px;color:var(--text-faint);">Y Max</label>
+                                        <input type="number" class="input-ghost" step="any"
+                                               wire:model.live="blocks.{{ $loop->index }}.y_max"
+                                               style="width:100%;padding:6px 8px;">
                                     </div>
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
-                                        <input type="color" name="blocks[{{ $block['id'] }}][color]"
-                                               value="{{ $funcData['color'] ?? '#4f46e5' }}"
+                                        <label style="font-size:11px;color:var(--text-faint);">Color</label>
+                                        <input type="color"
+                                               wire:model.live="blocks.{{ $loop->index }}.color"
                                                style="width:100%;height:32px;border:none;cursor:pointer;">
                                     </div>
                                     <div style="flex:1;min-width:80px;">
-                                        <label
-                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
-                                        <input type="number" name="blocks[{{ $block['id'] }}][step]"
-                                               value="{{ $funcData['step'] ?? 0.1 }}"
-                                               class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01"
-                                               min="0.01" max="1">
+                                        <label style="font-size:11px;color:var(--text-faint);">Step</label>
+                                        <input type="number" class="input-ghost" step="0.01" min="0.01" max="1"
+                                               wire:model.live="blocks.{{ $loop->index }}.step"
+                                               style="width:100%;padding:6px 8px;">
                                     </div>
                                 </div>
-                                <div class="function-preview"
-                                     style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
-                                    <canvas id="func-canvas-{{ $block['id'] }}" width="400" height="200"
-                                            style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
-                                </div>
-                                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
-                                    Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x),
-                                    etc.
-                                </small>
+                                <canvas id="func-canvas-{{ $block['id'] }}" width="400" height="200"
+                                        style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
                             </div>
-                            <input type="hidden"
-                                   class="function-content-hidden" value="">
                             @break
 
                         @case('ext')

@@ -10,7 +10,7 @@
     y - x - 1 = 0       →  y - x - 1
     y^2 + x^2 - 1 = 0   →  y^2 + x^2 - 1
     ========================================================= */
-    const MathParser = (() => {
+    MathParser = (() => {
     // Tokenise a raw math string into a JS-evaluable expression
     function toJS(expr) {
         return expr.trim()
@@ -80,7 +80,7 @@
     /* =========================================================
     ImplicitPlotter  — marching-squares renderer on a canvas.
     ========================================================= */
-    const ImplicitPlotter = (() => {
+    ImplicitPlotter = (() => {
 
     // colour helpers
     function hexToRgb(hex) {
