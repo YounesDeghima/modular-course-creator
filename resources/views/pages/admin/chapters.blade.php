@@ -145,11 +145,40 @@
 
 
 @section('js')
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
+    <script src="{{ asset('js/function.js') }}"></script>
+
     <script>
 
         document.addEventListener('DOMContentLoaded', function() {
-            initAutoResize();
 
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // 2. Handle KaTeX for function blocks specifically
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    // Use inline rendering for the small labels
+                    katex.render(eq, el, { throwOnError: false, displayMode: false });
+                }
+            });
+
+
+            initAutoResize();
             // --- 1. CORE UTILITIES ---
             const COURSE_ID = "{{ $course->id }}";
             const savedUrl = localStorage.getItem('activeLessonUrl');
@@ -210,7 +239,20 @@
                 }
             }
 
+            const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
 
+            openChapters.forEach(id => {
+                const container = document.getElementById('lessons-container-' + id);
+                const arrow = document.getElementById('arrow-' + id);
+
+                if (container) {
+                    container.style.display = 'flex';
+                }
+
+                if (arrow) {
+                    arrow.style.transform = 'rotate(90deg)';
+                }
+            });
 
             // Auto-resize textareas based on content
             function initAutoResize() {
@@ -224,7 +266,18 @@
                 });
             }
 
-
+            // Initialize UI elements for the block editor
+            // function initBlockEditor() {
+            //     initAutoResize();
+            //
+            //     // Setup Floating Action Button
+            //     const btn = document.getElementById('block-adder');
+            //     const popup = document.getElementById('block-popup');
+            //     const close = document.getElementById('close-popup');
+            //
+            //     if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
+            //     if (close && popup) close.onclick = () => popup.style.display = 'none';
+            // }
 
             // --- 2. AJAX LESSON LOADING ---
             document.addEventListener('click', function(e) {
@@ -297,7 +350,29 @@
                 localStorage.setItem('openChapters', JSON.stringify(openChapters));
             };
 
+            // Open/Close Modals
+            window.openModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'flex';
+            }
 
+            window.closeModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'none';
+            }
+
+            // The Pen button toggles the type dropdown (Using ID)
+            window.toggleTypeSelect = function(id) {
+                const el = document.getElementById('select-' + id);
+                if (el) el.classList.toggle('active');
+            }
+
+            // Close modals on background click
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal-overlay')) {
+                    event.target.style.display = 'none';
+                }
+            }
 
             // --- 4. INITIALIZATION ---
             // initBlockEditor();
@@ -406,11 +481,254 @@
         }
 
 
+        function toggleSingleChapter(btn, event) {
+
+            if (event) {
+                event.stopPropagation();
+            }
+
+
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}"; // Blade variable
+
+            // 1. Immediate UI Feedback (Oogabooga speed)
+            const chapterNumber = btn.closest('.chapter-group')
+                .querySelector('input[name="chapter_number"]')?.value;
+
+            updateButtonUI(btn, newStatus);
+
+            // 2. Send to Server
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}`, {
+                status: newStatus,
+                title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
+                description: "Updated via toggle",
+                chapter_number: chapterNumber
+            })
+                .then(() => {
+                    checkMasterToggle();
+                })
+                .catch(() => {
+                    checkMasterToggle();
+                });
+        }
+
+        function updateButtonUI(btn, status) {
+            btn.dataset.status = status;
+            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
+            btn.classList.remove('published', 'draft');
+            btn.classList.add(status);
+        }
+
+        function checkMasterToggle() {
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+            const masterBtn = document.querySelector('.btn-publish-all');
+
+            // Check if EVERY button has the 'published' class
+            const allPublished = Array.from(allBtns).every(btn => btn.classList.contains('published'));
+
+            if (allPublished) {
+                masterBtn.classList.add('all-green');
+                masterBtn.innerText = "🚀 All Published";
+                masterBtn.style.background = "#2ecc71";
+            } else {
+                masterBtn.classList.remove('all-green');
+                masterBtn.innerText = "📂 Publish All";
+                masterBtn.style.background = "#95a5a6";
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', checkMasterToggle);
+
+        function updateMasterButtonUI() {
+            const masterBtn = document.getElementById('master-toggle-btn');
+            // Select all status buttons (Chapters + Lessons)
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+
+            if (!masterBtn || allBtns.length === 0) return;
+
+            // Is there at least one "draft" button visible?
+            const hasAnyDrafts = Array.from(allBtns).some(btn => btn.dataset.status === 'draft');
+
+            if (hasAnyDrafts) {
+                masterBtn.innerText = "🚀 Publish Everything";
+                masterBtn.style.background = "#95a5a6"; // Gray-ish
+                masterBtn.className = "btn-publish-all has-drafts";
+            } else {
+                masterBtn.innerText = "📂 Draft Everything";
+                masterBtn.style.background = "#2ecc71"; // Green
+                masterBtn.className = "btn-publish-all all-published";
+            }
+        }
+
+        // Run it immediately on page load
+        document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
+
+        function toggleSingleLesson(btn, event) {
+            if (event) event.stopPropagation();
+
+            const lessonId = btn.dataset.lessonId;
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}";
+
+            updateButtonUI(btn, newStatus);
+
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
+                status: newStatus,
+                title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
+                lesson_number: 1,
+                description: "Status update"
+            })
+                .then(() => {
+                    // sync UI if needed
+                })
+                .catch(() => {
+
+                });
+        }
+
+        // If you use the AJAX toggle from the previous step,
+        // make sure to call updateMasterButtonUI() inside the .then() block!
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.style.display = 'none';
+        }
+
+        function deleteLesson(event, courseId, chapterId, lessonId) {
+            event.stopPropagation(); // 🔥 critical
+
+            const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
+
+            axios.delete(url)
+                .then(() => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+                })
+                .catch((error) => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+
+                });
+        }
+
+        function deleteChapter(event, btn) {
+            event.stopPropagation();
+            const url = btn.dataset.url;
+            const chapterId = btn.dataset.chapterId;
+
+            axios.delete(url)
+                .then(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                })
+                .catch(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                });
+        }
+
+        function updateChapter(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const chapterId = url.match(/chapters\/(\d+)/)[1]; // 🔥 reliable extraction
+
+            axios.put(url, data)
+                .then(() => {
+                    // Find the correct chapter in the sidebar
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                })
+                .catch(() => {
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                });
+        }
+
+        function updateLesson(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.put(url, data)
+                .then(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                })
+                .catch(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                });
+        }
+
         function saveAllBlocks(event, form) {
             event.preventDefault();
 
             const url = form.action;
             const formData = new FormData(form);
+
+            // Read CSRF from the form's own hidden _token field (blade @csrf always outputs this)
+            const csrfToken = form.querySelector('input[name="_token"]')?.value || '';
 
             const saveBtn = form.querySelector('.btn-save-all');
             if (saveBtn) {
@@ -418,29 +736,97 @@
                 saveBtn.innerText = 'Saving...';
             }
 
-            axios.post(url, formData, {
+            // Use native fetch — axios drops file binary data from FormData
+            fetch(url, {
+                method: 'POST',
+                body: formData,
                 headers: {
-                    'X-HTTP-Method-Override': 'PUT',
-                    'Content-Type': 'multipart/form-data'
-                }
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     if (saveBtn) {
                         saveBtn.innerText = 'Saved ✓';
-                        saveBtn.style.background = ''; // Reset to default green
+                        saveBtn.style.background = '';
                         setTimeout(() => {
                             saveBtn.innerText = 'Save All Changes';
                             saveBtn.disabled = false;
                         }, 1500);
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     if (saveBtn) {
-                        saveBtn.innerText = 'Save Failed';
-                        saveBtn.style.background = '#ef4444'; // Red for error
+                        saveBtn.innerText = 'Save Failed (' + (err.message || 'error') + ')';
+                        saveBtn.style.background = '#ef4444';
                         saveBtn.disabled = false;
                     }
-                    alert('Failed to save changes');
+                });
+        }
+
+        function uploadMediaFile(input) {
+            const blockId   = input.dataset.blockId;
+            const mediaType = input.dataset.mediaType;
+            const file      = input.files[0];
+            if (!file) return;
+
+            const fileBlock   = input.closest('.file-block');
+            const statusEl    = fileBlock.querySelector('.upload-status');
+            const hiddenInput = fileBlock.querySelector('input[type="hidden"]');
+            const previewEl   = fileBlock.querySelector('.file-preview');
+
+            statusEl.style.color = '#6b7280';
+            statusEl.innerText   = '⏫ Uploading ' + file.name + '…';
+            input.disabled       = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', mediaType);
+
+            const csrf = document.querySelector('input[name="_token"]')?.value || '';
+
+            fetch('/admin/blocks/upload-media', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(res => res.text().then(txt => {
+                    try {
+                        const data = JSON.parse(txt);
+                        if (!res.ok) throw new Error((data.error || 'HTTP ' + res.status));
+                        return data;
+                    } catch(e) {
+                        throw new Error('Server said: ' + txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,400));
+                    }
+                }))
+                .then(data => {
+                    hiddenInput.value = data.path;
+
+                    previewEl.style.display = '';
+                    if (mediaType === 'video') {
+                        previewEl.innerHTML = `<video src="/storage/${data.path}" style="max-width:300px;max-height:200px;border-radius:8px;margin-top:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    } else {
+                        previewEl.innerHTML = `<img src="/storage/${data.path}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    }
+
+                    statusEl.style.color = '#22c55e';
+                    statusEl.innerText   = '✓ Uploaded — press Save All to keep';
+                    input.disabled       = false;
+
+                    const saveBtn = document.querySelector('.btn-save-all');
+                    if (saveBtn) {
+                        saveBtn.style.background = '#f59e0b';
+                        saveBtn.innerText = 'Save Changes *';
+                    }
+                })
+                .catch(err => {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText   = '✗ Upload failed: ' + err.message;
+                    input.disabled       = false;
                 });
         }
 
@@ -492,17 +878,25 @@
                 case 'photo':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<img src="/storage/${existingContent}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="photo" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'video':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<video src="/storage/${existingContent}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="video" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'math':
@@ -511,6 +905,49 @@
                 <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
                     ${existingContent ? '$' + existingContent + '$' : 'Preview will appear here...'}
                 </div>`;
+                case 'list':
+                    let listData = {style: 'bullet', items: []};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.items) listData = parsed;
+                    } catch(e) {}
+                    const listItems = (listData.items || []).join('\n');
+                    return `
+        <div class="list-editor" data-block-id="${blockId}">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <select name="blocks[${blockId}][list_style]" class="mini-type-select" style="width:auto;">
+                    <option value="bullet" ${listData.style == 'bullet' ? 'selected' : ''}>• Bullet List</option>
+                    <option value="numbered" ${listData.style == 'numbered' ? 'selected' : ''}>1. Numbered</option>
+                    <option value="checklist" ${listData.style == 'checklist' ? 'selected' : ''}>☑ Checklist</option>
+                </select>
+            </div>
+            <textarea name="blocks[${blockId}][list_items]" class="input-ghost content-style" placeholder="Enter list items, one per line..." rows="3" style="font-family:inherit;">${listItems}</textarea>
+            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" class="list-content-hidden" value='${JSON.stringify(listData)}'>`;
+
+                case 'separator':
+                    let sepData = {type: 'divider'};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.type) sepData = parsed;
+                    } catch(e) {}
+                    return `
+        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+            <select name="blocks[${blockId}][separator_type]" class="mini-type-select" style="width:auto;margin-bottom:8px;">
+                <option value="divider" ${sepData.type == 'divider' ? 'selected' : ''}>— Horizontal Line</option>
+                <option value="section_break" ${sepData.type == 'section_break' ? 'selected' : ''}>§ Section Break</option>
+                <option value="page_break" ${sepData.type == 'page_break' ? 'selected' : ''}>↲ Page Break</option>
+            </select>
+            <div class="separator-preview">
+                ${sepData.type == 'page_break'
+                        ? '<div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:12px;">——— Page Break ———</div>'
+                        : sepData.type == 'section_break'
+                            ? '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;">SECTION</span><div style="flex:1;height:1px;background:var(--border);"></div></div>'
+                            : '<hr style="border:none;border-top:1px solid var(--border);">'}
+            </div>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(sepData)}'>`;
 
                 case 'graph':
                     // Try to parse existing content as JSON, or use defaults
@@ -534,7 +971,7 @@
 
                 case 'function':
                     let funcData = {
-                        function: 'sin(x)',
+                        function: 'sin(x)=y',
                         x_min: -10,
                         x_max: 10,
                         y_min: -5,
@@ -657,7 +1094,84 @@
             }
         }
 
+        function createChapter(event, form) {
+            event.preventDefault();
 
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.post(url, data)
+                .then((response) => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+                })
+                .catch(() => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+
+                });
+        }
 
         function createLesson(event, form) {
             event.preventDefault();
@@ -820,10 +1334,20 @@
 
             // Set appropriate default content based on type
             let defaultContent = '';
+
             if (selectedType === 'graph') {
                 defaultContent = JSON.stringify({type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]});
                 formData.append('chart_type', 'line');
                 formData.append('chart_data', "Jan,Feb,Mar\n10,20,15");
+            } else if (selectedType === 'list') {
+                defaultContent = JSON.stringify({
+                    style: document.querySelector('#block-popup select[name="list_style"]')?.value || 'bullet',
+                    items: document.querySelector('#block-popup textarea[name="list_items"]')?.value.split('\n').filter(i => i.trim()) || ['Item 1', 'Item 2']
+                });
+            } else if (selectedType === 'separator') {
+                defaultContent = JSON.stringify({
+                    type: document.querySelector('#block-popup select[name="separator_type"]')?.value || 'divider'
+                });
             } else if (selectedType === 'table') {
                 defaultContent = JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]);
                 formData.append('table_data', JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]));
@@ -835,27 +1359,37 @@
                 defaultContent = '';
 
             }else if (selectedType === 'function') {
-                    defaultContent = JSON.stringify({
-                        function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
-                        x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
-                        x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
-                        y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
-                        y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
-                        color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
-                        step: 0.1
-                    });
-                    formData.append('content', defaultContent);
+                defaultContent = JSON.stringify({
+                    function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
+                    x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
+                    x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
+                    y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
+                    y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
+                    color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
+                    step: 0.1
+                });
+                formData.append('content', defaultContent);
 
             } else {
                 defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
                 formData.append('content', defaultContent);
             }
 
-            axios.post(url, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const _csrf = document.querySelector('input[name="_token"]')?.value || '';
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': _csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then((response) => {
-                    const block = response.data.block;
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then((data) => {
+                    const block = data.block;
                     const list = document.querySelector('.blocks-list');
 
                     // Generate the HTML for the selected type
@@ -867,6 +1401,8 @@
             <option value="note" ${selectedType == 'note' ? 'selected' : ''}>Note</option>
             <option value="code" ${selectedType == 'code' ? 'selected' : ''}>Code</option>
             <option value="exercise" ${selectedType == 'exercise' ? 'selected' : ''}>Exercise</option>
+            <option value="list" ${selectedType == 'list' ? 'selected' : ''}>List</option>
+            <option value="separator" ${selectedType == 'separator' ? 'selected' : ''}>Separator</option>
             <option value="photo" ${selectedType == 'photo' ? 'selected' : ''}>Photo</option>
             <option value="video" ${selectedType == 'video' ? 'selected' : ''}>Video</option>
             <option value="math" ${selectedType == 'math' ? 'selected' : ''}>Math</option>
@@ -913,10 +1449,9 @@
                     if (typeSelect) typeSelect.value = 'header';
                     toggleNewBlockFields(typeSelect);
 
-                    // Show "unsaved changes" indicator if you have one
                     const saveBtn = document.querySelector('.btn-save-all');
                     if (saveBtn) {
-                        saveBtn.style.background = '#f59e0b'; // Orange to indicate unsaved
+                        saveBtn.style.background = '#f59e0b';
                         saveBtn.innerText = 'Save Changes *';
                     }
                 })
@@ -980,39 +1515,55 @@
 
 
         // Toggle fields in new block modal based on type
+
         function toggleNewBlockFields(select) {
-                const type = select.value;
-                const textGroup = document.getElementById('text-content-group');
-                const fileGroup = document.getElementById('file-content-group');
-                const graphGroup = document.getElementById('graph-content-group');
-                const tableGroup = document.getElementById('table-content-group');
-                const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
+            const type = select.value;
+            const textGroup = document.getElementById('text-content-group');
+            const fileGroup = document.getElementById('file-content-group');
+            const graphGroup = document.getElementById('graph-content-group');
+            const tableGroup = document.getElementById('table-content-group');
+            const functionGroup = document.getElementById('function-content-group');
+            const listGroup = document.getElementById('list-content-group');
+            const separatorGroup = document.getElementById('separator-content-group');
 
-                // Hide all first
-                textGroup.style.display = 'none';
-                fileGroup.style.display = 'none';
-                graphGroup.style.display = 'none';
-                tableGroup.style.display = 'none';
-                functionGroup.style.display = 'none';
+// Hide others...
+            if (listGroup) listGroup.style.display = 'none';
+            if (separatorGroup) separatorGroup.style.display = 'none';
 
-                // Show relevant
-                if (type === 'photo' || type === 'video') {
-                    fileGroup.style.display = 'flex';
-                    fileGroup.style.flexDirection = 'column';
-                } else if (type === 'graph') {
-                    graphGroup.style.display = 'flex';
-                    graphGroup.style.flexDirection = 'column';
-                } else if (type === 'table') {
-                    tableGroup.style.display = 'flex';
-                    tableGroup.style.flexDirection = 'column';
-                } else if (type === 'function') {  // ← FIXED: Proper condition
-                    functionGroup.style.display = 'flex';
-                    functionGroup.style.flexDirection = 'column';
-                } else {
-                    textGroup.style.display = 'flex';
-                    textGroup.style.flexDirection = 'column';
-                }
+// Show logic:
+
+
+            // Hide all first
+            textGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            graphGroup.style.display = 'none';
+            tableGroup.style.display = 'none';
+            functionGroup.style.display = 'none';
+
+            // Show relevant
+            if (type === 'photo' || type === 'video') {
+                fileGroup.style.display = 'flex';
+                fileGroup.style.flexDirection = 'column';
+            } else if (type === 'graph') {
+                graphGroup.style.display = 'flex';
+                graphGroup.style.flexDirection = 'column';
+            } else if (type === 'table') {
+                tableGroup.style.display = 'flex';
+                tableGroup.style.flexDirection = 'column';
+            } else if (type === 'function') {
+                functionGroup.style.display = 'flex';
+                functionGroup.style.flexDirection = 'column';
+            } else if (type === 'list') {
+                listGroup.style.display = 'flex';
+                listGroup.style.flexDirection = 'column';
+            } else if (type === 'separator') {
+                separatorGroup.style.display = 'flex';
+                separatorGroup.style.flexDirection = 'column';
+            } else {
+                textGroup.style.display = 'flex';
+                textGroup.style.flexDirection = 'column';
             }
+        }
 
         // Function graph rendering
         // Function graph rendering
