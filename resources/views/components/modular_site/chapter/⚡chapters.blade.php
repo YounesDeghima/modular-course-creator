@@ -7,6 +7,7 @@ new class extends Component {
     public $course;
     public $chapters;
     public $openChapters = [];
+    public $allPublished;
 
     protected $listeners = ['chapterCreated' => 'addChapter' ,
                             'ChapterUpdated'=>'updateChapter',
@@ -14,6 +15,7 @@ new class extends Component {
 
     public function mount($course,$chapters)
     {
+        $this->allPublished =$this->chapters->where('status','=','draft')->count()===0;
         $this->course = $course;
         $this->chapters = $chapters;
 
@@ -27,6 +29,7 @@ new class extends Component {
 
         if ($chapter) {
             $this->chapters->push($chapter);
+
         }
     }
 
@@ -46,6 +49,7 @@ new class extends Component {
                 return $chapter->id === $updatedChapter->id ? $updatedChapter : $chapter;
             });
         }
+
     }
 
     public function deleteChapter($id){
@@ -57,18 +61,63 @@ new class extends Component {
     public function togglestatus($id){
         $chapter = chapter::findOrFail($id);
         $newStatus = ($chapter->status === 'published') ? 'draft' : 'published';
-
         $chapter->update(['status' => $newStatus]);
+
+        // IMPORTANT: Update the chapter in the local collection
+        $this->chapters = $this->chapters->map(function ($item) use ($id, $newStatus) {
+            if ($item->id === $id) {
+                $item->status = $newStatus;
+            }
+            return $item;
+        });
+
+        // Recalculate if everything is published
+        $this->allPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
     }
 
+    public function updateMasterToggle(){
+        $this->allPublished =$this->chapters->where('status','=','draft')->count()===0;
+    }
+
+    public function masterToggle(){
+
+        $isAllPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
+
+        if ($isAllPublished) {
+            // Use the Model Query, not the collection, to avoid the Exception
+            chapter::whereIn('id', $this->chapters->pluck('id'))->update(['status' => 'draft']);
+        } else {
+            chapter::whereIn('id', $this->chapters->pluck('id'))->update(['status' => 'published']);
+        }
+
+        // Refresh the local collection and the toggle state
+        $this->chapters = chapter::where('course_id', $this->course->id)->get();
+        $this->allPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
+
+    }
 
 };
 ?>
 
+
+
 <div>
+    <div class="bulk-actions" style="padding: 10px; border-bottom: 1px solid #ddd;">
+        <div id="master-toggle-form">
+            <button type="submit"
+                    x-data="{allPublished : @entangle('allPublished')}"
+
+                    id="master-toggle-btn"
+                    class="btn-publish-all"
+                    wire:click="masterToggle"
+                    x-on:click="allPublished = !allPublished"
+                    x-text="allPublished ? 'Draft All' : 'Publish All'">
+            </button>
+        </div>
+    </div>
     @if($chapters)
         @foreach($chapters as $chapter)
-            <div class="chapter-group" x-data="{open : false,open_update_modal : false,status : '{{$chapter->status}}'}" wire:key="">
+            <div class="chapter-group" x-data="{open : false,open_update_modal : false,open_lesson_update_modal:false,openLessonModalId:null}" wire:key="chapter-{{ $chapter->id }}">
 
                 <div class="chapter-header" @click="open=!open">
                     <div class="header-left">
@@ -76,14 +125,13 @@ new class extends Component {
                         <strong class="chapter-title">{{ $chapter->title }}</strong>
 
                         <button type="button"
-                                :class="status"
-                                class="status-toggle-btn"
+
+                                class="status-toggle-btn {{$chapter->status}}"
                                 data-chapter-id="{{ $chapter->id}}"
                                 data-status="{{ $chapter->status }}"
 
-                                @click.stop="status=(status === 'published') ? 'draft' :'published';
-                                             $wire.togglestatus({{$chapter->id}})">
-                            <span x-text="status.charAt(0).toUpperCase() + status.slice(1)"></span>
+                                @click.stop="$wire.togglestatus({{ $chapter->id }})">
+                            <span>{{ ucfirst($chapter->status) }}</span>
 
                         </button>
                     </div>
@@ -93,134 +141,8 @@ new class extends Component {
 
                     </div>
                 </div>
+                <livewire:modular_site.lesson.lessons :chapter="$chapter"/>
 
-                <div id="lessons-container-{{$chapter->id}}" class="lessons-list" x-show="open"
-                     @open-chapter-modal-{{$chapter->id}}.window="open = true"
-                     style="display:none;">
-                    @if($chapter->lessons->count() > 0)
-                        <div class="lesson-row bulk-lesson-action">
-                            <form action="{{ route('admin.courses.chapters.lessons.toggle-all', [$course->id, $chapter->id]) }}"
-                                  method="POST" style="width: 100%;">
-                                @csrf
-                                @method('PUT')
-                                <button type="submit" class="btn-bulk-lessons">
-                                    ⚡ Toggle All Lessons
-                                </button>
-                            </form>
-                        </div>
-                    @endif
-                    @foreach($chapter->lessons as $lesson)
-                        <div class="lesson-row"
-                             data-href='{{ route('admin.courses.chapters.lessons.blocks.index',[$course->id, $chapter->id, $lesson->id]) }}'>
-                            <div class="lesson-content">
-                                <span class="bullet">•</span>
-                                <a class="lesson-link">{{ $lesson->title }}</a>
-
-                                <button type="button"
-                                        class="status-toggle-btn lesson-status {{ $lesson->status }}"
-                                        data-lesson-id="{{ $lesson->id }}"
-                                        data-chapter-id="{{ $chapter->id }}"
-                                        data-status="{{ $lesson->status }}"
-                                        onclick="toggleSingleLesson(this, event)">
-                                    {{ ucfirst($lesson->status) }}
-                                </button>
-                            </div>
-                            <span class="pen-icon lesson-pen" onclick="openModal('lesson-modal-{{$lesson->id}}', event)">✏️</span>
-                        </div>
-
-                        <div id="lesson-modal-{{$lesson->id}}" class="modal-overlay">
-                            <div class="modal-content">
-                                <span class="close-btn" onclick="closeModal('lesson-modal-{{$lesson->id}}')">&times;</span>
-                                <h3>Edit Lesson: {{ $lesson->lesson_number }}</h3>
-
-                                <form onsubmit="updateLesson(event, this)"
-                                      action="{{ route('admin.courses.chapters.lessons.update', [$course->id, $chapter->id, $lesson->id]) }}"
-                                      method="POST" class="lesson-form">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="form-title">
-                                        <label>Title</label>
-                                        <input type="text" name="title" value="{{ $lesson->title }}" class="modal-input">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Lesson Number</label>
-                                        <input type="number" name="lesson_number" value="{{ $lesson->lesson_number }}"
-                                               class="modal-input" min="1" required>
-                                    </div>
-                                    <div class="form-discription">
-                                        <label>Description</label>
-                                        <textarea name="description" class="modal-input">{{ $lesson->description }}</textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Visibility Status</label>
-                                        <select name="status" class="modal-input">
-                                            <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft
-                                                (Hidden)
-                                            </option>
-                                            <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>
-                                                Published (Live)
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn-update">Update Lesson</button>
-                                </form>
-
-                                <form action="{{ route('admin.courses.chapters.lessons.destroy', [$course, $chapter, $lesson]) }}"
-                                      method="POST" class="delete-form">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button"
-                                            class="btn-delete"
-                                            onclick="deleteLesson(event, '{{ $course->id }}','{{ $chapter->id }}','{{ $lesson->id }}')">
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                    @endforeach
-                    <div class="lesson-row add-lesson-row" onclick="openModal('add-lesson-modal-{{$chapter->id}}')">
-                        <span class="plus-icon">+</span>
-                        <span class="lesson-link">Add Lesson</span>
-                    </div>
-                    <div id="add-lesson-modal-{{$chapter->id}}" class="modal-overlay">
-                        <div class="modal-content">
-                            <span class="close-btn" onclick="closeModal('add-lesson-modal-{{$chapter->id}}')">&times;</span>
-                            <h3>New Lesson for {{ $chapter->title }}</h3>
-
-                            <form onsubmit="createLesson(event, this)"
-                                  action="{{ route('admin.courses.chapters.lessons.store', [$course->id, $chapter->id]) }}"
-                                  method="POST">
-                                @csrf
-                                <div class="form-group">
-                                    <label>Title</label>
-                                    <input type="text" name="title" class="modal-input" required placeholder="Lesson name...">
-                                </div>
-                                <div class="form-group">
-                                    <label>Lesson Number</label>
-                                    <input type="number" name="lesson_number" value="{{ $chapter->lessons->count() + 1 }}"
-                                           class="modal-input" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label>Description</label>
-                                    <textarea name="description" class="modal-input" required></textarea>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Visibility Status</label>
-                                    <select name="status" class="modal-input">
-                                        <option value="draft" {{ $lesson->status == 'draft' ? 'selected' : '' }}>Draft (Hidden)
-                                        </option>
-                                        <option value="published" {{ $lesson->status == 'published' ? 'selected' : '' }}>Published
-                                            (Live)
-                                        </option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn-update">Create Lesson</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
 
 
 

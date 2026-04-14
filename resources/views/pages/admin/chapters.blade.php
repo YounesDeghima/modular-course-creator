@@ -11,7 +11,6 @@
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
     <style>
-
         .chapter-modal{
             display: flex;
         }
@@ -365,15 +364,7 @@
 
 @section('sidebar-elements')
 
-    <div class="bulk-actions" style="padding: 10px; border-bottom: 1px solid #ddd;">
-        <form action="{{ route('admin.courses.chapters.publish-all', $course->id) }}" method="POST" id="master-toggle-form">
-            @csrf
-            @method('PUT')
-            <button type="submit" id="master-toggle-btn" class="btn-publish-all">
-                Loading...
-            </button>
-        </form>
-    </div>
+
 
     <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters"/>
 
@@ -381,35 +372,6 @@
     <livewire:modular_site.chapter.chaptercreate :course="$course"/>
 
 
-{{--    <div id="add-chapter-modal" class="modal-overlay">--}}
-{{--        <div class="modal-content">--}}
-{{--            <span class="close-btn" onclick="closeModal('add-chapter-modal')">&times;</span>--}}
-{{--            <h3>Create New Chapter</h3>--}}
-{{--            <form onsubmit="createChapter(event, this)" id="new-block-form" method="POST" action="{{route('admin.courses.chapters.store', $course)}}">--}}
-{{--                @csrf--}}
-{{--                <div class="form-group">--}}
-{{--                    <label>Title:</label>--}}
-{{--                    <input class="modal-input" type="text" name="title" required>--}}
-{{--                </div>--}}
-{{--                <div class="form-group">--}}
-{{--                    <label>Chapter Number:</label>--}}
-{{--                    <input class="modal-input" type="number" name="chapter_number" value="{{$chapter_count+1}}" readonly>--}}
-{{--                </div>--}}
-{{--                <div class="form-group">--}}
-{{--                    <label>Description:</label>--}}
-{{--                    <textarea class="modal-input" name="description" style="height:100px;" required></textarea>--}}
-{{--                </div>--}}
-{{--                <div class="form-group">--}}
-{{--                    <label>Initial Status:</label>--}}
-{{--                    <select name="status" class="modal-input">--}}
-{{--                        <option value="draft" selected>Draft (Hidden)</option>--}}
-{{--                        <option value="published">Published (Live)</option>--}}
-{{--                    </select>--}}
-{{--                </div>--}}
-{{--                <button type="submit" class="btn-update">Create Chapter</button>--}}
-{{--            </form>--}}
-{{--        </div>--}}
-{{--    </div>--}}
 @endsection
 
 
@@ -479,20 +441,7 @@
                 }
             }
 
-            // const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
-            //
-            // openChapters.forEach(id => {
-            //     const container = document.getElementById('lessons-container-' + id);
-            //     const arrow = document.getElementById('arrow-' + id);
-            //
-            //     if (container) {
-            //         container.style.display = 'flex';
-            //     }
-            //
-            //     if (arrow) {
-            //         arrow.style.transform = 'rotate(90deg)';
-            //     }
-            // });
+
 
             // Auto-resize textareas based on content
             function initAutoResize() {
@@ -506,18 +455,7 @@
                 });
             }
 
-            // Initialize UI elements for the block editor
-            // function initBlockEditor() {
-            //     initAutoResize();
-            //
-            //     // Setup Floating Action Button
-            //     const btn = document.getElementById('block-adder');
-            //     const popup = document.getElementById('block-popup');
-            //     const close = document.getElementById('close-popup');
-            //
-            //     if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
-            //     if (close && popup) close.onclick = () => popup.style.display = 'none';
-            // }
+
 
             // --- 2. AJAX LESSON LOADING ---
             document.addEventListener('click', function(e) {
@@ -698,215 +636,6 @@
             });
         }
 
-
-
-
-        function updateButtonUI(btn, status) {
-            btn.dataset.status = status;
-            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
-            btn.classList.remove('published', 'draft');
-            btn.classList.add(status);
-        }
-
-        function checkMasterToggle() {
-            const allBtns = document.querySelectorAll('.status-toggle-btn');
-            const masterBtn = document.querySelector('.btn-publish-all');
-
-            // Check if EVERY button has the 'published' class
-            const allPublished = Array.from(allBtns).every(btn => btn.classList.contains('published'));
-
-            if (allPublished) {
-                masterBtn.classList.add('all-green');
-                masterBtn.innerText = "🚀 All Published";
-                masterBtn.style.background = "#2ecc71";
-            } else {
-                masterBtn.classList.remove('all-green');
-                masterBtn.innerText = "📂 Publish All";
-                masterBtn.style.background = "#95a5a6";
-            }
-        }
-
-        // Run on page load
-        document.addEventListener('DOMContentLoaded', checkMasterToggle);
-
-        function updateMasterButtonUI() {
-            const masterBtn = document.getElementById('master-toggle-btn');
-            // Select all status buttons (Chapters + Lessons)
-            const allBtns = document.querySelectorAll('.status-toggle-btn');
-
-            if (!masterBtn || allBtns.length === 0) return;
-
-            // Is there at least one "draft" button visible?
-            const hasAnyDrafts = Array.from(allBtns).some(btn => btn.dataset.status === 'draft');
-
-            if (hasAnyDrafts) {
-                masterBtn.innerText = "🚀 Publish Everything";
-                masterBtn.style.background = "#95a5a6"; // Gray-ish
-                masterBtn.className = "btn-publish-all has-drafts";
-            } else {
-                masterBtn.innerText = "📂 Draft Everything";
-                masterBtn.style.background = "#2ecc71"; // Green
-                masterBtn.className = "btn-publish-all all-published";
-            }
-        }
-
-        // Run it immediately on page load
-        document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
-
-        function toggleSingleLesson(btn, event) {
-            if (event) event.stopPropagation();
-
-            const lessonId = btn.dataset.lessonId;
-            const chapterId = btn.dataset.chapterId;
-            const currentStatus = btn.dataset.status;
-            const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-            const courseId = "{{ $course->id }}";
-
-            updateButtonUI(btn, newStatus);
-
-            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
-                status: newStatus,
-                title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
-                lesson_number: 1,
-                description: "Status update"
-            })
-                .then(() => {
-                    // sync UI if needed
-                })
-                .catch(() => {
-
-                });
-        }
-
-        // If you use the AJAX toggle from the previous step,
-        // make sure to call updateMasterButtonUI() inside the .then() block!
-
-        // function closeModal(id) {
-        //     const modal = document.getElementById(id);
-        //     if (modal) modal.style.display = 'none';
-        // }
-
-        function deleteLesson(event, courseId, chapterId, lessonId) {
-            event.stopPropagation(); // 🔥 critical
-
-            const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
-
-            axios.delete(url)
-                .then(() => {
-                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row')
-                        ?.remove();
-
-                    closeModal(`lesson-modal-${lessonId}`);
-                })
-                .catch((error) => {
-                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row')
-                        ?.remove();
-
-                    closeModal(`lesson-modal-${lessonId}`);
-
-                });
-        }
-
-        function deleteChapter(event, btn) {
-            event.stopPropagation();
-            const url = btn.dataset.url;
-            const chapterId = btn.dataset.chapterId;
-
-            axios.delete(url)
-                .then(() => {
-                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-                        ?.closest('.chapter-group');
-
-                    if (el) el.remove();
-
-                    closeModal('chapter-modal-' + chapterId);
-                })
-                .catch(() => {
-                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-                        ?.closest('.chapter-group');
-
-                    if (el) el.remove();
-
-                    closeModal('chapter-modal-' + chapterId);
-                });
-        }
-
-        function updateChapter(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            const chapterId = url.match(/chapters\/(\d+)/)[1]; // 🔥 reliable extraction
-
-            axios.put(url, data)
-                .then(() => {
-                    // Find the correct chapter in the sidebar
-                    const chapterEl = document.querySelector(
-                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
-                    )?.closest('.chapter-group');
-
-                    const titleEl = chapterEl?.querySelector('.chapter-title');
-
-                    if (titleEl) {
-                        titleEl.innerText = data.title;
-                    }
-
-                    closeModal(`chapter-modal-${chapterId}`);
-                })
-                .catch(() => {
-                    const chapterEl = document.querySelector(
-                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
-                    )?.closest('.chapter-group');
-
-                    const titleEl = chapterEl?.querySelector('.chapter-title');
-
-                    if (titleEl) {
-                        titleEl.innerText = data.title;
-                    }
-
-                    closeModal(`chapter-modal-${chapterId}`);
-                });
-        }
-
-        function updateLesson(event, form) {
-            event.preventDefault();
-
-            const url = form.action;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            axios.put(url, data)
-                .then(() => {
-                    const modal = form.closest('.modal-overlay');
-                    if (modal) modal.style.display = 'none';
-
-                    // Optional: update UI title in sidebar
-                    const lessonId = url.split('/').pop();
-                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row');
-
-                    if (row) {
-                        row.querySelector('.lesson-link').innerText = data.title;
-                    }
-                })
-                .catch(() => {
-                    const modal = form.closest('.modal-overlay');
-                    if (modal) modal.style.display = 'none';
-
-                    // Optional: update UI title in sidebar
-                    const lessonId = url.split('/').pop();
-                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
-                        ?.closest('.lesson-row');
-
-                    if (row) {
-                        row.querySelector('.lesson-link').innerText = data.title;
-                    }
-                });
-        }
 
         function saveAllBlocks(event, form) {
             event.preventDefault();
@@ -1482,8 +1211,7 @@
 
 
         // Toggle fields in new block modal based on type
-
-            function toggleNewBlockFields(select) {
+        function toggleNewBlockFields(select) {
                 const type = select.value;
                 const textGroup = document.getElementById('text-content-group');
                 const fileGroup = document.getElementById('file-content-group');
