@@ -143,6 +143,186 @@
                                 @endif
                             </div>
                             @break
+
+                        @case('photo')
+                            @if($block->content)
+                                <div style="margin: 20px 0;">
+                                    <img src="{{ asset('storage/' . $block->content) }}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                </div>
+                            @endif
+                            @break
+
+                        @case('video')
+                            @if($block->content)
+                                <div style="margin: 20px 0;">
+                                    <video controls style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                        <source src="{{ asset('storage/' . $block->content) }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                            @endif
+                            @break
+
+                        @case('math')
+                            <div style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
+                                <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
+                                    {{ $block->content }}
+                                </div>
+                                <small style="display:block;margin-top:8px;color:var(--text-faint);text-align:center;">LaTeX: {{ $block->content }}</small>
+                            </div>
+                            @break
+
+                        @case('graph')
+                            @php $graphData = json_decode($block->content, true); @endphp
+                            @if($graphData)
+                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                                    <canvas id="chart-{{ $block->id }}" width="400" height="200" style="max-width:100%;"></canvas>
+                                </div>
+                                <script>
+                                    (function() {
+                                        var ctx = document.getElementById('chart-{{ $block->id }}');
+                                        if(ctx && typeof Chart !== 'undefined') {
+                                            new Chart(ctx, {
+                                                type: '{{ $graphData['type'] ?? 'line' }}',
+                                                data: {
+                                                    labels: {!! json_encode($graphData['labels'] ?? []) !!},
+                                                    datasets: [{
+                                                        label: 'Values',
+                                                        data: {!! json_encode($graphData['data'] ?? []) !!},
+                                                        borderColor: '#4f46e5',
+                                                        backgroundColor: '{{ $graphData['type'] == 'pie' ? json_encode(['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']) : 'rgba(79, 70, 229, 0.1)' }}',
+                                                        tension: 0.4
+                                                    }]
+                                                },
+                                                options: {
+                                                    responsive: true,
+                                                    maintainAspectRatio: true,
+                                                    plugins: { legend: { display: {{ ($graphData['type'] ?? 'line') == 'pie' ? 'true' : 'false' }} } }
+                                                }
+                                            });
+                                        }
+                                    })();
+                                </script>
+                            @endif
+                            @break
+
+                        @case('function')
+                            @php $funcData = json_decode($block->content, true); @endphp
+                            @if($funcData)
+                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);margin-bottom:12px;padding:8px 12px;background:var(--bg-subtle);border-radius:4px;display:inline-block;">
+                                        f(x) = {{ $funcData['function'] ?? 'sin(x)' }}
+                                    </div>
+                                    <canvas id="preview-func-{{ $block->id }}" width="600" height="300" style="width:100%;max-width:100%;height:auto;"></canvas>
+                                </div>
+                                <script>
+                                    (function() {
+                                        const canvas = document.getElementById('preview-func-{{ $block->id }}');
+                                        if (!canvas) return;
+                                        const ctx = canvas.getContext('2d');
+                                        const width = canvas.width;
+                                        const height = canvas.height;
+
+                                        const xMin = {{ $funcData['x_min'] ?? -10 }};
+                                        const xMax = {{ $funcData['x_max'] ?? 10 }};
+                                        const yMin = {{ $funcData['y_min'] ?? -5 }};
+                                        const yMax = {{ $funcData['y_max'] ?? 5 }};
+                                        const color = '{{ $funcData['color'] ?? '#4f46e5' }}';
+                                        const step = {{ $funcData['step'] ?? 0.1 }};
+                                        const funcExpr = '{{ $funcData['function'] ?? 'sin(x)' }}'
+                                            .replace(/\^/g, '**')
+                                            .replace(/sin/g, 'Math.sin')
+                                            .replace(/cos/g, 'Math.cos')
+                                            .replace(/tan/g, 'Math.tan')
+                                            .replace(/sqrt/g, 'Math.sqrt')
+                                            .replace(/log/g, 'Math.log')
+                                            .replace(/abs/g, 'Math.abs')
+                                            .replace(/pi/g, 'Math.PI')
+                                            .replace(/e(?![a-z])/g, 'Math.E');
+
+                                        // Clear
+                                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg') || '#ffffff';
+                                        ctx.fillRect(0, 0, width, height);
+
+                                        // Grid
+                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e5e7eb';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        for (let i = 0; i <= 10; i++) {
+                                            const x = (i / 10) * width;
+                                            ctx.moveTo(x, 0);
+                                            ctx.lineTo(x, height);
+                                            const y = (i / 10) * height;
+                                            ctx.moveTo(0, y);
+                                            ctx.lineTo(width, y);
+                                        }
+                                        ctx.stroke();
+
+                                        // Axes
+                                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-faint') || '#9ca3af';
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        const yZero = height - ((0 - yMin) / (yMax - yMin)) * height;
+                                        if (yZero >= 0 && yZero <= height) {
+                                            ctx.moveTo(0, yZero);
+                                            ctx.lineTo(width, yZero);
+                                        }
+                                        const xZero = ((0 - xMin) / (xMax - xMin)) * width;
+                                        if (xZero >= 0 && xZero <= width) {
+                                            ctx.moveTo(xZero, 0);
+                                            ctx.lineTo(xZero, height);
+                                        }
+                                        ctx.stroke();
+
+                                        // Function
+                                        ctx.strokeStyle = color;
+                                        ctx.lineWidth = 3;
+                                        ctx.beginPath();
+                                        let first = true;
+                                        for (let x = xMin; x <= xMax; x += step) {
+                                            let y;
+                                            try {
+                                                y = eval(funcExpr.replace(/x/g, '(' + x + ')'));
+                                            } catch(e) { continue; }
+                                            if (!isFinite(y) || isNaN(y)) continue;
+                                            const cx = ((x - xMin) / (xMax - xMin)) * width;
+                                            const cy = height - ((y - yMin) / (yMax - yMin)) * height;
+                                            if (first) {
+                                                ctx.moveTo(cx, cy);
+                                                first = false;
+                                            } else {
+                                                ctx.lineTo(cx, cy);
+                                            }
+                                        }
+                                        ctx.stroke();
+                                    })();
+                                </script>
+                            @endif
+                            @break
+
+                        @case('table')
+                            @php $tableData = json_decode($block->content, true); @endphp
+                            @if($tableData && count($tableData) > 0)
+                                <div style="margin: 20px 0; overflow-x: auto;">
+                                    <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); font-size: 14px;">
+                                        @foreach($tableData as $rowIndex => $row)
+                                            <tr style="{{ $rowIndex === 0 ? 'background: var(--bg-subtle); font-weight: 600;' : 'background: var(--bg);' }}">
+                                                @foreach($row as $cell)
+                                                    <td style="border: 1px solid var(--border); padding: 12px; text-align: left;">{{ $cell }}</td>
+                                                @endforeach
+                                            </tr>
+                                        @endforeach
+                                    </table>
+                                </div>
+                            @endif
+                            @break
+
+                        @case('ext')
+                            <div style="margin: 20px 0; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto;">
+                                {!! $block->content !!}
+                            </div>
+                            @break
+
                     @endswitch
                 @endforeach
             </div>

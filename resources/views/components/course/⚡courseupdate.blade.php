@@ -44,9 +44,10 @@ new class extends Component {
 
     public function delete()
     {
-
+        dd('deleted');
         $this->course->delete();
         $this->dispatch('course-deleted');
+
     }
 
 };

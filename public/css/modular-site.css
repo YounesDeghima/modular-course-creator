@@ -206,7 +206,7 @@ body, main, .side-bar {
     gap: 6px;
     border-bottom: 1px solid var(--border-mid);
     overflow: visible;
-    
+
 }
 
 .lesson-row:hover { background: var(--bg-hover); }
@@ -919,4 +919,86 @@ textarea{
 .blocks-wrapper{
     height: 100%;
     width: 100%;
+}
+
+/* New Block Type Styles */
+.block-row.type-photo,
+.block-row.type-video {
+    background: var(--bg-subtle);
+    border-left-color: #8b5cf6 !important;
+}
+
+.block-row.type-math {
+    background: #fdf2f8;
+    border-left-color: #e11d48 !important;
+}
+[data-theme="dark"] .block-row.type-math { background: #2a0f1a; }
+
+.block-row.type-graph {
+    background: #f0fdf4;
+    border-left-color: #059669 !important;
+}
+[data-theme="dark"] .block-row.type-graph { background: #0f1f1a; }
+
+.block-row.type-table {
+    background: #fffbeb;
+    border-left-color: #d97706 !important;
+}
+[data-theme="dark"] .block-row.type-table { background: #1f1a0f; }
+
+.block-row.type-ext {
+    background: #0f172a;
+    border-left-color: #6366f1 !important;
+}
+.block-row.type-ext .input-ghost {
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+
+/* File inputs */
+.file-input {
+    padding: 8px;
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    width: 100%;
+    cursor: pointer;
+}
+.file-input:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.file-preview {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: inline-block;
+}
+
+/* Editable table styles */
+.editable-table input:focus {
+    background: var(--bg-hover);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+/* Graph editor */
+.graph-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Math block */
+.math-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+}
+.math-preview {
+    font-family: 'Times New Roman', serif;
+    font-size: 16px;
+    color: var(--text);
 }

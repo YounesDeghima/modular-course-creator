@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
             userSeeder::class,
             adminSeeder::class,
             AISeeder::class,
-//            coursequestionSeeder::class,
+            coursequestionSeeder::class,
 
 
 //            blockSeeder::class,

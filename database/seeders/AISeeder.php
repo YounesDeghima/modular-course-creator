@@ -33,7 +33,7 @@ class AISeeder extends Seeder
             ]);
 
             coursequestion::factory()
-                ->count(100)
+                ->count(10)
                 ->for($course)
                 ->has(questionchoice::factory()->count(4))
                 ->create();

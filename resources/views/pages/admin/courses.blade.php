@@ -14,9 +14,9 @@
     </div>
 
     {{-- New course popup --}}
-    <livewire:coursecreate/>
+    <livewire:course.coursecreate/>
 
-    <livewire:courses :courses="$courses"/>
+    <livewire:course.courses :courses="$courses"/>
 @endsection
 
 
