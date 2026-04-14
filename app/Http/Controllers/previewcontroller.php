@@ -92,8 +92,10 @@ class previewcontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
 
-        $blocks = block::where('lesson_id','=',$lesson->id)->get();
-
+        $blocks = block::where('lesson_id', $lesson->id)
+            ->with('solutions')
+            ->orderBy('block_number', 'asc')
+            ->get();
         $prevlesson = lesson::where('chapter_id','=',$chapter->id)
             ->where('lesson_number','<',$lesson->lesson_number)
             ->where('status','=','published')
@@ -123,7 +125,11 @@ class previewcontroller extends Controller
             ->first();
 
 
-        return view('pages.admin.preview.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','prevchapter','nextchapter','blocks','name','email','id','lesson_progress'));
+        return view('pages.admin.preview.blocks',compact(
+            'course','chapter','lesson',
+            'prevlesson','nextlesson','prevchapter','nextchapter',
+            'blocks','name','email','id','lesson_progress'
+        ));
 
     }
 
@@ -207,8 +213,10 @@ class previewcontroller extends Controller
         $name = $admin->name;
         $email = $admin->email;
 
-        $blocks = block::where('lesson_id','=',$lesson->id)->get();
-
+        $blocks = block::where('lesson_id', $lesson->id)
+            ->with('solutions')
+            ->orderBy('block_number', 'asc')
+            ->get();
         $prevlesson = lesson::where('chapter_id','=',$chapter->id)
             ->where('lesson_number','<',$lesson->lesson_number)
             ->where('status','=','published')
@@ -236,7 +244,11 @@ class previewcontroller extends Controller
             ->first();
 
 
-        return view('pages.user.blocks',compact('course','chapter','lesson','prevlesson','nextlesson','prevchapter','nextchapter','blocks','name','email','id','lesson_progress'));
+        return view('pages.user.blocks',compact(
+            'course','chapter','lesson','prevlesson',
+            'nextlesson', 'prevchapter','nextchapter','blocks',
+            'name','email','id','lesson_progress'
+        ));
 
     }
 
