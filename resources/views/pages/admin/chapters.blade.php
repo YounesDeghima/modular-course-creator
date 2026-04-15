@@ -153,7 +153,7 @@
 
     <script src="{{ asset('js/function.js') }}"></script>
 
-    <script>
+    {{--<script>
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -1748,7 +1748,6 @@
                 });
             }, 100);
         });
-    </script>
+    </script>--}}
 
 @endsection
-

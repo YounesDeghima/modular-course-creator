@@ -1,17 +1,7 @@
 
-    /* =========================================================
-    MathParser  — converts a human equation string to a JS
-    function  F(x,y) = LHS - RHS  (implicit form = 0).
 
-    Handles:
-    y = sin(x)          →  y - sin(x)
-    x^2 + y^2 = 1       →  x^2 + y^2 - 1
-    sin(y)/tan(x) = x+y →  sin(y)/tan(x) - (x+y)
-    y - x - 1 = 0       →  y - x - 1
-    y^2 + x^2 - 1 = 0   →  y^2 + x^2 - 1
-    ========================================================= */
     MathParser = (() => {
-    // Tokenise a raw math string into a JS-evaluable expression
+
     function toJS(expr) {
         return expr.trim()
             // implicit multiplication:  2x  2(  )(  )x
@@ -49,8 +39,7 @@
             .replace(/\be\b/g, 'Math.E');
     }
 
-    // Parse "LHS = RHS"  →  function F(x,y){ return LHS - (RHS); }
-    // If no "=", treat whole thing as F(x,y)=0
+
     function compile(raw) {
     const eq = raw.trim();
     const eqIdx = eq.indexOf('=');
@@ -77,9 +66,6 @@
 })();
 
 
-    /* =========================================================
-    ImplicitPlotter  — marching-squares renderer on a canvas.
-    ========================================================= */
     ImplicitPlotter = (() => {
 
     // colour helpers
@@ -344,10 +330,6 @@
     return { render };
 })();
 
-
-    /* =========================================================
-    EDITOR — hook up every .function-editor on the page
-    ========================================================= */
     (function setupEditorPlots() {
     function readOpts(editor) {
         const bid = editor.dataset.blockId;
