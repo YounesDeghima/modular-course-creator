@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\block;
+use App\Models\exercisesolution;
 use App\Models\lesson;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -62,13 +63,12 @@ new class extends Component {
             ->toArray();
 
 
-
-
         $this->lesson = lesson::findorfail($id);
         $this->chapter = $this->lesson->chapter;
     }
 
-    public function updatedBlocks($value, $key){
+    public function updatedBlocks($value, $key)
+    {
         if (str_contains($key, 'func_expression') ||
             str_contains($key, 'x_min') ||
             str_contains($key, 'x_max') ||
@@ -92,7 +92,8 @@ new class extends Component {
     }
 
 
-    public function saveAll(){
+    public function saveAll()
+    {
         foreach ($this->blocks as $blockData) {
             $content = $blockData['content'] ?? null;
 
@@ -132,12 +133,12 @@ new class extends Component {
             // Save exercise solutions separately
             if ($blockData['type'] === 'exercise') {
                 foreach ($blockData['solutions'] ?? [] as $solution) {
-                    \App\Models\Solution::where('id', $solution['id'])
+                    exercisesolution::where('id', $solution['id'])
                         ->update(['content' => $solution['content']]);
                 }
             }
 
-            if(in_array($blockData['type'], ['photo', 'video'])){
+            if (in_array($blockData['type'], ['photo', 'video'])) {
                 $blockData['file_name'] = $blockData['content'] ? basename($blockData['content']) : 'No file selected';
             }
 
@@ -233,7 +234,8 @@ new class extends Component {
         }
     }
 
-    public function updatedVideos($value, $key){
+    public function updatedVideos($value, $key)
+    {
         $path = $this->videos[$key]->store('blocks', 'public');
 
         // 🔥 update the block content مباشرة
@@ -333,7 +335,7 @@ new class extends Component {
 
                                              style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
                                         <small style="display:block;color:var(--text-faint);margin-top:4px;">
-                                            {{ basename($block['content']) }}
+                                            {{ $block['content'] }}
                                         </small>
                                     </div>
                                 @endif
@@ -346,12 +348,21 @@ new class extends Component {
                                 <div wire:loading wire:target="photos.{{ $block['id'] }}">
                                     <small>Uploading...</small>
                                 </div>
+                                <div wire:loading wire:target="photos.{{ $block['id'] }}" style="margin-top: 5px;">
+                                    <small style="color: #4f46e5; display: flex; align-items: center; gap: 4px;">
+                                        <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Processing Image...
+                                    </small>
+                                </div>
                             </div>
                             @break
 
                         @case('video')
                             <div class="file-block">
-                                @if(!empty($block['content']) && \Storage::exists('public/' . $block['content']))
+                                @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
                                     <div class="file-preview">
                                         <video src="{{ asset('storage/' . $block['content']) }}"
                                                style="max-width:300px;max-height:200px;border-radius:8px;"
@@ -368,6 +379,17 @@ new class extends Component {
                                        wire:model="blocks.{{ $loop->index }}.content">
                                 <span class="upload-status-{{ $loop->index }}"
                                       style="font-size:11px;display:block;margin-top:4px;"></span>
+
+                                <div wire:loading wire:target="videos.{{ $block['id'] }}" style="margin-top: 5px;">
+                                    <small style="color: #4f46e5; display: flex; align-items: center; gap: 4px;">
+                                        <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Uploading Video (this may take a moment)...
+                                    </small>
+                                </div>
+
                             </div>
                             @break
                         @case('math')
@@ -428,17 +450,22 @@ new class extends Component {
                             <div class="table-editor" data-block-id="{{ $block['id'] }}">
                                 <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
                                     <button type="button" wire:click="addTableRow({{ $block['id'] }})"
-                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row</button>
+                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row
+                                    </button>
                                     <button type="button" wire:click="addTableCol({{ $block['id'] }})"
-                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Column</button>
+                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+
+                                        Column
+                                    </button>
                                 </div>
                                 <div style="overflow-x:auto;">
-                                    <table class="editable-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <table class="editable-table"
+                                           style="width:100%;border-collapse:collapse;font-size:13px;">
                                         @foreach($tableData as $rowIndex => $row)
                                             <tr>
                                                 @foreach($row as $colIndex => $cell)
                                                     <td style="border:1px solid var(--border);padding:0;min-width:80px;">
-                                                        <input type="text" value="{{ $cell }}" wire:change="updateTableCell({{$block['id']}},{{$rowIndex}},{{$colIndex}},$event.target.value)"
+                                                        <input type="text" value="{{ $cell }}"
+                                                               wire:change="updateTableCell({{$block['id']}},{{$rowIndex}},{{$colIndex}},$event.target.value)"
                                                                style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);">
                                                     </td>
                                                 @endforeach
@@ -466,8 +493,10 @@ new class extends Component {
 
                                 {{-- Row 1: equation input --}}
                                 <div style="margin-bottom:8px;">
-                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">
-                                        Equation (any form: <code>y=sin(x)</code>, <code>x^2+y^2=1</code>, <code>y-x^2=0</code> …)
+                                    <label
+                                        style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">
+                                        Equation (any form: <code>y=sin(x)</code>, <code>x^2+y^2=1</code>,
+                                        <code>y-x^2=0</code> …)
                                     </label>
                                     <input type="text"
                                            name="blocks[{{ $block['id'] }}][func_expression]"
@@ -480,37 +509,47 @@ new class extends Component {
                                 {{-- Row 2: ranges + color --}}
                                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                                     <div style="flex:1;min-width:70px;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X min</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
+                                            min</label>
                                         <input type="number" name="blocks[{{ $block['id'] }}][x_min]"
                                                wire:model="blocks.{{ $loop->index }}.x_min"
                                                class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                     </div>
                                     <div style="flex:1;min-width:70px;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X max</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
+                                            max</label>
                                         <input type="number" name="blocks[{{ $block['id'] }}][x_max]"
                                                wire:model="blocks.{{ $loop->index }}.x_max"
                                                class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                     </div>
                                     <div style="flex:1;min-width:70px;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y min</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
+                                            min</label>
                                         <input type="number" name="blocks[{{ $block['id'] }}][y_min]"
                                                wire:model="blocks.{{ $loop->index }}.y_min"
                                                class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                     </div>
                                     <div style="flex:1;min-width:70px;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y max</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
+                                            max</label>
                                         <input type="number" name="blocks[{{ $block['id'] }}][y_max]"
                                                wire:model="blocks.{{ $loop->index }}.y_max"
                                                class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
                                     </div>
                                     <div style="flex:0 0 auto;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
                                         <input type="color" name="blocks[{{ $block['id'] }}][color]"
                                                wire:model="blocks.{{ $loop->index }}.color"
                                                style="width:48px;height:32px;border:none;cursor:pointer;border-radius:4px;">
                                     </div>
                                     <div style="flex:1;min-width:70px;">
-                                        <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Resolution</label>
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Resolution</label>
                                         <input type="number" name="blocks[{{ $block['id'] }}][step]"
                                                wire:model="blocks.{{ $loop->index }}.step"
                                                class="input-ghost" style="width:100%;padding:5px 8px;"
@@ -530,7 +569,8 @@ new class extends Component {
                                 </div>
 
                                 <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:5px;">
-                                    Supports: +  −  *  /  ^  sin cos tan asin acos atan sqrt abs log ln exp pi e — both x and y variables.
+                                    Supports: + − * / ^ sin cos tan asin acos atan sqrt abs log ln exp pi e — both x and
+                                    y variables.
                                 </small>
                             </div>
 
@@ -561,7 +601,8 @@ new class extends Component {
                 <div class="block-controls">
                     <div class="control-group">
                         <span class="control-icon" onclick="toggleTypeSelect('{{ $block['id'] }}')">✏️</span>
-                        <select wire:change="updateBlockType({{ $loop->index }}, $event.target.value)" name="blocks[{{ $block['id'] }}][type]"
+                        <select wire:change="updateBlockType({{ $loop->index }}, $event.target.value)"
+                                name="blocks[{{ $block['id'] }}][type]"
                                 id="select-{{ $block['id'] }}">
                             <option value="header" {{ $block['type'] == 'header' ? 'selected' : '' }}>H1</option>
                             <option value="description" {{ $block['type'] == 'description' ? 'selected' : '' }}>Text
@@ -598,7 +639,36 @@ new class extends Component {
     </div>
 
     <div class="save-container">
-        <button type="submit" class="btn-save-all" wire:click="saveAll">Save All Changes</button>
+        <button
+            type="button"
+            wire:click="saveAll"
+            wire:loading.attr="disabled"
+            x-data="{ status: 'idle' }"
+            x-on:notify.window="
+        if ($event.detail.message === 'Saved!') {
+            status = 'saved';
+            setTimeout(() => status = 'idle', 2000);
+        }"
+            class="btn-save-all"
+            style="min-width: 150px; transition: all 0.3s ease;"
+        >
+            {{-- 1. Default State: Visible only when not loading and status is idle --}}
+            <span x-show="status === 'idle'" wire:loading.remove wire:target="saveAll">Save All Changes</span>
+
+            {{-- 2. Loading State: Triggered automatically by Livewire --}}
+        <span wire:loading wire:target="saveAll">
+            <svg class="animate-spin" style="width:14px; height:14px; display:inline; margin-right:5px;"
+                 viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"
+                        style="opacity:0.25"></circle>
+                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Saving...
+        </span>
+
+            {{-- 3. Success State: Visible after 'notify' event is received --}}
+            <span x-show="status === 'saved'" x-cloak style="color: #10b981; font-weight: bold;">Saved ✓</span>
+        </button>
     </div>
     <livewire:modular_site.block.blockcreate :lesson="$lesson"/>
 

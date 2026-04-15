@@ -14,6 +14,33 @@
         .chapter-modal{
             display: flex;
         }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .btn-save-all {
+            /* Your existing styles */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-save-all:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Optional: Spinner animation */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
     </style>
 @endsection
 
@@ -152,6 +179,47 @@
 
 
     <script src="{{ asset('js/function.js') }}"></script>
+
+
+    <script>
+
+
+        // Helper function to update hidden input
+        function updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step) {
+            const hiddenInput = container.nextElementSibling;
+            if (hiddenInput && hiddenInput.classList.contains('function-content-hidden')) {
+                hiddenInput.value = JSON.stringify({
+                    function: funcExpr,
+                    x_min: xMin,
+                    x_max: xMax,
+                    y_min: yMin,
+                    y_max: yMax,
+                    color: color,
+                    step: step
+                });
+            }
+        }
+
+        // Auto-render on input change
+        document.addEventListener('input', function(e) {
+            if (e.target.closest('.function-editor')) {
+                const blockId = e.target.closest('.function-editor').dataset.blockId;
+                // Debounce
+                clearTimeout(window.funcRenderTimeout);
+                window.funcRenderTimeout = setTimeout(() => renderFunctionPreview(blockId), 100);
+            }
+        });
+
+        // Initial render for existing function blocks
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for styles to load
+            setTimeout(() => {
+                document.querySelectorAll('.function-editor').forEach(editor => {
+                    renderFunctionPreview(editor.dataset.blockId);
+                });
+            }, 100);
+        });
+    </script>
 
     {{--<script>
 
