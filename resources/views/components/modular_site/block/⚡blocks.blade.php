@@ -97,6 +97,23 @@ new class extends Component {
         foreach ($this->blocks as $blockData) {
             $content = $blockData['content'] ?? null;
 
+            if ($blockData['type'] === 'list') {
+                // Split the textarea content by new lines and filter out empty lines
+                $items = array_filter(array_map('trim', explode("\n", $blockData['content'] ?? '')));
+
+                $content = json_encode([
+                    'style' => $blockData['list_style'] ?? 'bullet',
+                    'items' => array_values($items), // array_values resets the keys
+                ]);
+            }
+
+
+            if($blockData['type'] === 'separator'){
+                $content = json_encode([
+                    'type' =>$blockData['sep_type'] ?? 'divider',
+                ]);
+            }
+
             // Re-encode structured types
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
@@ -167,6 +184,20 @@ new class extends Component {
             $block['graph_labels'] = implode(',', $data['labels'] ?? []);
             $block['graph_data'] = implode(',', $data['data'] ?? []);
         }
+
+        if($block['type'] === 'list') {
+            $data = json_decode($block['content'],true) ?? [];
+
+            $block['list_style'] = $data['style'] ?? 'bullet';
+            $block['content'] = implode("\n",$data['items'] ?? []);
+
+        }
+
+        if($block['type'] === 'separator'){
+            $data = json_decode($block['content'], true) ?? [];
+            $block['sep_type'] = $data['type'];
+        }
+
     }
 
 
@@ -274,6 +305,14 @@ new class extends Component {
         $tableData = json_decode($this->blocks[$index]['content'], true);
         $tableData[$rowIndex][$colIndex] = $value;
         $this->blocks[$index]['content'] = json_encode($tableData);
+    }
+
+
+    public function changeSeparatorType($blockId, $newtype){
+
+        $index = collect($this->blocks)->search(fn($b)=>$b['id'] === $blockId);
+
+       $this->blocks[$index]['sep_type'] = $newtype;
     }
 
 
@@ -583,6 +622,65 @@ new class extends Component {
                                    value="{{ $block['content'] }}">
                             @break
 
+
+                        @case('list')
+                            @php $listData = json_decode($block['content'], true) ?? ['style' => 'bullet', 'items' => []]; @endphp
+                            <div class="list-editor" data-block-id="{{ $block['id'] }}">
+                                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                    <select name="blocks[{{ $block['id'] }}][list_style]" class="mini-type-select" style="width:auto;" wire:model="blocks.{{$loop->index}}.list_style">
+                                        <option value="bullet" {{ ($listData['style'] ?? 'bullet') == 'bullet' ? 'selected' : '' }}>• Bullet List</option>
+                                        <option value="numbered" {{ ($listData['style'] ?? '') == 'numbered' ? 'selected' : '' }}>1. Numbered</option>
+                                        <option value="checklist" {{ ($listData['style'] ?? '') == 'checklist' ? 'selected' : '' }}>☑ Checklist</option>
+                                    </select>
+                                </div>
+                                <textarea name="blocks[{{ $block['id'] }}][list_items]" wire:model="blocks.{{$loop->index}}.content"
+                                          class="input-ghost content-style"
+                                          placeholder="Enter list items, one per line..."
+                                          rows="{{ max(3, count($listData['items'] ?? []) + 1) }}"
+                                          style="font-family:inherit;"></textarea>
+                                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+                            </div>
+                            <input type="hidden" name="blocks[{{ $block['id'] }}][content]" class="list-content-hidden" wire:model="blocks.{{$loop->index}}.content">
+                            @break
+
+                        @case('separator')
+
+                            <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                <div style="display:flex;gap:12px;align-items:center;" >
+                                    <select name="blocks[{{ $block['id'] }}][separator_type]" class="mini-type-select" style="width:auto;" wire:change="changeSeparatorType({{$block['id']}}, $event.target.value)">
+                                        <option value="divider" {{ ($block['sep_type'] ?? 'divider') == 'divider' ? 'selected' : '' }}>— Horizontal Line</option>
+                                        <option value="section_break" {{ ($block['sep_type'] ?? '') == 'section_break' ? 'selected' : '' }}>§ Section Break</option>
+                                        <option value="page_break" {{ ($block['sep_type'] ?? '') == 'page_break' ? 'selected' : '' }}>↲ Page Break</option>
+                                    </select>
+                                    <span style="font-size:12px;color:var(--text-faint);">
+                                                     @if(($block['sep_type'] ?? 'divider') == 'page_break')
+                                            Inserts page break when printing
+                                        @elseif(($block['sep_type'] ?? '') == 'section_break')
+                                            Visual section divider with spacing
+                                        @else
+                                            Simple horizontal line
+                                        @endif
+                                                </span>
+                                </div>
+                                <div class="separator-preview" style="margin-top:12px;">
+                                    @if(($block['sep_type'] ?? 'divider') == 'page_break')
+                                        <div style="border:2px dashed var(--border);padding:8px 12px;text-align:center;color:var(--text-faint);font-size:12px;border-radius:6px;background:var(--bg);">
+                                            ——— Page Break ———
+                                        </div>
+                                    @elseif(($block['sep_type'] ?? '') == 'section_break')
+                                        <div style="display:flex;align-items:center;gap:12px;color:var(--text-faint);">
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                            <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;">Section End</span>
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                        </div>
+                                    @else
+                                        <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                                    @endif
+                                </div>
+                            </div>
+                            <input type="hidden" name="blocks[{{ $block['id'] }}][content]"  wire:model="blocks.{{$loop->index}}.content">
+                            @break
+
                         @case('ext')
                             <textarea class="input-ghost content-style"
                                       placeholder="Paste HTML, iframe embed, or script code here..." rows="4"
@@ -619,6 +717,8 @@ new class extends Component {
                             <option value="graph" {{ $block['type'] == 'graph' ? 'selected' : '' }}>Graph</option>
                             <option value="table" {{ $block['type'] == 'table' ? 'selected' : '' }}>Table</option>
                             <option value="ext" {{ $block['type'] == 'ext' ? 'selected' : '' }}>HTML/Ext</option>
+                            <option value="list" {{$block['type'] == 'list' ? 'selected' : ''}}>List</option>
+                            <option value="separator" {{$block['type']== 'separator' ? 'selected' : ''}}>Separator</option>
 
                         </select>
                     </div>
