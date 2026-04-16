@@ -55,13 +55,20 @@
 
 
     @fragment('main-content')
-        <div class="blocks-wrapper">
+        <div class="blocks-wrapper" style="display:flex;gap:16px;align-items:flex-start">
+            <div style="flex:1;min-width:0">
+                <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
+                <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
+            </div>
+            <div style="position: sticky">
+                <livewire:modular_site.block.lesson-toolbar
+                :lesson="$lesson"
+                :course="$course"
+                :chapter="$chapter"
+                :blocks="$blocks" />
+            </div>
 
-            <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
 
-
-
-            <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
         </div>
 
         <div id="block-popup" class="modal-overlay">
