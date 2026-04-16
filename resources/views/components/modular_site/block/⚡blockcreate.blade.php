@@ -16,11 +16,12 @@ new class extends Component {
         $this->type = 'header';
         $this->lesson_id =$this->lesson->id;
         $this->content = 'header';
-        $this->block_number = 99;
+
     }
 
     public function store()
     {
+        $this->block_number = block::where('lesson_id', $this->lesson_id)->max('block_number') + 1;
         $validated=$this->validate([
             'type'=>'required|string',
             'lesson_id'=>'required|int',

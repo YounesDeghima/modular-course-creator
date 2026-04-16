@@ -141,11 +141,13 @@ new class extends Component {
 
             }
 
-            block::where('id', $blockData['id'])->update([
+            $blockUpdates[] = [
+                'id' => $blockData['id'],
                 'content' => $content,
                 'type' => $blockData['type'],
                 'block_number' => $blockData['block_number'],
-            ]);
+                'lesson_id' => $this->lesson->id,
+            ];
 
             // Save exercise solutions separately
             if ($blockData['type'] === 'exercise') {
@@ -160,7 +162,7 @@ new class extends Component {
             }
 
         }
-
+        block::upsert($blockUpdates, ['id'], ['content', 'type', 'block_number','lesson_id']);
         $this->dispatch('notify', message: 'Saved!');
     }
 
@@ -214,8 +216,10 @@ new class extends Component {
         // Re-number remaining blocks
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            $updates[] = ['id' => $b['id'], 'block_number' => $i + 1,'lesson_id'=>$this->lesson->id,'type'=>$b['type'],'content'=>$b['content']];
+
         }
+        block::upsert($updates, ['id'], ['block_number'], ['lesson_id']);
     }
 
     public function moveBlock(int $index, string $direction)
@@ -368,7 +372,7 @@ new class extends Component {
                         @case('photo')
                             <div class="file-block">
                                 @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
-                                    <div class="file-preview">
+                                    <div class="file-preview" wire:ignore>
                                         <img src="{{ asset('storage/' . $block['content']) }}"
                                              onclick="window.open(this.src)"
 
@@ -402,7 +406,7 @@ new class extends Component {
                         @case('video')
                             <div class="file-block">
                                 @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
-                                    <div class="file-preview">
+                                    <div class="file-preview" wire:ignore>
                                         <video src="{{ asset('storage/' . $block['content']) }}"
                                                style="max-width:300px;max-height:200px;border-radius:8px;"
                                                controls></video>
