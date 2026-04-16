@@ -15,6 +15,13 @@ new class extends Component {
     public $chapter;
     public $chapter_number;
 
+    protected $listeners = ['chapterCreated' => 'updateChapterNumber' ,
+        'ChapterUpdated'=>'updateChapterNumber',
+        'ChapterDeleted'=>'updateChapterNumber'];
+
+
+
+
     public function mount($course)
     {
         $this->course = $course;
@@ -22,6 +29,11 @@ new class extends Component {
         $this->chapter_number = $this->chapter_count;
 
 
+    }
+
+    public function updateChapterNumber($id){
+        $this->chapter_count = chapter::where('course_id','=',$this->course->id)->count()+1;
+        $this->chapter_number = $this->chapter_count;
     }
 
     public function store(){

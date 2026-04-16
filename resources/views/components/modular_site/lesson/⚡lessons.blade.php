@@ -7,6 +7,7 @@ new class extends Component {
     public $chapter;
     public $lesson;
     public $lessons;
+    public $currentLesson;
 
     public $listeners = ['lessonCreated' => 'addLesson',
                          'LessonUpdated' => 'UpdateLesson',
@@ -14,10 +15,11 @@ new class extends Component {
 
     public $allPublished;
 
-    public function mount($chapter)
+    public function mount($chapter,$currentLesson)
     {
         $this->chapter = $chapter;
         $this->lessons = $this->chapter->lessons;
+        $this->currentLesson = $currentLesson;
     }
 
     public function addLesson($id)
@@ -49,8 +51,7 @@ new class extends Component {
 
     public function DeleteLesson($id){
         $this->lessons = $this->lessons->reject(function ($lesson) use ($id) {
-            return $lesson->id === $id;
-        });
+            return $lesson->id === $id;});
 
         $this->refreshlessons();
 
@@ -73,7 +74,6 @@ new class extends Component {
         $this->allPublished = $this->lessons->where('status', '!=', 'published')->count() === 0;
     }
 
-
     public function masterToggle(){
 
         $isAllPublished = $this->lessons->where('status', '!=', 'published')->count() === 0;
@@ -88,6 +88,22 @@ new class extends Component {
         // Refresh the local collection and the toggle state
         $this->lessons = lesson::where('chapter_id', $this->chapter->id)->get();
         $this->allPublished = $this->lessons->where('status', '!=', 'published')->count() === 0;
+
+    }
+
+    public function changeLesson($id){
+
+        $selectedLesson = lesson::findOrFail($id);
+
+
+        if($id!=$this->currentLesson->id)
+        {
+
+            $this->dispatch('LessonChanged',id:$id ,chapterId:$selectedLesson->chapter->id);
+            $this->currentLesson = $selectedLesson;
+
+        }
+
 
     }
 
@@ -110,7 +126,7 @@ new class extends Component {
         </div>
     @endif
     @foreach($lessons as $lesson)
-        <div class="lesson-row" wire:key="lesson-{{$lesson->id}}">
+        <div class="lesson-row" wire:key="lesson-{{$lesson->id}}" wire:click="changeLesson({{$lesson->id}})">
             <div class="lesson-content">
                 <span class="bullet">•</span>
                 <a class="lesson-link">{{ $lesson->title }}</a>

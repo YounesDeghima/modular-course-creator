@@ -8,18 +8,25 @@ new class extends Component {
     public $chapters;
     public $openChapters = [];
     public $allPublished;
+    public $currentChapter;
+    public $currentLesson;
 
     protected $listeners = ['chapterCreated' => 'addChapter' ,
                             'ChapterUpdated'=>'updateChapter',
                             'ChapterDeleted'=>'deleteChapter'];
 
-    public function mount($course,$chapters)
+    public function mount($course,$chapters,$chapter,$lesson)
     {
-        $this->allPublished =$this->chapters->where('status','=','draft')->count()===0;
+        $this->allPublished = $this->chapters->where('status', '=', 'draft')->count() === 0;
         $this->course = $course;
         $this->chapters = $chapters;
+        $this->currentChapter = $chapter;
+        $this->currentLesson  = $lesson;
 
+    }
 
+    public function refreshChapters(){
+        $this->chapters = chapter::where('course_id','=',$this->course->id)->orderBy('chapter_number')->get();
     }
 
     public function addChapter(int $id)
@@ -29,8 +36,8 @@ new class extends Component {
 
         if ($chapter) {
             $this->chapters->push($chapter);
-
         }
+        $this->refreshChapters();
     }
 
     public function toggleLessons($chapterId){
@@ -49,6 +56,7 @@ new class extends Component {
                 return $chapter->id === $updatedChapter->id ? $updatedChapter : $chapter;
             });
         }
+        $this->refreshChapters();
 
     }
 
@@ -56,6 +64,7 @@ new class extends Component {
         $this->chapters = $this->chapters->reject(function ($chapter) use ($id) {
             return $chapter->id === $id;
         });
+        $this->refreshChapters();
     }
 
     public function togglestatus($id){
@@ -141,7 +150,7 @@ new class extends Component {
 
                     </div>
                 </div>
-                <livewire:modular_site.lesson.lessons :chapter="$chapter"/>
+                <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson"/>
 
 
 

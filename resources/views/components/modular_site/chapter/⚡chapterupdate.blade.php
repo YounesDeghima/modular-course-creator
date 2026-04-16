@@ -1,9 +1,9 @@
 <?php
 
+use App\Models\chapter;
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public $course;
     public $chapter;
 
@@ -13,8 +13,11 @@ new class extends Component
     public $chapter_number;
     public $status;
 
+    public $listeners = ['ChapterDeleted' => 'updateChapterNumber'];
 
-    public function mount($course,$chapter){
+
+    public function mount($course, $chapter)
+    {
         $this->course = $course;
         $this->chapter = $chapter;
         $this->title = $chapter->title;
@@ -23,29 +26,52 @@ new class extends Component
         $this->status = $chapter->status;
     }
 
-    public function update(){
 
+    public function updateChapterNumber()
+    {
+        $this->chapter = chapter::find($this->chapter->id);
+
+        if ($this->chapter) {
+            $this->chapter_number = $this->chapter->chapter_number;
+            $this->title = $this->chapter->title;
+            $this->description = $this->chapter->description;
+            $this->status = $this->chapter->status;
+        }
+    }
+
+    public function update()
+    {
 
         $this->validate([
             'title' => 'required|string',
-            'description'=>'required|string',
+            'description' => 'required|string',
             'chapter_number' => 'required|integer',
             'status' => 'required',
         ]);
 
         $this->chapter->update([
-            'title'=>$this->title,
-            'description'=>$this->description,
-            'chapter_number'=>$this->chapter_number,
-            'status'=>$this->status,
+            'title' => $this->title,
+            'description' => $this->description,
+            'chapter_number' => $this->chapter_number,
+            'status' => $this->status,
         ]);
 
-        $this->dispatch('ChapterUpdated',id:$this->chapter->id);
+        $this->dispatch('ChapterUpdated', id: $this->chapter->id);
 
     }
-    public function delete(){
-            $this->chapter->delete();
-            $this->dispatch('ChapterDeleted', id:$this->chapter->id);
+
+    public function delete()
+    {
+        $deletedNumber = $this->chapter->chapter_number;
+        $courseId = $this->chapter->course_id;
+
+        $this->chapter->delete();
+
+        // 🔥 FIX: reorder remaining chapters
+        chapter::where('course_id', $courseId)
+            ->where('chapter_number', '>', $deletedNumber)
+            ->decrement('chapter_number');
+        $this->dispatch('ChapterDeleted', id: $this->chapter->id);
     }
 
 
@@ -62,7 +88,7 @@ new class extends Component
         <div class="modal">
             <div class="form-group">
                 <label>Title</label>
-                <input type="text" name="title"  class="modal-input" wire:model.live="title">
+                <input type="text" name="title" class="modal-input" wire:model.live="title">
             </div>
 
             <div class="form-group">
@@ -85,7 +111,9 @@ new class extends Component
                 <textarea name="description" class="modal-input" wire:model.live="description"
                           style="height:120px"></textarea>
             </div>
-            <button type="submit" class="btn-update" wire:click="update" @click="open_update_modal=false">Update Chapter</button>
+            <button type="submit" class="btn-update" wire:click="update" @click="open_update_modal=false">Update
+                Chapter
+            </button>
         </div>
 
         <div class="delete-form">

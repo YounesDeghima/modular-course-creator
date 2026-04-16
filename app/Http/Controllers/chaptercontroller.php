@@ -37,6 +37,7 @@ class chaptercontroller extends Controller
                 ->first();
         }
 
+
         $blocks = $lesson
             ? $lesson->blocks()->orderBy('block_number', 'asc')->get()
             : collect();
@@ -66,6 +67,7 @@ class chaptercontroller extends Controller
         $id = $admin->id;
         $name = $admin->name;
         $email = $admin->email;
+
 
 
 

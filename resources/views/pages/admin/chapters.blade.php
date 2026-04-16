@@ -14,6 +14,33 @@
         .chapter-modal{
             display: flex;
         }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .btn-save-all {
+            /* Your existing styles */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-save-all:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Optional: Spinner animation */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
     </style>
 @endsection
 
@@ -26,246 +53,15 @@
 
 @section('main')
 
+
     @fragment('main-content')
         <div class="blocks-wrapper">
-            <div class="route-header">
-                <h2>
-                    <span class="course-name">{{$course->title}}</span>
-                    <small>></small> {{$chapter->title}}
-                    <small>></small> <span class="active-lesson">{{$lesson->title}}</span>
-                </h2>
-            </div>
 
-            {{-- Single form wrapper for bulk saving --}}
-            <form onsubmit="saveAllBlocks(event, this)" enctype="multipart/form-data" class="block-form" action="{{ route('admin.courses.chapters.lessons.blocks.update-all', [$course->id, $chapter->id, $lesson->id]) }}" method="POST">
-                @csrf
-                @method('PUT')
-
-                <div class="blocks-list stack-container">
-                    @forelse($blocks as $block)
-                        <div class="block-row type-{{ $block->type }}">
-                            <input type="hidden" name="blocks[{{ $block->id }}][id]" value="{{ $block->id }}">
-                            <input type="hidden" name="blocks[{{ $block->id }}][block_number]" value="{{ $block->block_number }}">
-
-                            <div class="block-main-content">
-                                @switch($block->type)
-                                    @case('header')
-                                        <textarea type="text" name="blocks[{{ $block->id }}][content]" class="input-ghost title-style" placeholder="Enter Title...">{{ $block->content }}</textarea>
-                                        @break
-
-                                    @case('description')
-                                    @case('note')
-                                    @case('code')
-                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'">{{ $block->content }}</textarea>
-                                        @break
-
-                                    @case('exercise')
-                                        <div class="exercise-container">
-                                            <label>Question:</label>
-                                            <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'">{{ $block->content }}</textarea>
-                                            @foreach($block->solutions as $solution)
-                                                <label>Solution</label>
-                                                <textarea class="input-ghost content-style" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" name="blocks[{{ $block->id }}][solutions][{{ $solution->id}}]">{{ $solution->content }}</textarea>
-                                            @endforeach
-                                        </div>
-                                        @break
-
-                                    @case('photo')
-                                        <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
-                                                    <img src="{{ asset('storage/' . $block->content) }}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
-                                                    <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
-                                            <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
-                                        </div>
-                                        @break
-
-                                    @case('video')
-                                        <div class="file-block">
-                                            @if($block->content && \Storage::exists('public/' . $block->content))
-                                                <div class="file-preview">
-                                                    <video src="{{ asset('storage/' . $block->content) }}" style="max-width:200px;max-height:200px;border-radius:8px;" controls></video>
-                                                    <small style="display:block;color:var(--text-faint);margin-top:4px;">{{ basename($block->content) }}</small>
-                                                </div>
-                                            @endif
-                                            <input type="file" name="blocks[{{ $block->id }}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
-                                            <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
-                                        </div>
-                                        @break
-
-                                    @case('math')
-                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style math-input" placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)" oninput="updateMathPreview(this)" rows="2">{{ $block->content }}</textarea>
-                                        <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
-                                            @if($block->content) ${{ $block->content }} $ @endif
-                                        </div>
-                                        @break
-
-                                    @case('graph')
-                                        @php $graphData = json_decode($block->content, true) ?? ['type' => 'line', 'labels' => ['Jan','Feb','Mar'], 'data' => [10,20,15]]; @endphp
-                                        <div class="graph-editor">
-                                            <select name="blocks[{{ $block->id }}][chart_type]" class="mini-type-select" style="margin-bottom:8px;width:auto;display:inline-block;">
-                                                <option value="line" {{ ($graphData['type'] ?? 'line') == 'line' ? 'selected' : '' }}>Line Chart</option>
-                                                <option value="bar" {{ ($graphData['type'] ?? '') == 'bar' ? 'selected' : '' }}>Bar Chart</option>
-                                                <option value="pie" {{ ($graphData['type'] ?? '') == 'pie' ? 'selected' : '' }}>Pie Chart</option>
-                                            </select>
-                                            <textarea name="blocks[{{ $block->id }}][chart_data]" class="input-ghost content-style" placeholder="Labels: Jan, Feb, Mar (comma separated)&#10;Values: 10, 20, 15 (comma separated)" rows="3" style="font-family:monospace;font-size:12px;">{{ implode(',', $graphData['labels'] ?? []) }}&#10;{{ implode(',', $graphData['data'] ?? []) }}</textarea>
-                                            <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels (comma separated) | Line 2: Values</small>
-                                        </div>
-                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" value="{{ $block->content }}">
-                                        @break
-
-                                    @case('table')
-                                        @php $tableData = json_decode($block->content, true) ?? [['Header 1', 'Header 2'], ['Row 1 Col 1', 'Row 1 Col 2']]; @endphp
-                                        <div class="table-editor" data-block-id="{{ $block->id }}">
-                                            <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
-                                                <button type="button" onclick="addTableRow({{ $block->id }})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row</button>
-                                                <button type="button" onclick="addTableCol({{ $block->id }})" class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Column</button>
-                                            </div>
-                                            <div style="overflow-x:auto;">
-                                                <table class="editable-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-                                                    @foreach($tableData as $rowIndex => $row)
-                                                        <tr>
-                                                            @foreach($row as $colIndex => $cell)
-                                                                <td style="border:1px solid var(--border);padding:0;min-width:80px;">
-                                                                    <input type="text" name="blocks[{{ $block->id }}][table_data][{{ $rowIndex }}][{{ $colIndex }}]" value="{{ $cell }}" style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);" onchange="updateTableJSON({{ $block->id }})">
-                                                                </td>
-                                                            @endforeach
-                                                        </tr>
-                                                    @endforeach
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="table-content-hidden" value="{{ $block->content }}">
-                                        @break
-
-                                    @case('function')
-                                        @php
-                                            $funcData = json_decode($block->content, true) ?? [
-                                                'function' => 'sin(x)',
-                                                'x_min' => -10,
-                                                'x_max' => 10,
-                                                'y_min' => -5,
-                                                'y_max' => 5,
-                                                'color' => '#4f46e5',
-                                                'step' => 0.1
-                                            ];
-                                        @endphp
-                                        <div class="function-editor" data-block-id="{{ $block->id }}">
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:2;min-width:200px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">f(x) =</label>
-                                                    <input type="text" name="blocks[{{ $block->id }}][func_expression]"
-                                                           value="{{ $funcData['function'] ?? 'sin(x)' }}"
-                                                           class="input-ghost"
-                                                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 8px;"
-                                                           placeholder="e.g., sin(x), x^2, cos(x)*x">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Min</label>
-                                                    <input type="number" name="blocks[{{ $block->id }}][x_min]"
-                                                           value="{{ $funcData['x_min'] ?? -10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X Max</label>
-                                                    <input type="number" name="blocks[{{ $block->id }}][x_max]"
-                                                           value="{{ $funcData['x_max'] ?? 10 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
-                                                </div>
-                                            </div>
-                                            <div class="function-input-row" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Min</label>
-                                                    <input type="number" name="blocks[{{ $block->id }}][y_min]"
-                                                           value="{{ $funcData['y_min'] ?? -5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y Max</label>
-                                                    <input type="number" name="blocks[{{ $block->id }}][y_max]"
-                                                           value="{{ $funcData['y_max'] ?? 5 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="any">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
-                                                    <input type="color" name="blocks[{{ $block->id }}][color]"
-                                                           value="{{ $funcData['color'] ?? '#4f46e5' }}"
-                                                           style="width:100%;height:32px;border:none;cursor:pointer;">
-                                                </div>
-                                                <div style="flex:1;min-width:80px;">
-                                                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Step</label>
-                                                    <input type="number" name="blocks[{{ $block->id }}][step]"
-                                                           value="{{ $funcData['step'] ?? 0.1 }}"
-                                                           class="input-ghost" style="width:100%;padding:6px 8px;" step="0.01" min="0.01" max="1">
-                                                </div>
-                                            </div>
-                                            <div class="function-preview" style="margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);">
-                                                <canvas id="func-canvas-{{ $block->id }}" width="400" height="200" style="width:100%;max-width:100%;height:auto;background:var(--bg);border-radius:4px;"></canvas>
-                                            </div>
-                                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
-                                                Use JavaScript math syntax: sin(x), cos(x), tan(x), x^2, sqrt(x), log(x), abs(x), etc.
-                                            </small>
-                                        </div>
-                                        <input type="hidden" name="blocks[{{ $block->id }}][content]" class="function-content-hidden" value="{{ $block->content }}">
-                                        @break
-
-                                    @case('ext')
-                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" placeholder="Paste HTML, iframe embed, or script code here..." rows="4" style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;">{{ $block->content }}</textarea>
-                                        <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw HTML - Be careful with external scripts</small>
-                                        @break
+            <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
 
 
 
-                                    @default
-                                        <textarea name="blocks[{{ $block->id }}][content]" class="input-ghost content-style" rows="1">{{ $block->content }}</textarea>
-                                @endswitch
-                            </div>
-
-                            <div class="block-controls">
-                                <div class="control-group">
-                                    <span class="control-icon" onclick="toggleTypeSelect('{{ $block->id }}')">✏️</span>
-                                    <select onchange="updateBlockType(this)" name="blocks[{{ $block->id }}][type]" id="select-{{ $block->id }}" class="mini-type-select">
-                                        <option value="header" {{ $block->type == 'header' ? 'selected' : '' }}>H1</option>
-                                        <option value="description" {{ $block->type == 'description' ? 'selected' : '' }}>Text</option>
-                                        <option value="note" {{ $block->type == 'note' ? 'selected' : '' }}>Note</option>
-                                        <option value="code" {{ $block->type == 'code' ? 'selected' : '' }}>Code</option>
-                                        <option value="exercise" {{ $block->type == 'exercise' ? 'selected' : '' }}>Exercise</option>
-                                        <option value="photo" {{ $block->type == 'photo' ? 'selected' : '' }}>Photo</option>
-                                        <option value="video" {{ $block->type == 'video' ? 'selected' : '' }}>Video</option>
-                                        <option value="function" {{ $block->type == 'function' ? 'selected' : '' }}>Function</option>
-                                        <option value="math" {{ $block->type == 'math' ? 'selected' : '' }}>Math</option>
-                                        <option value="graph" {{ $block->type == 'graph' ? 'selected' : '' }}>Graph</option>
-                                        <option value="table" {{ $block->type == 'table' ? 'selected' : '' }}>Table</option>
-                                        <option value="ext" {{ $block->type == 'ext' ? 'selected' : '' }}>HTML/Ext</option>
-
-                                    </select>
-                                </div>
-
-                                <button type="button" value="{{ $block->id }}:up" class="arrow-btn">∧</button>
-                                <button type="button" value="{{ $block->id }}:down" class="arrow-btn">∨</button>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="empty-state">
-                            <p>No content here yet. Click the <strong>+</strong> button to add a block.</p>
-                        </div>
-                    @endforelse
-                </div>
-
-                <div class="save-container">
-                    <button type="submit" class="btn-save-all">Save All Changes</button>
-                </div>
-
-            </form>
-        </div>
-
-        <div class="block-adder-container">
-            <button id="block-adder" class="fab-button"
-                    data-url="{{ route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id]) }}"
-                    type="button" onclick="createHeaderBlock()">+</button>
+            <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
         </div>
 
         <div id="block-popup" class="modal-overlay">
@@ -366,7 +162,7 @@
 
 
 
-    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters"/>
+    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters" :chapter="$chapter" :lesson="$lesson"/>
 
 
     <livewire:modular_site.chapter.chaptercreate :course="$course"/>
@@ -376,11 +172,81 @@
 
 
 @section('js')
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
+    <script src="{{ asset('js/function.js') }}"></script>
+
+
     <script>
 
-        document.addEventListener('DOMContentLoaded', function() {
-            initAutoResize();
 
+        // Helper function to update hidden input
+        function updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step) {
+            const hiddenInput = container.nextElementSibling;
+            if (hiddenInput && hiddenInput.classList.contains('function-content-hidden')) {
+                hiddenInput.value = JSON.stringify({
+                    function: funcExpr,
+                    x_min: xMin,
+                    x_max: xMax,
+                    y_min: yMin,
+                    y_max: yMax,
+                    color: color,
+                    step: step
+                });
+            }
+        }
+
+        // Auto-render on input change
+        document.addEventListener('input', function(e) {
+            if (e.target.closest('.function-editor')) {
+                const blockId = e.target.closest('.function-editor').dataset.blockId;
+                // Debounce
+                clearTimeout(window.funcRenderTimeout);
+                window.funcRenderTimeout = setTimeout(() => renderFunctionPreview(blockId), 100);
+            }
+        });
+
+        // Initial render for existing function blocks
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for styles to load
+            setTimeout(() => {
+                document.querySelectorAll('.function-editor').forEach(editor => {
+                    renderFunctionPreview(editor.dataset.blockId);
+                });
+            }, 100);
+        });
+    </script>
+
+    {{--<script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+
+            // 2. Handle KaTeX for function blocks specifically
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq) {
+                    // Use inline rendering for the small labels
+                    katex.render(eq, el, { throwOnError: false, displayMode: false });
+                }
+            });
+
+
+            initAutoResize();
             // --- 1. CORE UTILITIES ---
             const COURSE_ID = "{{ $course->id }}";
             const savedUrl = localStorage.getItem('activeLessonUrl');
@@ -441,7 +307,20 @@
                 }
             }
 
+            const openChapters = JSON.parse(localStorage.getItem('openChapters') || '[]');
 
+            openChapters.forEach(id => {
+                const container = document.getElementById('lessons-container-' + id);
+                const arrow = document.getElementById('arrow-' + id);
+
+                if (container) {
+                    container.style.display = 'flex';
+                }
+
+                if (arrow) {
+                    arrow.style.transform = 'rotate(90deg)';
+                }
+            });
 
             // Auto-resize textareas based on content
             function initAutoResize() {
@@ -455,7 +334,18 @@
                 });
             }
 
-
+            // Initialize UI elements for the block editor
+            // function initBlockEditor() {
+            //     initAutoResize();
+            //
+            //     // Setup Floating Action Button
+            //     const btn = document.getElementById('block-adder');
+            //     const popup = document.getElementById('block-popup');
+            //     const close = document.getElementById('close-popup');
+            //
+            //     if (btn && popup) btn.onclick = () => popup.style.display = 'flex';
+            //     if (close && popup) close.onclick = () => popup.style.display = 'none';
+            // }
 
             // --- 2. AJAX LESSON LOADING ---
             document.addEventListener('click', function(e) {
@@ -528,7 +418,29 @@
                 localStorage.setItem('openChapters', JSON.stringify(openChapters));
             };
 
+            // Open/Close Modals
+            window.openModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'flex';
+            }
 
+            window.closeModal = function(id) {
+                const modal = document.getElementById(id);
+                if (modal) modal.style.display = 'none';
+            }
+
+            // The Pen button toggles the type dropdown (Using ID)
+            window.toggleTypeSelect = function(id) {
+                const el = document.getElementById('select-' + id);
+                if (el) el.classList.toggle('active');
+            }
+
+            // Close modals on background click
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal-overlay')) {
+                    event.target.style.display = 'none';
+                }
+            }
 
             // --- 4. INITIALIZATION ---
             // initBlockEditor();
@@ -637,11 +549,254 @@
         }
 
 
+        function toggleSingleChapter(btn, event) {
+
+            if (event) {
+                event.stopPropagation();
+            }
+
+
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = (currentStatus === 'published') ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}"; // Blade variable
+
+            // 1. Immediate UI Feedback (Oogabooga speed)
+            const chapterNumber = btn.closest('.chapter-group')
+                .querySelector('input[name="chapter_number"]')?.value;
+
+            updateButtonUI(btn, newStatus);
+
+            // 2. Send to Server
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}`, {
+                status: newStatus,
+                title: btn.closest('.chapter-group').querySelector('.chapter-title').innerText,
+                description: "Updated via toggle",
+                chapter_number: chapterNumber
+            })
+                .then(() => {
+                    checkMasterToggle();
+                })
+                .catch(() => {
+                    checkMasterToggle();
+                });
+        }
+
+        function updateButtonUI(btn, status) {
+            btn.dataset.status = status;
+            btn.innerText = status.charAt(0).toUpperCase() + status.slice(1);
+            btn.classList.remove('published', 'draft');
+            btn.classList.add(status);
+        }
+
+        function checkMasterToggle() {
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+            const masterBtn = document.querySelector('.btn-publish-all');
+
+            // Check if EVERY button has the 'published' class
+            const allPublished = Array.from(allBtns).every(btn => btn.classList.contains('published'));
+
+            if (allPublished) {
+                masterBtn.classList.add('all-green');
+                masterBtn.innerText = "🚀 All Published";
+                masterBtn.style.background = "#2ecc71";
+            } else {
+                masterBtn.classList.remove('all-green');
+                masterBtn.innerText = "📂 Publish All";
+                masterBtn.style.background = "#95a5a6";
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', checkMasterToggle);
+
+        function updateMasterButtonUI() {
+            const masterBtn = document.getElementById('master-toggle-btn');
+            // Select all status buttons (Chapters + Lessons)
+            const allBtns = document.querySelectorAll('.status-toggle-btn');
+
+            if (!masterBtn || allBtns.length === 0) return;
+
+            // Is there at least one "draft" button visible?
+            const hasAnyDrafts = Array.from(allBtns).some(btn => btn.dataset.status === 'draft');
+
+            if (hasAnyDrafts) {
+                masterBtn.innerText = "🚀 Publish Everything";
+                masterBtn.style.background = "#95a5a6"; // Gray-ish
+                masterBtn.className = "btn-publish-all has-drafts";
+            } else {
+                masterBtn.innerText = "📂 Draft Everything";
+                masterBtn.style.background = "#2ecc71"; // Green
+                masterBtn.className = "btn-publish-all all-published";
+            }
+        }
+
+        // Run it immediately on page load
+        document.addEventListener('DOMContentLoaded', updateMasterButtonUI);
+
+        function toggleSingleLesson(btn, event) {
+            if (event) event.stopPropagation();
+
+            const lessonId = btn.dataset.lessonId;
+            const chapterId = btn.dataset.chapterId;
+            const currentStatus = btn.dataset.status;
+            const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+            const courseId = "{{ $course->id }}";
+
+            updateButtonUI(btn, newStatus);
+
+            axios.put(`/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, {
+                status: newStatus,
+                title: btn.closest('.lesson-row').querySelector('.lesson-link').innerText,
+                lesson_number: 1,
+                description: "Status update"
+            })
+                .then(() => {
+                    // sync UI if needed
+                })
+                .catch(() => {
+
+                });
+        }
+
+        // If you use the AJAX toggle from the previous step,
+        // make sure to call updateMasterButtonUI() inside the .then() block!
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.style.display = 'none';
+        }
+
+        function deleteLesson(event, courseId, chapterId, lessonId) {
+            event.stopPropagation(); // 🔥 critical
+
+            const url = `/admin/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`;
+
+            axios.delete(url)
+                .then(() => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+                })
+                .catch((error) => {
+                    document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row')
+                        ?.remove();
+
+                    closeModal(`lesson-modal-${lessonId}`);
+
+                });
+        }
+
+        function deleteChapter(event, btn) {
+            event.stopPropagation();
+            const url = btn.dataset.url;
+            const chapterId = btn.dataset.chapterId;
+
+            axios.delete(url)
+                .then(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                })
+                .catch(() => {
+                    const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
+                        ?.closest('.chapter-group');
+
+                    if (el) el.remove();
+
+                    closeModal('chapter-modal-' + chapterId);
+                });
+        }
+
+        function updateChapter(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const chapterId = url.match(/chapters\/(\d+)/)[1]; // 🔥 reliable extraction
+
+            axios.put(url, data)
+                .then(() => {
+                    // Find the correct chapter in the sidebar
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                })
+                .catch(() => {
+                    const chapterEl = document.querySelector(
+                        `.chapter-group .status-toggle-btn[data-chapter-id="${chapterId}"]`
+                    )?.closest('.chapter-group');
+
+                    const titleEl = chapterEl?.querySelector('.chapter-title');
+
+                    if (titleEl) {
+                        titleEl.innerText = data.title;
+                    }
+
+                    closeModal(`chapter-modal-${chapterId}`);
+                });
+        }
+
+        function updateLesson(event, form) {
+            event.preventDefault();
+
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.put(url, data)
+                .then(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                })
+                .catch(() => {
+                    const modal = form.closest('.modal-overlay');
+                    if (modal) modal.style.display = 'none';
+
+                    // Optional: update UI title in sidebar
+                    const lessonId = url.split('/').pop();
+                    const row = document.querySelector(`[data-lesson-id="${lessonId}"]`)
+                        ?.closest('.lesson-row');
+
+                    if (row) {
+                        row.querySelector('.lesson-link').innerText = data.title;
+                    }
+                });
+        }
+
         function saveAllBlocks(event, form) {
             event.preventDefault();
 
             const url = form.action;
             const formData = new FormData(form);
+
+            // Read CSRF from the form's own hidden _token field (blade @csrf always outputs this)
+            const csrfToken = form.querySelector('input[name="_token"]')?.value || '';
 
             const saveBtn = form.querySelector('.btn-save-all');
             if (saveBtn) {
@@ -649,29 +804,97 @@
                 saveBtn.innerText = 'Saving...';
             }
 
-            axios.post(url, formData, {
+            // Use native fetch — axios drops file binary data from FormData
+            fetch(url, {
+                method: 'POST',
+                body: formData,
                 headers: {
-                    'X-HTTP-Method-Override': 'PUT',
-                    'Content-Type': 'multipart/form-data'
-                }
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     if (saveBtn) {
                         saveBtn.innerText = 'Saved ✓';
-                        saveBtn.style.background = ''; // Reset to default green
+                        saveBtn.style.background = '';
                         setTimeout(() => {
                             saveBtn.innerText = 'Save All Changes';
                             saveBtn.disabled = false;
                         }, 1500);
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     if (saveBtn) {
-                        saveBtn.innerText = 'Save Failed';
-                        saveBtn.style.background = '#ef4444'; // Red for error
+                        saveBtn.innerText = 'Save Failed (' + (err.message || 'error') + ')';
+                        saveBtn.style.background = '#ef4444';
                         saveBtn.disabled = false;
                     }
-                    alert('Failed to save changes');
+                });
+        }
+
+        function uploadMediaFile(input) {
+            const blockId   = input.dataset.blockId;
+            const mediaType = input.dataset.mediaType;
+            const file      = input.files[0];
+            if (!file) return;
+
+            const fileBlock   = input.closest('.file-block');
+            const statusEl    = fileBlock.querySelector('.upload-status');
+            const hiddenInput = fileBlock.querySelector('input[type="hidden"]');
+            const previewEl   = fileBlock.querySelector('.file-preview');
+
+            statusEl.style.color = '#6b7280';
+            statusEl.innerText   = '⏫ Uploading ' + file.name + '…';
+            input.disabled       = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', mediaType);
+
+            const csrf = document.querySelector('input[name="_token"]')?.value || '';
+
+            fetch('/admin/blocks/upload-media', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(res => res.text().then(txt => {
+                    try {
+                        const data = JSON.parse(txt);
+                        if (!res.ok) throw new Error((data.error || 'HTTP ' + res.status));
+                        return data;
+                    } catch(e) {
+                        throw new Error('Server said: ' + txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,400));
+                    }
+                }))
+                .then(data => {
+                    hiddenInput.value = data.path;
+
+                    previewEl.style.display = '';
+                    if (mediaType === 'video') {
+                        previewEl.innerHTML = `<video src="/storage/${data.path}" style="max-width:300px;max-height:200px;border-radius:8px;margin-top:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    } else {
+                        previewEl.innerHTML = `<img src="/storage/${data.path}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${file.name}</small>`;
+                    }
+
+                    statusEl.style.color = '#22c55e';
+                    statusEl.innerText   = '✓ Uploaded — press Save All to keep';
+                    input.disabled       = false;
+
+                    const saveBtn = document.querySelector('.btn-save-all');
+                    if (saveBtn) {
+                        saveBtn.style.background = '#f59e0b';
+                        saveBtn.innerText = 'Save Changes *';
+                    }
+                })
+                .catch(err => {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText   = '✗ Upload failed: ' + err.message;
+                    input.disabled       = false;
                 });
         }
 
@@ -723,17 +946,25 @@
                 case 'photo':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="image/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<img src="/storage/${existingContent}" onclick="window.open(this.src)" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;"><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="image/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="photo" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'video':
                     return `
                 <div class="file-block">
-                    <input type="file" name="blocks[${blockId}][content_file]" accept="video/*" class="file-input" style="margin-top:8px;font-size:12px;">
+                    <div class="file-preview" style="${existingContent ? '' : 'display:none'}">
+                        ${existingContent ? `<video src="/storage/${existingContent}" style="max-width:300px;max-height:200px;border-radius:8px;" controls></video><small style="display:block;color:var(--text-faint);margin-top:4px;">${existingContent.split('/').pop()}</small>` : ''}
+                    </div>
+                    <input type="file" accept="video/*" class="file-input media-picker" style="margin-top:8px;font-size:12px;"
+                        data-block-id="${blockId}" data-media-type="video" onchange="uploadMediaFile(this)">
+                    <span class="upload-status" style="font-size:11px;display:block;margin-top:4px;"></span>
                     <input type="hidden" name="blocks[${blockId}][content]" value="${existingContent}">
-                    ${existingContent ? `<small style="color:var(--text-faint);">Current: ${existingContent.split('/').pop()}</small>` : ''}
                 </div>`;
 
                 case 'math':
@@ -742,6 +973,49 @@
                 <div class="math-preview" style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;font-family:'Times New Roman', serif;font-size:16px;">
                     ${existingContent ? '$' + existingContent + '$' : 'Preview will appear here...'}
                 </div>`;
+                case 'list':
+                    let listData = {style: 'bullet', items: []};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.items) listData = parsed;
+                    } catch(e) {}
+                    const listItems = (listData.items || []).join('\n');
+                    return `
+        <div class="list-editor" data-block-id="${blockId}">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <select name="blocks[${blockId}][list_style]" class="mini-type-select" style="width:auto;">
+                    <option value="bullet" ${listData.style == 'bullet' ? 'selected' : ''}>• Bullet List</option>
+                    <option value="numbered" ${listData.style == 'numbered' ? 'selected' : ''}>1. Numbered</option>
+                    <option value="checklist" ${listData.style == 'checklist' ? 'selected' : ''}>☑ Checklist</option>
+                </select>
+            </div>
+            <textarea name="blocks[${blockId}][list_items]" class="input-ghost content-style" placeholder="Enter list items, one per line..." rows="3" style="font-family:inherit;">${listItems}</textarea>
+            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">One item per line</small>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" class="list-content-hidden" value='${JSON.stringify(listData)}'>`;
+
+                case 'separator':
+                    let sepData = {type: 'divider'};
+                    try {
+                        const parsed = JSON.parse(existingContent);
+                        if (parsed && parsed.type) sepData = parsed;
+                    } catch(e) {}
+                    return `
+        <div class="separator-editor" style="padding:12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+            <select name="blocks[${blockId}][separator_type]" class="mini-type-select" style="width:auto;margin-bottom:8px;">
+                <option value="divider" ${sepData.type == 'divider' ? 'selected' : ''}>— Horizontal Line</option>
+                <option value="section_break" ${sepData.type == 'section_break' ? 'selected' : ''}>§ Section Break</option>
+                <option value="page_break" ${sepData.type == 'page_break' ? 'selected' : ''}>↲ Page Break</option>
+            </select>
+            <div class="separator-preview">
+                ${sepData.type == 'page_break'
+                        ? '<div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:12px;">——— Page Break ———</div>'
+                        : sepData.type == 'section_break'
+                            ? '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;">SECTION</span><div style="flex:1;height:1px;background:var(--border);"></div></div>'
+                            : '<hr style="border:none;border-top:1px solid var(--border);">'}
+            </div>
+        </div>
+        <input type="hidden" name="blocks[${blockId}][content]" value='${JSON.stringify(sepData)}'>`;
 
                 case 'graph':
                     // Try to parse existing content as JSON, or use defaults
@@ -765,7 +1039,7 @@
 
                 case 'function':
                     let funcData = {
-                        function: 'sin(x)',
+                        function: 'sin(x)=y',
                         x_min: -10,
                         x_max: 10,
                         y_min: -5,
@@ -888,7 +1162,84 @@
             }
         }
 
+        function createChapter(event, form) {
+            event.preventDefault();
 
+            const url = form.action;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            axios.post(url, data)
+                .then((response) => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+                })
+                .catch(() => {
+                    const chapter = response.data.chapter;
+
+                    // Create new chapter element
+                    const container = document.querySelector('.chapter-group.add-chapter-trigger');
+
+                    const newChapter = document.createElement('div');
+                    newChapter.classList.add('chapter-group');
+
+                    newChapter.innerHTML = `
+                <div class="chapter-header" onclick="toggleLessons('${chapter.id}')">
+                    <div class="header-left">
+                        <span class="arrow-icon" id="arrow-${chapter.id}">▶</span>
+                        <strong class="chapter-title">${chapter.title}</strong>
+
+                        <button type="button"
+                            class="status-toggle-btn ${chapter.status}"
+                            data-chapter-id="${chapter.id}"
+                            data-status="${chapter.status}"
+                            onclick="toggleSingleChapter(this)">
+                            ${chapter.status.charAt(0).toUpperCase() + chapter.status.slice(1)}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lessons-container-${chapter.id}" class="lessons-list" style="display:none;"></div>
+            `;
+
+                    container.parentNode.insertBefore(newChapter, container);
+
+                    closeModal('add-chapter-modal');
+                    form.reset();
+                    window.location.reload();
+
+                });
+        }
 
         function createLesson(event, form) {
             event.preventDefault();
@@ -1051,10 +1402,20 @@
 
             // Set appropriate default content based on type
             let defaultContent = '';
+
             if (selectedType === 'graph') {
                 defaultContent = JSON.stringify({type: 'line', labels: ['Jan','Feb','Mar'], data: [10,20,15]});
                 formData.append('chart_type', 'line');
                 formData.append('chart_data', "Jan,Feb,Mar\n10,20,15");
+            } else if (selectedType === 'list') {
+                defaultContent = JSON.stringify({
+                    style: document.querySelector('#block-popup select[name="list_style"]')?.value || 'bullet',
+                    items: document.querySelector('#block-popup textarea[name="list_items"]')?.value.split('\n').filter(i => i.trim()) || ['Item 1', 'Item 2']
+                });
+            } else if (selectedType === 'separator') {
+                defaultContent = JSON.stringify({
+                    type: document.querySelector('#block-popup select[name="separator_type"]')?.value || 'divider'
+                });
             } else if (selectedType === 'table') {
                 defaultContent = JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]);
                 formData.append('table_data', JSON.stringify([['Header 1', 'Header 2'], ['Row 1', 'Row 2']]));
@@ -1066,27 +1427,37 @@
                 defaultContent = '';
 
             }else if (selectedType === 'function') {
-                    defaultContent = JSON.stringify({
-                        function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
-                        x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
-                        x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
-                        y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
-                        y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
-                        color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
-                        step: 0.1
-                    });
-                    formData.append('content', defaultContent);
+                defaultContent = JSON.stringify({
+                    function: document.querySelector('#block-popup input[name="func_expression"]')?.value || 'sin(x)',
+                    x_min: parseFloat(document.querySelector('#block-popup input[name="x_min"]')?.value) || -10,
+                    x_max: parseFloat(document.querySelector('#block-popup input[name="x_max"]')?.value) || 10,
+                    y_min: parseFloat(document.querySelector('#block-popup input[name="y_min"]')?.value) || -5,
+                    y_max: parseFloat(document.querySelector('#block-popup input[name="y_max"]')?.value) || 5,
+                    color: document.querySelector('#block-popup input[name="func_color"]')?.value || '#4f46e5',
+                    step: 0.1
+                });
+                formData.append('content', defaultContent);
 
             } else {
                 defaultContent = document.querySelector('#block-popup textarea[name="content"]')?.value || 'New content';
                 formData.append('content', defaultContent);
             }
 
-            axios.post(url, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const _csrf = document.querySelector('input[name="_token"]')?.value || '';
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': _csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             })
-                .then((response) => {
-                    const block = response.data.block;
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then((data) => {
+                    const block = data.block;
                     const list = document.querySelector('.blocks-list');
 
                     // Generate the HTML for the selected type
@@ -1098,6 +1469,8 @@
             <option value="note" ${selectedType == 'note' ? 'selected' : ''}>Note</option>
             <option value="code" ${selectedType == 'code' ? 'selected' : ''}>Code</option>
             <option value="exercise" ${selectedType == 'exercise' ? 'selected' : ''}>Exercise</option>
+            <option value="list" ${selectedType == 'list' ? 'selected' : ''}>List</option>
+            <option value="separator" ${selectedType == 'separator' ? 'selected' : ''}>Separator</option>
             <option value="photo" ${selectedType == 'photo' ? 'selected' : ''}>Photo</option>
             <option value="video" ${selectedType == 'video' ? 'selected' : ''}>Video</option>
             <option value="math" ${selectedType == 'math' ? 'selected' : ''}>Math</option>
@@ -1144,10 +1517,9 @@
                     if (typeSelect) typeSelect.value = 'header';
                     toggleNewBlockFields(typeSelect);
 
-                    // Show "unsaved changes" indicator if you have one
                     const saveBtn = document.querySelector('.btn-save-all');
                     if (saveBtn) {
-                        saveBtn.style.background = '#f59e0b'; // Orange to indicate unsaved
+                        saveBtn.style.background = '#f59e0b';
                         saveBtn.innerText = 'Save Changes *';
                     }
                 })
@@ -1211,39 +1583,55 @@
 
 
         // Toggle fields in new block modal based on type
+
         function toggleNewBlockFields(select) {
-                const type = select.value;
-                const textGroup = document.getElementById('text-content-group');
-                const fileGroup = document.getElementById('file-content-group');
-                const graphGroup = document.getElementById('graph-content-group');
-                const tableGroup = document.getElementById('table-content-group');
-                const functionGroup = document.getElementById('function-content-group');  // ← ADD THIS
+            const type = select.value;
+            const textGroup = document.getElementById('text-content-group');
+            const fileGroup = document.getElementById('file-content-group');
+            const graphGroup = document.getElementById('graph-content-group');
+            const tableGroup = document.getElementById('table-content-group');
+            const functionGroup = document.getElementById('function-content-group');
+            const listGroup = document.getElementById('list-content-group');
+            const separatorGroup = document.getElementById('separator-content-group');
 
-                // Hide all first
-                textGroup.style.display = 'none';
-                fileGroup.style.display = 'none';
-                graphGroup.style.display = 'none';
-                tableGroup.style.display = 'none';
-                functionGroup.style.display = 'none';
+// Hide others...
+            if (listGroup) listGroup.style.display = 'none';
+            if (separatorGroup) separatorGroup.style.display = 'none';
 
-                // Show relevant
-                if (type === 'photo' || type === 'video') {
-                    fileGroup.style.display = 'flex';
-                    fileGroup.style.flexDirection = 'column';
-                } else if (type === 'graph') {
-                    graphGroup.style.display = 'flex';
-                    graphGroup.style.flexDirection = 'column';
-                } else if (type === 'table') {
-                    tableGroup.style.display = 'flex';
-                    tableGroup.style.flexDirection = 'column';
-                } else if (type === 'function') {  // ← FIXED: Proper condition
-                    functionGroup.style.display = 'flex';
-                    functionGroup.style.flexDirection = 'column';
-                } else {
-                    textGroup.style.display = 'flex';
-                    textGroup.style.flexDirection = 'column';
-                }
+// Show logic:
+
+
+            // Hide all first
+            textGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            graphGroup.style.display = 'none';
+            tableGroup.style.display = 'none';
+            functionGroup.style.display = 'none';
+
+            // Show relevant
+            if (type === 'photo' || type === 'video') {
+                fileGroup.style.display = 'flex';
+                fileGroup.style.flexDirection = 'column';
+            } else if (type === 'graph') {
+                graphGroup.style.display = 'flex';
+                graphGroup.style.flexDirection = 'column';
+            } else if (type === 'table') {
+                tableGroup.style.display = 'flex';
+                tableGroup.style.flexDirection = 'column';
+            } else if (type === 'function') {
+                functionGroup.style.display = 'flex';
+                functionGroup.style.flexDirection = 'column';
+            } else if (type === 'list') {
+                listGroup.style.display = 'flex';
+                listGroup.style.flexDirection = 'column';
+            } else if (type === 'separator') {
+                separatorGroup.style.display = 'flex';
+                separatorGroup.style.flexDirection = 'column';
+            } else {
+                textGroup.style.display = 'flex';
+                textGroup.style.flexDirection = 'column';
             }
+        }
 
         // Function graph rendering
         // Function graph rendering
@@ -1428,7 +1816,6 @@
                 });
             }, 100);
         });
-    </script>
+    </script>--}}
 
 @endsection
-

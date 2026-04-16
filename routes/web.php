@@ -44,6 +44,9 @@ Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
 
+        Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])
+            ->name('blocks.upload-media');
+
         Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
