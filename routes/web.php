@@ -9,6 +9,7 @@ use App\Http\Controllers\courseprogresscontroller;
 use App\Http\Controllers\lessoncontroller;
 use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
+use App\Http\Controllers\quizcontroller;
 use App\Http\Controllers\signupcontroller;
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
@@ -43,8 +44,15 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
+
         Route::post('/courses/store-ai', [AIController::class, 'store'])->name('pdf.store');
         Route::post('/courses/jsonify', [AIController::class, 'jsonification'])->name('pdf.jsonify');
+
+
+        Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])
+            ->name('blocks.upload-media');
+
+
         Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
         Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
         Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
@@ -67,6 +75,12 @@ Route::prefix('admin')
                 ->name('courses.chapters.lessons.publish-all');
             Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
                 ->name('courses.chapters.lessons.toggle-all');
+
+            Route::resource('courses.quiz', quizcontroller::class);
+
+
+
+
 
             Route::resource('courses.chapters',chaptercontroller::class);
             Route::resource('courses.chapters.lessons', lessoncontroller::class);
@@ -92,6 +106,10 @@ Route::prefix('admin')
 
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
         route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+
+        route::get('preview/courses/{course}/quiz',[previewcontroller::class , 'loadquiz'])->name('preview.courses.quiz');
+
+
     });});
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {

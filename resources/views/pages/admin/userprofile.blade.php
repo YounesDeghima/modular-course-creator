@@ -733,7 +733,7 @@
             <div class="sb-identity-text">
                 <div class="sb-identity-name">{{ $user->name }}</div>
                 <div class="sb-identity-role">{{ ($user->is_admin ?? false) ? 'Admin' : 'Student' }}</div>
-                <livewire:userstatus :user="$user"/>
+                <livewire:user_info.userstatus :user="$user"/>
 
             </div>
         </div>
@@ -921,7 +921,7 @@
                     <span class="info-key">Joined</span>
                     <span class="info-val">{{ $user->created_at ? $user->created_at->format('d M Y, H:i') : '—' }}</span>
                 </div>
-                <livewire:userlastupdated :user="$user"/>
+                <livewire:user_info.userlastupdated :user="$user"/>
                 <div class="info-row">
                     <span class="info-key">Role</span>
                     <span class="info-val">

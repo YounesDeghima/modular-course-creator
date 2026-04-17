@@ -14,6 +14,7 @@
     </div>
 
     {{-- New course popup --}}
+
     <div class="p-8 bg-gray-100 min-h-screen flex flex-col items-center">
         <h1 class="text-2xl font-bold mb-4">Course Generator</h1>
 
@@ -69,7 +70,10 @@
 
     <livewire:coursecreate/>
 
-    <livewire:courses :courses="$courses"/>
+    <livewire:course.coursecreate/>
+
+
+    <livewire:course.courses :courses="$courses"/>
 @endsection
 
 

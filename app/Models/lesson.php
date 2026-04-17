@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\chapter;
+
+
 class lesson extends Model
 {
     use HasFactory;
@@ -34,6 +37,10 @@ class lesson extends Model
             ->where('user_id', $userId)
             ->latest()
             ->first();
+    }
+    public function chapter()
+    {
+        return $this->belongsTo(chapter::class);
     }
 
 }

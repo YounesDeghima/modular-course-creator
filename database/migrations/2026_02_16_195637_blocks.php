@@ -17,7 +17,7 @@ return new class extends Migration
 
             $table->text('content')->nullable();
             $table->integer('block_number');
-            $table->enum('type',['header','description','note','code','exercise']);
+            $table->enum('type',['header','description','note','code','exercise','photo','video','math','graph','table','ext','function']);
 
             $table->timestamps();
         });

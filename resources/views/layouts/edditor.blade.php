@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
+
+    <script src="{{ asset('vendors/chart.js') }}"></script>
+
+    <!-- For math (optional - if you want rendered math instead of raw LaTeX) -->
+    <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+
+
     @yield('css')
 
 
@@ -26,7 +34,7 @@
         <div class="nav-right">
 
 
-
+            @yield('right-side')
             <div class="user-badge" id="right-side">
                 <div class="user-avatar">{{substr($name, 0, 1)}}</div>
                 <span class="user-id">{{ $name }}</span>
@@ -74,7 +82,12 @@
 
 
 @yield('js')
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<<script src="{{ asset('vendors/chart.js') }}"></script>
+<script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+<script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
+
+
+<script src="{{ asset('js/function.js') }}"></script>
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarContent = document.querySelector('.sidebar-content');

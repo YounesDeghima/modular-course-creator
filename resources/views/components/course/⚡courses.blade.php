@@ -33,6 +33,6 @@ new class extends Component {
 
     @foreach($courses as $course)
 
-        <livewire:courseupdate :course="$course" :key="$course->id"/>
+        <livewire:course.courseupdate :course="$course" :key="$course->id"/>
     @endforeach
 </div>
