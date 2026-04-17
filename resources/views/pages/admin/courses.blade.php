@@ -242,6 +242,13 @@
             <div id="saveResult" class="ai-result hidden"></div>
         </div>
 
+
+        <div class="ai-card" id="activeJobsCard">
+            <div class="ai-card-title">🔄 Active Jobs</div>
+            <div id="activeJobsList">Loading...</div>
+        </div>
+
+
     </div>
 
 
@@ -526,12 +533,12 @@
         (() => {
             'use strict';
 
-            const CSRF         = document.querySelector('meta[name="csrf-token"]').content;
-            const TEST_URL     = "{{ route('admin.ai.test') }}";
-            const JSONIFY_URL  = "{{ route('admin.ai.jsonify') }}";
-            const STATUS_URL   = "{{ route('admin.ai.status', ['id' => '__ID__']) }}";
-            const STORE_URL    = "{{ route('admin.ai.store') }}";
-
+            const CSRF              = document.querySelector('meta[name="csrf-token"]').content;
+            const TEST_URL          = "{{ route('admin.ai.test') }}";
+            const JSONIFY_URL       = "{{ route('admin.ai.jsonify') }}";
+            const STATUS_URL        = "{{ route('admin.ai.status', ['id' => '__ID__']) }}";
+            const STORE_URL         = "{{ route('admin.ai.store') }}";
+            const ACTIVE_JOBS_URL   = "{{ route('admin.ai.jobs.active') }}";
             // ── Element refs ──────────────────────────────────────────────────────
             const testBtn      = document.getElementById('testBtn');
             const testResult   = document.getElementById('testResult');
@@ -671,20 +678,20 @@
                             setProgress(55, 'Phi4 is reading your PDF… (this may take a few minutes)');
                             break;
 
-                        case 'done':
-                            stopPolling();
-                            setProgress(100, 'Done! Rendering preview…');
-                            setTimeout(() => {
-                                progressCard.classList.add('hidden');
-                                showResult(data.result);
-                            }, 600);
-                            break;
-
                         case 'failed':
                             stopPolling();
                             setProgress(100, 'Processing failed.');
                             progressBar.style.background = '#ef4444';
                             progressMsg.textContent = '❌ ' + (data.error || 'Unknown error');
+                            break;
+
+                        case 'done':
+                            stopPolling();
+                            setProgress(100, 'Done! Rendering preview…');
+                            setTimeout(() => {
+                                progressCard.classList.add('hidden');
+                                showResult(data.result, currentJobId);  // ← pass the ID
+                            }, 600);
                             break;
                     }
                 } catch (e) {
@@ -693,17 +700,33 @@
                 }
             }
 
+
             // ── Show result ───────────────────────────────────────────────────────
-            function showResult(json) {
-                jsonPreview.textContent = JSON.stringify(json, null, 2);
+            window.showResult = showResult;
+            function showResult(json, jobId) {
+                // Clear any previous state
                 saveResult.classList.add('hidden');
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save to database';
+
+                jsonPreview.textContent = JSON.stringify(json, null, 2);
                 resultCard.classList.remove('hidden');
+
+                // 🔥 CRITICAL: Always set the ID
+                saveBtn.dataset.jobId = jobId;
+                currentJobId = jobId;
+
                 resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             // ── Save to database ──────────────────────────────────────────────────
             saveBtn.addEventListener('click', async () => {
-                if (!currentJobId) return;
+                const jobId = saveBtn.dataset.jobId || currentJobId;
+
+                if (!jobId) {
+                    alert('No job selected. Please upload a PDF first.');
+                    return;
+                }
 
                 saveBtn.disabled    = true;
                 saveBtn.textContent = 'Saving…';
@@ -713,7 +736,7 @@
                     const res  = await fetch(STORE_URL, {
                         method:  'POST',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
-                        body:    JSON.stringify({ job_id: currentJobId }),
+                        body: JSON.stringify({ job_id: parseInt(jobId) }),
                     });
                     const data = await res.json();
 
@@ -739,12 +762,60 @@
             discardBtn.addEventListener('click', () => {
                 stopPolling();
                 currentJobId = null;
+                saveBtn.dataset.jobId = '';  // ← Add this
+                saveBtn.disabled = false;    // ← Add this
                 resultCard.classList.add('hidden');
                 progressCard.classList.add('hidden');
                 uploadForm.reset();
                 syncBranchVisibility();
             });
+            async function loadActiveJobs() {
+                // Fetch all jobs that aren't done/saved
+                const res = await fetch(ACTIVE_JOBS_URL);
+                const jobs = await res.json();
+
+
+                const html = jobs.map(job => `
+        <div class="job-item" data-id="${job.id}">
+            <span>Job #${job.id}: ${job.status}</span>
+            ${job.status === 'done'
+                    ? `<button onclick="resumeJob(${job.id})">Review & Save</button>`
+                    : `<span class="spinner">Processing...</span>`
+                }
+        </div>
+    `).join();
+
+                document.getElementById('activeJobsList').innerHTML = html;
+
+                // Auto-refresh if any are still processing
+                const hasActive = jobs.some(j => ['queued', 'processing'].includes(j.status));
+                if (hasActive) setTimeout(loadActiveJobs, 3000);
+            }
+
+            // Resume a completed job
+            async function resumeJob(id) {
+                const res = await fetch(STATUS_URL.replace('__ID__', id), {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF }
+                });
+                const data = await res.json();
+
+
+                if (data.status !== 'done') {
+                    alert('Job not finished yet!');
+                    return;
+                }
+
+                // Call the CLOSED showResult with proper ID
+                showResult(data.result, id);
+            }
+            window.resumeJob = resumeJob;
+
+            // Load on page start
+            loadActiveJobs();
 
         })();
     </script>
+
+
+
 @endsection

@@ -80,6 +80,15 @@ class AIController extends Controller
         ]);
     }
 
+    public function activeJobs()
+    {
+        $jobs = AiJob::whereNotIn('status', ['saved'])
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'status', 'created_at', 'updated_at']);
+
+        return response()->json($jobs);
+    }
+
     /**
      * ── Poll job status ────────────────────────────────────────────────
      * GET /admin/ai/status/{id}
@@ -167,10 +176,8 @@ class AIController extends Controller
                     $type    = $bData['type']    ?? 'description';
                     $content = $bData['content'] ?? '';
 
-                    // Normalise special block types that need JSON content
-                    if ($type === 'table' && is_array($content)) {
-                        $content = json_encode($content);
-                    }
+                    // Normalize content based on block type
+                    $content = $this->normalizeBlockContent($type, $content);
 
                     block::create([
                         'lesson_id'    => $lessonRecord->id,
@@ -204,4 +211,65 @@ class AIController extends Controller
             'message'   => 'Course saved to database as draft.',
         ]);
     }
+
+    /**
+     * Normalize block content based on type
+     * Ensures JSON-encoded types have valid JSON strings
+     */
+    private function normalizeBlockContent(string $type, $content): string
+    {
+        // Types that MUST be valid JSON
+        $jsonTypes = ['table', 'graph', 'function', 'list', 'separator'];
+
+        if (!in_array($type, $jsonTypes)) {
+            // Plain text types — return as-is
+            return is_string($content) ? $content : '';
+        }
+
+        // Already a string — try to parse and re-encode to ensure validity
+        if (is_string($content)) {
+            $decoded = json_decode($content, true);
+
+            // If valid JSON, re-encode to normalize (prevents double-encoding)
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return json_encode($decoded, JSON_UNESCAPED_UNICODE);
+            }
+
+            // Invalid JSON string — try to fix or return default
+            return $this->getDefaultJsonContent($type);
+        }
+
+        // Array or object — encode to JSON
+        if (is_array($content) || is_object($content)) {
+            return json_encode($content, JSON_UNESCAPED_UNICODE);
+        }
+
+        // Fallback for unexpected types
+        return $this->getDefaultJsonContent($type);
+    }
+
+    /**
+     * Get default JSON content for each structured type
+     */
+    private function getDefaultJsonContent(string $type): string
+    {
+        $defaults = [
+            'table' => json_encode([['Column 1', 'Column 2'], ['Data 1', 'Data 2']]),
+            'graph' => json_encode(['type' => 'line', 'labels' => [], 'data' => []]),
+            'function' => json_encode([
+                'function' => 'sin(x)',
+                'x_min' => -10,
+                'x_max' => 10,
+                'y_min' => -5,
+                'y_max' => 5,
+                'color' => '#4f46e5',
+                'step' => 0.1
+            ]),
+            'list' => json_encode(['style' => 'bullet', 'items' => []]),
+            'separator' => json_encode(['type' => 'divider']),
+        ];
+
+        return $defaults[$type] ?? json_encode([]);
+    }
+
 }

@@ -55,42 +55,113 @@ class ProcessPdfJob implements ShouldQueue
             //  • One block    = one paragraph / heading / code snippet.
             //
             $prompt = <<<PROMPT
-You are a course-structure extractor.
-Your ONLY job is to convert the raw PDF text below into a JSON object.
+You are a course-structure extractor. Convert PDF content into structured educational blocks.
 
-STRICT RULES:
-1. Copy every word VERBATIM — do NOT summarise, paraphrase, or add anything.
-2. Each heading becomes a block with type "header".
-3. Each paragraph becomes a block with type "description".
-4. Indented / monospaced text becomes a block with type "code".
-5. Short callout / tip / warning lines become type "note".
-6. Group blocks into lessons by topic, lessons into chapters by section.
-7. Assign sequential block_number, lesson_number, chapter_number starting at 1.
-8. status is always "draft".
-9. Return ONLY the JSON — no prose, no markdown fences, no explanation.
+BLOCK TYPE GUIDE — use exactly these types:
 
-REQUIRED JSON SHAPE (follow exactly):
+1. header
+   - Chapter/section titles, lesson titles, major headings
+   - Content: plain text title
+
+2. description
+   - Regular paragraphs, explanations, theory
+   - Content: plain text (reconstruct math with Unicode: α β φ ∈ ℝ → ∞ ∑ ∫)
+
+3. note
+   - Tips, warnings, important callouts, "remember that..."
+   - Content: short plain text (1-2 sentences)
+
+4. code
+   - Algorithms, pseudocode, formulas in monospace, structured steps
+   - Content: indented text, step-by-step procedures
+   - Example: "Step 1: Calculate x_n = (a+b)/2"
+
+5. math
+   - Standalone equations, theorems with formulas, important identities
+   - Content: math notation using Unicode symbols OR simple notation
+   - USE: x^2, (a/b), √x, x_n, α, β, φ, ∈, ℝ, →, ∞, ∑, ∫, ≠, ≈, ≤, ≥
+   - AVOID: backslashes like \frac, \alpha, \sqrt (breaks JSON)
+   - Example: "x_n = (a_n + b_n)/2 → α as n → ∞"
+
+6. exercise
+   - Practice problems, examples to solve, "Exercise:", "Example:"
+   - Content: problem statement only (solutions added later by teacher)
+   - Auto-creates empty solution slot
+
+7. photo / video
+   - Visual content references
+   - Content: leave EMPTY string "" (teacher uploads file later)
+   - Use when PDF shows: diagrams, photos, illustrations, video references
+
+8. graph
+   - Charts with data points: line charts, bar charts, pie charts
+   - Content: JSON string with this exact shape:
+     {"type": "line", "labels": ["Jan", "Feb", "Mar"], "data": [10, 20, 15]}
+   - Types allowed: "line", "bar", "pie"
+   - Extract data from tables or text descriptions
+
+9. table
+   - Structured data, comparison tables, iteration tables
+   - Content: JSON 2D array as string:
+     [["Column1", "Column2"], ["Row1Data1", "Row1Data2"], ["Row2Data1", "Row2Data2"]]
+   - First row = headers
+
+10. function
+    - Function plots, graphs of f(x)
+    - Content: JSON string with this exact shape:
+      {"function": "sin(x)", "x_min": -10, "x_max": 10, "y_min": -5, "y_max": 5, "color": "#4f46e5", "step": 0.1}
+    - Extract function expression from text
+
+11. list
+    - Bulleted lists, numbered steps, checklists
+    - Content: JSON string with this exact shape:
+      {"style": "bullet", "items": ["First item", "Second item", "Third item"]}
+    - Styles: "bullet", "numbered", "checklist"
+
+12. separator
+    - Page breaks, section dividers, visual breaks
+    - Content: JSON string: {"type": "divider"}
+    - Types: "divider", "page_break", "section_break"
+
+13. ext
+    - External links, embeds, references
+    - Content: URL or reference text
+
+PDF EXTRACTION RULES:
+- Reconstruct broken math: "an+ n 2" → "(a_n + b_n) / 2"
+- Fix accents: "3\`eme ann\'ee" → "3ème année"
+- Greek letters: use φ not \varphi, α not \alpha, β not \beta
+- Images in PDF → use type "photo" with empty content (teacher adds file later)
+- Tables in PDF → convert to type "table" with JSON content
+- Graphs/diagrams → use type "photo" (visual) or "function" (if it's a plot)
+
+REQUIRED JSON OUTPUT:
 {
   "title": "<course title>",
   "year": {$aiJob->year},
   "branch": "{$aiJob->branch}",
-  "description": "<first sentence of the document>",
+  "description": "<brief summary>",
   "status": "draft",
   "chapters": [
     {
       "title": "<chapter title>",
-      "description": "<chapter first sentence>",
+      "description": "<chapter summary>",
       "chapter_number": 1,
       "status": "draft",
       "lessons": [
         {
           "title": "<lesson title>",
-          "description": "<lesson first sentence>",
+          "description": "<lesson summary>",
           "lesson_number": 1,
           "status": "draft",
           "blocks": [
-            { "content": "<verbatim text>", "block_number": 1, "type": "header" },
-            { "content": "<verbatim text>", "block_number": 2, "type": "description" }
+            {"type": "header", "content": "Introduction", "block_number": 1},
+            {"type": "description", "content": "We study numerical methods for finding roots...", "block_number": 2},
+            {"type": "math", "content": "f(x) = 0, x ∈ [a,b]", "block_number": 3},
+            {"type": "code", "content": "Algorithm:\nStep 1: Set x_0 = (a+b)/2\nStep 2: Evaluate f(x_0)", "block_number": 4},
+            {"type": "table", "content": "[[\"n\", \"a_n\", \"b_n\", \"x_n\"], [\"0\", \"0\", \"1\", \"0.5\"], [\"1\", \"0\", \"0.5\", \"0.25\"]]", "block_number": 5},
+            {"type": "exercise", "content": "Apply dichotomy to f(x) = x^2 - 2 on [0,2]", "block_number": 6},
+            {"type": "photo", "content": "", "block_number": 7}
           ]
         }
       ]
@@ -98,13 +169,12 @@ REQUIRED JSON SHAPE (follow exactly):
   ]
 }
 
-Allowed block types: header, description, note, code, math, ext
-
 --- BEGIN PDF TEXT ---
 {$rawText}
 --- END PDF TEXT ---
-PROMPT;
 
+Return ONLY valid JSON. No markdown, no explanation.
+PROMPT;
             // ── 3. Call Ollama ─────────────────────────────────────────
             $response = Http::timeout(0)          // no HTTP-level timeout
             ->withOptions(['connect_timeout' => 10])

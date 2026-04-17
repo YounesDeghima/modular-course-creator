@@ -45,6 +45,8 @@ Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
 
+        Route::get('jobs/active', [AIController::class, 'activeJobs'])->name('ai.jobs.active');
+
         Route::post('test', [AIController::class, 'test'])->name('ai.test');
 
 // Upload PDF → dispatch background job → returns job_id
