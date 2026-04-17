@@ -45,8 +45,16 @@ Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-        Route::post('/courses/store-ai', [AIController::class, 'store'])->name('pdf.store');
-        Route::post('/courses/jsonify', [AIController::class, 'jsonification'])->name('pdf.jsonify');
+        Route::post('test', [AIController::class, 'test'])->name('ai.test');
+
+// Upload PDF → dispatch background job → returns job_id
+        Route::post('jsonify', [AIController::class, 'jsonify'])->name('ai.jsonify');
+
+// Poll job status
+        Route::get('status/{id}', [AIController::class, 'status'])->name('ai.status');
+
+// Save finished result to the real DB tables
+        Route::post('store', [AIController::class, 'store'])->name('ai.store');
 
 
         Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])

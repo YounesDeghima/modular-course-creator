@@ -2,165 +2,206 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessPdfJob;
+use App\Models\AiJob;
+use App\Models\course;
+use App\Models\chapter;
+use App\Models\lesson;
+use App\Models\block;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class AIController extends Controller
 {
-    public function jsonification(Request $request)
+    /**
+     * ── Test endpoint ──────────────────────────────────────────────────
+     * POST /admin/ai/test
+     * Sends a simple "hi" prompt to local Ollama and returns the reply.
+     */
+    public function test(Request $request)
     {
-        set_time_limit(600);
-
-        if ($request->input('test_mode') === 'hi') {
-            $prompt = 'Say hello in one sentence.';
-        } else {
-            $request->validate(['pdf_file' => 'required|file|mimes:pdf|max:20000']);
-
-            $parser = new \Smalot\PdfParser\Parser();
-            $pdf    = $parser->parseFile($request->file('pdf_file')->getPathname());
-            $text   = $pdf->getText();
-
-            $prompt = <<<PROMPT
-You are an academic course content parser. Convert the following course text into a JSON object.
-
-The JSON MUST follow this EXACT structure — no extra keys, no missing keys:
-
-{
-  "title": "string — course title",
-  "year": 1,
-  "branch": "string —  mi, st",
-  "description": "string — short course description",
-  "status": "published",
-  "chapters": [
-    {
-      "title": "string",
-      "description": "string",
-      "chapter_number": 1,
-      "status": "published",
-      "lessons": [
-        {
-          "title": "string",
-          "description": "string",
-          "lesson_number": 1,
-          "status": "published",
-          "blocks": [
-            { "content": "string", "block_number": 1, "type": "header" },
-            { "content": "string", "block_number": 2, "type": "description" },
-            { "content": "string", "block_number": 3, "type": "code" },
-            { "content": "string", "block_number": 4, "type": "note" }
-          ]
-        }
-      ]
-    }
-  ]
-}
-
-Rules:
-- "branch" must be one of: "mi", "st", "none",
-- block "type" must be one of: "header", "description", "code", "note"
-- "header" = section title inside a lesson
-- "description" = explanatory text or bullet points
-- "code" = code snippets, formulas, equations
-- "note" = warnings, tips, quoted definitions
-- block_number, lesson_number, chapter_number all start at 1 and increment
-- Extract as many chapters, lessons, and blocks as the text contains
-- Return ONLY the JSON object. No markdown. No explanation. No extra text.
-
-Course text:
-{$text}
-PROMPT;
-        }
-
         try {
-            $response = Http::timeout(600)->post('http://127.0.0.1:11434/api/generate', [
-                'model'  => 'llama3.2',
-                'prompt' => $prompt,
+            $response = Http::timeout(30)->post('http://localhost:11434/api/generate', [
+                'model'  => 'phi4',
+                'prompt' => 'Say exactly: {"status":"ok","message":"Ollama is running"}',
                 'stream' => false,
                 'format' => 'json',
             ]);
 
-            if (!$response->successful()) {
+            if ($response->failed()) {
                 return response()->json([
-                    'error'  => 'Ollama returned an error',
-                    'status' => $response->status(),
-                    'body'   => $response->body(),
-                ], 500);
+                    'error' => 'Ollama did not respond. Is it running on port 11434?',
+                ], 502);
             }
 
-            return response()->json($response->json());
-
-        } catch (\Exception $e) {
             return response()->json([
-                'error'   => 'Could not reach Ollama. Is it running?',
-                'message' => $e->getMessage(),
-            ], 500);
+                'ok'      => true,
+                'message' => 'Ollama (phi4) is reachable!',
+                'raw'     => $response->json(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
+    /**
+     * ── Upload PDF → dispatch job ──────────────────────────────────────
+     * POST /admin/ai/jsonify
+     * Stores the PDF, creates an AiJob record, dispatches the background job.
+     * Returns the job ID so the front-end can poll for status.
+     */
+    public function jsonify(Request $request)
+    {
+        $request->validate([
+            'pdf_file'    => 'required|file|mimes:pdf|max:51200', // 50 MB
+            'course_year' => 'required|in:1,2,3',
+            'course_branch' => 'nullable|in:mi,st,none',
+        ]);
+
+        // Store the PDF
+        $path = $request->file('pdf_file')->store('ai_uploads', 'local');
+
+        // Create a job record so we can track progress
+        $aiJob = AiJob::create([
+            'status'   => 'queued',
+            'pdf_path' => $path,
+            'year'     => $request->course_year,
+            'branch'   => $request->course_branch ?? 'none',
+        ]);
+
+        // Dispatch background job — no HTTP timeout risk
+        ProcessPdfJob::dispatch($aiJob->id);
+
+        return response()->json([
+            'job_id'  => $aiJob->id,
+            'status'  => 'queued',
+            'message' => 'PDF queued for processing. Poll /admin/ai/status/{id} for updates.',
+        ]);
+    }
+
+    /**
+     * ── Poll job status ────────────────────────────────────────────────
+     * GET /admin/ai/status/{id}
+     * Returns the current status + result JSON when done.
+     */
+    public function status($id)
+    {
+        $aiJob = AiJob::findOrFail($id);
+
+        $response = [
+            'id'         => $aiJob->id,
+            'status'     => $aiJob->status,       // queued | processing | done | failed
+            'created_at' => $aiJob->created_at,
+            'updated_at' => $aiJob->updated_at,
+        ];
+
+        if ($aiJob->status === 'done') {
+            $response['result'] = json_decode($aiJob->result_json, true);
+        }
+
+        if ($aiJob->status === 'failed') {
+            $response['error'] = $aiJob->error_message;
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * ── Save result JSON to the database ──────────────────────────────
+     * POST /admin/ai/store
+     * Takes the JSON produced by the AI and persists it as a real Course
+     * with its Chapters, Lessons and Blocks — exactly like the existing
+     * controllers expect.
+     */
     public function store(Request $request)
     {
-        // Increase time limit for database-heavy operations on your RTX 3060 setup
-        set_time_limit(600);
+        $request->validate([
+            'job_id' => 'required|exists:ai_jobs,id',
+        ]);
 
-        $data = $request->all();
+        $aiJob = AiJob::findOrFail($request->job_id);
 
-        try {
-            return \DB::transaction(function () use ($data) {
-                // 1. Create the Course (Matching your CourseController logic)
-                $course = \App\Models\course::create([
-                    'title'       => $data['title'] ?? 'Untitled Course',
-                    'year'        => $data['year'] ?? 1,
-                    'branch'      => ($data['year'] == 1) ? 'none' : ($data['branch'] ?? 'mi'),
-                    'description' => $data['description'] ?? '',
-                    'status'      => 'published',
+        if ($aiJob->status !== 'done') {
+            return response()->json(['error' => 'Job is not finished yet.'], 422);
+        }
+
+        $data = json_decode($aiJob->result_json, true);
+
+        if (!$data) {
+            return response()->json(['error' => 'Result JSON is invalid.'], 422);
+        }
+
+        // ── Create Course ──────────────────────────────────────────────
+        $courseRecord = course::create([
+            'title'       => $data['title']       ?? 'Untitled Course',
+            'year'        => $data['year']         ?? $aiJob->year,
+            'branch'      => $data['branch']       ?? $aiJob->branch,
+            'description' => $data['description']  ?? '',
+            'status'      => 'draft',               // always start as draft
+        ]);
+
+        foreach (($data['chapters'] ?? []) as $chIdx => $chData) {
+            // ── Create Chapter ─────────────────────────────────────────
+            $chapterRecord = chapter::create([
+                'course_id'      => $courseRecord->id,
+                'title'          => $chData['title']          ?? 'Chapter ' . ($chIdx + 1),
+                'description'    => $chData['description']    ?? '',
+                'chapter_number' => $chData['chapter_number'] ?? ($chIdx + 1),
+                'status'         => 'draft',
+            ]);
+
+            foreach (($chData['lessons'] ?? []) as $lIdx => $lData) {
+                // ── Create Lesson ──────────────────────────────────────
+                $lessonRecord = lesson::create([
+                    'chapter_id'    => $chapterRecord->id,
+                    'title'         => $lData['title']         ?? 'Lesson ' . ($lIdx + 1),
+                    'description'   => $lData['description']   ?? '',
+                    'lesson_number' => $lData['lesson_number'] ?? ($lIdx + 1),
+                    'content'       => '',
+                    'status'        => 'draft',
                 ]);
 
-                // 2. Loop through Chapters (Matching your ChaptersController logic)
-                if (!empty($data['chapters'])) {
-                    foreach ($data['chapters'] as $cData) {
-                        $chapter = $course->chapters()->create([
-                            'title'          => $cData['title'],
-                            'description'    => $cData['description'] ?? '',
-                            'chapter_number' => $cData['chapter_number'],
-                            'status'         => 'published',
-                        ]);
+                foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
+                    // ── Create Block ───────────────────────────────────
+                    $type    = $bData['type']    ?? 'description';
+                    $content = $bData['content'] ?? '';
 
-                        // 3. Loop through Lessons (Matching your LessonController logic)
-                        if (!empty($cData['lessons'])) {
-                            foreach ($cData['lessons'] as $lData) {
-                                $lesson = $chapter->lessons()->create([
-                                    'title'         => $lData['title'],
-                                    'description'   => $lData['description'] ?? '',
-                                    'lesson_number' => $lData['lesson_number'],
-                                    'status'        => 'published',
-                                ]);
+                    // Normalise special block types that need JSON content
+                    if ($type === 'table' && is_array($content)) {
+                        $content = json_encode($content);
+                    }
 
-                                // 4. Loop through Blocks (Matching your BlockController logic)
-                                if (!empty($lData['blocks'])) {
-                                    foreach ($lData['blocks'] as $bData) {
-                                        $lesson->blocks()->create([
-                                            'content'      => $bData['content'],
-                                            'type'         => $bData['type'], // header, description, code, note
-                                            'block_number' => $bData['block_number'],
-                                        ]);
-                                    }
-                                }
-                            }
+                    block::create([
+                        'lesson_id'    => $lessonRecord->id,
+                        'type'         => $type,
+                        'content'      => $content,
+                        'block_number' => $bData['block_number'] ?? ($bIdx + 1),
+                    ]);
+
+                    // Auto-create a placeholder solution for exercise blocks
+                    if ($type === 'exercise') {
+                        $block = block::where('lesson_id', $lessonRecord->id)
+                            ->orderBy('id', 'desc')
+                            ->first();
+                        if ($block) {
+                            $block->solutions()->create([
+                                'solution_number' => 1,
+                                'content'         => 'nothing here yet',
+                            ]);
                         }
                     }
                 }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Course, Chapters, Lessons, and Blocks imported successfully!',
-                    'course_id' => $course->id
-                ]);
-            });
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Database Sync Failed: ' . $e->getMessage()
-            ], 500);
+            }
         }
+
+        // Mark job as consumed
+        $aiJob->update(['status' => 'saved']);
+
+        return response()->json([
+            'success'   => true,
+            'course_id' => $courseRecord->id,
+            'message'   => 'Course saved to database as draft.',
+        ]);
     }
 }

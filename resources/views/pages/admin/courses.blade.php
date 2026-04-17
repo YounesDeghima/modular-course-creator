@@ -3,6 +3,157 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{asset('css/modular-site-preview.css')}}">
     <link rel="stylesheet" href="{{asset('css/modular-site-courses.css')}}">
+
+    <style>
+
+    .ai-generator-wrap {
+    max-width: 860px;
+    margin: 0 auto 2.5rem;
+    padding: 0 1rem;
+    font-family: inherit;
+    }
+
+    .ai-generator-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+    }
+    .ai-generator-header h2 { margin: 0; font-size: 1.35rem; font-weight: 700; }
+    .ai-generator-header p  { margin: 0; color: #6b7280; font-size: .875rem; }
+    .ai-badge {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    }
+
+    .ai-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .75rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .ai-card-title { font-weight: 700; font-size: 1rem; margin-bottom: .4rem; }
+    .ai-card-sub   { color: #6b7280; font-size: .875rem; margin: 0 0 .9rem; }
+
+    .ai-field-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-bottom: .85rem;
+    }
+    .ai-label { font-size: .85rem; font-weight: 600; color: #374151; white-space: nowrap; }
+    .ai-select {
+    border: 1px solid #d1d5db;
+    border-radius: .4rem;
+    padding: .35rem .6rem;
+    font-size: .875rem;
+    background: #f9fafb;
+    cursor: pointer;
+    }
+    .ai-file-input {
+    flex: 1;
+    font-size: .875rem;
+    border: 1px dashed #d1d5db;
+    border-radius: .4rem;
+    padding: .4rem .7rem;
+    background: #f9fafb;
+    cursor: pointer;
+    min-width: 0;
+    }
+
+    /* Buttons */
+    .ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem 1.1rem;
+    border-radius: .5rem;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, transform .1s;
+    }
+    .ai-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .ai-btn:not(:disabled):active { transform: scale(.97); }
+
+    .ai-btn--primary  { background: #6366f1; color: #fff; }
+    .ai-btn--primary:not(:disabled):hover  { background: #4f46e5; }
+    .ai-btn--success  { background: #10b981; color: #fff; }
+    .ai-btn--success:not(:disabled):hover  { background: #059669; }
+    .ai-btn--outline  { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+    .ai-btn--outline:not(:disabled):hover  { background: #f3f4f6; }
+    .ai-btn--ghost    { background: transparent; color: #6b7280; border: 1px solid #e5e7eb; }
+    .ai-btn--ghost:not(:disabled):hover    { background: #f9fafb; }
+
+    /* Progress bar */
+    .ai-progress-bar-wrap {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: .6rem;
+    }
+    .ai-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 999px;
+    width: 0%;
+    transition: width .5s ease;
+    animation: ai-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes ai-pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: .6; }
+    }
+    .ai-progress-msg  { font-size: .9rem; font-weight: 600; color: #374151; margin: 0 0 .3rem; }
+    .ai-progress-hint { font-size: .8rem; color: #9ca3af; margin: 0; }
+
+    /* JSON preview */
+    .ai-json-preview {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: .5rem;
+    padding: 1rem;
+    font-size: .78rem;
+    line-height: 1.55;
+    overflow: auto;
+    max-height: 380px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 1rem;
+    }
+    .ai-result-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+    /* Generic result / feedback box */
+    .ai-result {
+    margin-top: .75rem;
+    padding: .7rem 1rem;
+    border-radius: .45rem;
+    font-size: .875rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    }
+    .ai-result.ok    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .ai-result.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    .hidden { display: none !important; }
+    </style>
+
+
+    {{-- ═══════════════════════════════════════════════════════════════════════
+         JavaScript
+         ═══════════════════════════════════════════════════════════════════════ --}}
+
 @endsection
 
 
@@ -15,65 +166,90 @@
 
     {{-- New course popup --}}
 
-    <div class="p-8 bg-gray-100 min-h-screen flex flex-col items-center">
-        <h1 class="text-2xl font-bold mb-4">Course Generator</h1>
+    <div class="ai-generator-wrap">
 
-        <form id="pdfForm" action="{{ route('admin.pdf.jsonify') }}" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
-            @csrf
-            <label class="block mb-2 text-sm font-medium text-gray-900">Test AI Connection</label>
-
-            <input type="file" name="pdf_file" id="pdf_file" class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-
-            <div class="flex gap-4">
-                <button type="button" id="testHiBtn" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition">
-                    Test "Hi" (Normal Text)
-                </button>
-
-                <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
-                    JSONify File (PDF)
-                </button>
-            </div>
-        </form>
-
-        <div id="resultArea" class="mt-8 p-6 bg-white rounded-lg shadow-inner hidden">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Preview AI Generated Course</h2>
-            <pre id="jsonOutput" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto max-h-96 text-xs"></pre>
-
-            <div class="mt-6 flex justify-end">
-                <button id="saveBtn" onclick="saveToDatabase()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-lg flex items-center">
-                    <span id="saveBtnText">Save to Database</span>
-                </button>
-            </div>
+        <div class="ai-generator-header">
+            <span class="ai-badge">⚡ AI</span>
+            <h2>PDF → Course Generator</h2>
+            <p>Upload a teacher's PDF — phi4 will extract every word into structured course blocks.</p>
         </div>
 
-        <div id="debugArea" class="mt-8 p-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg hidden">
-            <h3 class="text-lg font-bold text-blue-800 mb-2">Reviewing Data for AI</h3>
+        {{-- ── Test connection ─────────────────────────────────────────────── --}}
+        <div class="ai-card">
+            <div class="ai-card-title">🔌 Connection test</div>
+            <p class="ai-card-sub">Check that Ollama (phi4) is running locally before uploading a PDF.</p>
+            <button id="testBtn" class="ai-btn ai-btn--outline">Test Ollama connection</button>
+            <div id="testResult" class="ai-result hidden"></div>
+        </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <span class="text-sm font-semibold text-gray-600 uppercase">Extracted PDF Text (Preview)</span>
-                    <div id="pdfTextPreview" class="mt-1 p-3 bg-white border rounded text-xs text-gray-700 h-40 overflow-auto italic"></div>
+        {{-- ── Upload form ─────────────────────────────────────────────────── --}}
+        <div class="ai-card">
+            <div class="ai-card-title">📄 Upload PDF</div>
+
+            <form id="pdfUploadForm" enctype="multipart/form-data">
+                @csrf
+
+                <div class="ai-field-row">
+                    <label class="ai-label">Year</label>
+                    <select name="course_year" class="ai-select year-input" id="aiYear">
+                        <option value="1">Year 1</option>
+                        <option value="2">Year 2</option>
+                        <option value="3">Year 3</option>
+                    </select>
+
+                    <label class="ai-label branch-label" id="aiBranchLabel">Branch</label>
+                    <select name="course_branch" class="ai-select branch-input" id="aiBranch">
+                        <option value="none">None</option>
+                        <option value="mi">MI</option>
+                        <option value="st">ST</option>
+                    </select>
                 </div>
-                <div>
-                    <span class="text-sm font-semibold text-gray-600 uppercase">Full Prompt Sent to Ollama</span>
-                    <div id="finalPromptPreview" class="mt-1 p-3 bg-white border rounded text-xs text-gray-700 h-40 overflow-auto font-mono"></div>
+
+                <div class="ai-field-row">
+                    <label class="ai-label">PDF file</label>
+                    <input type="file" name="pdf_file" id="pdfFile" accept=".pdf" class="ai-file-input">
                 </div>
-            </div>
+
+                <button type="submit" id="uploadBtn" class="ai-btn ai-btn--primary">
+                    ✨ JSONify PDF
+                </button>
+            </form>
         </div>
 
-        <div  id="resultArea" class="mt-8 w-full max-w-2xl hidden">
-            <h2 class="text-lg font-semibold mb-2">Resulting JSON:</h2>
-            <pre id="jsonOutput" class="bg-black text-green-400 p-4 rounded overflow-x-auto text-xs"></pre>
+        {{-- ── Progress / polling ──────────────────────────────────────────── --}}
+        <div id="progressCard" class="ai-card hidden">
+            <div class="ai-card-title">⏳ Processing</div>
+            <div class="ai-progress-bar-wrap">
+                <div class="ai-progress-bar" id="progressBar"></div>
+            </div>
+            <p id="progressMsg" class="ai-progress-msg">Queued — waiting for the worker…</p>
+            <p class="ai-progress-hint">
+                Phi4 runs locally — large PDFs can take a few minutes. This page will update automatically.
+            </p>
         </div>
+
+        {{-- ── Result preview ──────────────────────────────────────────────── --}}
+        <div id="resultCard" class="ai-card hidden">
+            <div class="ai-card-title">✅ Result preview</div>
+            <p class="ai-card-sub">
+                Review the extracted structure. If it looks correct, click <strong>Save to database</strong>.
+            </p>
+            <pre id="jsonPreview" class="ai-json-preview"></pre>
+            <div class="ai-result-actions">
+                <button id="saveBtn" class="ai-btn ai-btn--success">💾 Save to database</button>
+                <button id="discardBtn" class="ai-btn ai-btn--ghost">🗑 Discard</button>
+            </div>
+            <div id="saveResult" class="ai-result hidden"></div>
+        </div>
+
     </div>
 
 
-    <livewire:coursecreate/>
 
     <livewire:course.coursecreate/>
 
 
-    <livewire:course.courses :courses="$courses"/>
+    <livewire:course.courses :courses="$courses" />
 @endsection
 
 
@@ -113,215 +289,6 @@
 @endsection
 
 @section('js')
-    <script>
-        const JSONIFY_URL  = "{{ route('admin.pdf.jsonify') }}";
-        const CSRF         = document.querySelector('meta[name="csrf-token"]').content;
-        const output       = document.getElementById('jsonOutput');
-        const resultArea   = document.getElementById('resultArea');
-        //
-        // function showResult(data) {
-        //     // Ollama wraps response in { response: "..." } when format=json
-        //     // but the actual JSON string is inside .response
-        //     let display;
-        //     try {
-        //         const inner = data.response ? JSON.parse(data.response) : data;
-        //         display = JSON.stringify(inner, null, 2);
-        //     } catch {
-        //         display = JSON.stringify(data, null, 2);
-        //     }
-        //     output.innerText = display;
-        //     resultArea.classList.remove('hidden');
-        // }
-
-        function showError(msg) {
-            output.innerText = '❌ ' + msg;
-            resultArea.classList.remove('hidden');
-        }
-
-        // ── Test "Hi" button ──
-        document.getElementById('testHiBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('testHiBtn');
-            btn.innerText = 'Testing...';
-            btn.disabled  = true;
-
-            try {
-                const res = await fetch(JSONIFY_URL, {
-                    method:  'POST',
-                    headers: {
-                        'Content-Type':  'application/json',
-                        'Accept':        'application/json',
-                        'X-CSRF-TOKEN':  CSRF,
-                    },
-                    body: JSON.stringify({ test_mode: 'hi' }),
-                });
-
-                const data = await res.json();
-                if (!res.ok) { showError(data.message || data.error || res.statusText); return; }
-                showResult(data);
-
-            } catch (e) {
-                showError('Fetch failed: ' + e.message);
-            } finally {
-                btn.innerText = "Test \"Hi\"";
-                btn.disabled  = false;
-            }
-        });
-
-        // ── JSONify PDF ──
-        document.getElementById('pdfForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            btn.innerText = 'Processing...';
-            btn.disabled  = true;
-
-            const formData = new FormData(e.target); // already contains csrf + pdf_file
-
-            try {
-                const res = await fetch(JSONIFY_URL, {
-                    method:  'POST',
-                    headers: {
-                        // NO Content-Type here — browser sets multipart boundary automatically
-                        'Accept':       'application/json',
-                        'X-CSRF-TOKEN': CSRF,
-                    },
-                    body: formData,
-                });
-
-                const data = await res.json();
-                if (!res.ok) { showError(data.message || data.error || res.statusText); return; }
-                showResult(data);
-
-            } catch (e) {
-                showError('Fetch failed: ' + e.message);
-            } finally {
-                btn.innerText = 'JSONify PDF';
-                btn.disabled  = false;
-            }
-        });
-
-        {{--async function saveToDatabase() {--}}
-        {{--    const saveBtn = document.getElementById('saveBtn'); // Add this button to your UI--}}
-        {{--    saveBtn.innerText = "Saving to Database...";--}}
-        {{--    saveBtn.disabled = true;--}}
-
-        {{--    try {--}}
-        {{--        const response = await fetch("{{ route('admin.pdf.store') }}", {--}}
-        {{--            method: "POST",--}}
-        {{--            headers: {--}}
-        {{--                'Content-Type': 'application/json',--}}
-        {{--                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content--}}
-        {{--            },--}}
-        {{--            body: JSON.stringify(currentJson) // This is the global variable where you stored the AI response--}}
-        {{--        });--}}
-
-        {{--        const result = await response.json();--}}
-        {{--        if (result.success) {--}}
-        {{--            alert("Success! Course and all modules saved.");--}}
-        {{--            window.location.reload();--}}
-        {{--        } else {--}}
-        {{--            alert("Error: " + result.message);--}}
-        {{--        }--}}
-        {{--    } catch (error) {--}}
-        {{--        console.error(error);--}}
-        {{--        alert("Failed to reach server.");--}}
-        {{--    } finally {--}}
-        {{--        saveBtn.innerText = "Save to Database";--}}
-        {{--        saveBtn.disabled = false;--}}
-        {{--    }--}}
-        {{--}--}}
-
-
-        let currentJson = null; // To store the AI result globally
-
-        // This function runs when the AI finishes
-        function showResult(data) {
-            try {
-                // Ollama often wraps the JSON in a "response" string
-                currentJson = data.response ? JSON.parse(data.response) : data;
-                document.getElementById('jsonOutput').innerText = JSON.stringify(currentJson, null, 2);
-                document.getElementById('resultArea').classList.remove('hidden');
-            } catch (e) {
-                console.error("JSON Parse Error:", e);
-                document.getElementById('jsonOutput').innerText = "AI returned text, but it's not valid JSON. Try again.";
-            }
-        }
-
-        async function saveToDatabase() {
-            if (!currentJson) return alert("No data to save!");
-
-            const btn = document.getElementById('saveBtn');
-            const btnText = document.getElementById('saveBtnText');
-
-            btn.disabled = true;
-            btnText.innerText = "Writing to Database...";
-
-            try {
-                const response = await fetch("{{ route('admin.pdf.store') }}", {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify(currentJson)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert("Success! Everything saved to database.");
-                    window.location.reload(); // Refresh to see your new course in the list
-                } else {
-                    alert("Error: " + result.message);
-                }
-            } catch (error) {
-                alert("Failed to connect to server. Check your terminal!");
-            } finally {
-                btn.disabled = false;
-                btnText.innerText = "Save to Database";
-            }
-        }
-
-        pdfForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const debugArea = document.getElementById('debugArea');
-            const pdfPreview = document.getElementById('pdfTextPreview');
-            const promptPreview = document.getElementById('finalPromptPreview');
-
-            btn.innerText = "Reading PDF & Generating...";
-            btn.disabled = true;
-
-            const formData = new FormData(e.target);
-
-            try {
-                const response = await fetch("{{ route('admin.pdf.jsonify') }}", {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                });
-
-                const data = await response.json();
-
-                // 1. Show the Debug info returned from the server
-                if(data.debug) {
-                    pdfPreview.innerText = data.debug.text_sample + "...";
-                    promptPreview.innerText = data.debug.full_prompt;
-                    debugArea.classList.remove('hidden');
-                }
-
-                // 2. Show the actual AI result
-                showResult(data);
-
-            } catch (error) {
-                alert("Check your RTX 3060 connection/Ollama status.");
-            } finally {
-                btn.innerText = "JSONify File (PDF)";
-                btn.disabled = false;
-            }
-        };
-    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
@@ -553,5 +520,231 @@
                     updateGlobalButtonUI();
                 });
         });
+    </script>
+
+    <script>
+        (() => {
+            'use strict';
+
+            const CSRF         = document.querySelector('meta[name="csrf-token"]').content;
+            const TEST_URL     = "{{ route('admin.ai.test') }}";
+            const JSONIFY_URL  = "{{ route('admin.ai.jsonify') }}";
+            const STATUS_URL   = "{{ route('admin.ai.status', ['id' => '__ID__']) }}";
+            const STORE_URL    = "{{ route('admin.ai.store') }}";
+
+            // ── Element refs ──────────────────────────────────────────────────────
+            const testBtn      = document.getElementById('testBtn');
+            const testResult   = document.getElementById('testResult');
+            const uploadForm   = document.getElementById('pdfUploadForm');
+            const uploadBtn    = document.getElementById('uploadBtn');
+            const progressCard = document.getElementById('progressCard');
+            const progressBar  = document.getElementById('progressBar');
+            const progressMsg  = document.getElementById('progressMsg');
+            const resultCard   = document.getElementById('resultCard');
+            const jsonPreview  = document.getElementById('jsonPreview');
+            const saveBtn      = document.getElementById('saveBtn');
+            const discardBtn   = document.getElementById('discardBtn');
+            const saveResult   = document.getElementById('saveResult');
+            const yearSel      = document.getElementById('aiYear');
+            const branchLabel  = document.getElementById('aiBranchLabel');
+            const branchSel    = document.getElementById('aiBranch');
+
+            let currentJobId   = null;
+            let pollTimer      = null;
+
+            // ── Year → branch visibility ──────────────────────────────────────────
+            function syncBranchVisibility() {
+                const show = parseInt(yearSel.value) > 1;
+                branchLabel.style.visibility = show ? 'visible' : 'hidden';
+                branchSel.style.visibility   = show ? 'visible' : 'hidden';
+                if (!show) branchSel.value = 'none';
+            }
+            yearSel.addEventListener('change', syncBranchVisibility);
+            syncBranchVisibility();
+
+            // ── Helpers ───────────────────────────────────────────────────────────
+            function showFeedback(el, msg, type /* 'ok'|'error' */) {
+                el.textContent = msg;
+                el.className   = 'ai-result ' + type;
+                el.classList.remove('hidden');
+            }
+
+            function setProgress(pct, msg) {
+                progressBar.style.width = pct + '%';
+                progressMsg.textContent  = msg;
+            }
+
+            function stopPolling() {
+                if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            }
+
+            // ── Test Ollama ───────────────────────────────────────────────────────
+            testBtn.addEventListener('click', async () => {
+                testBtn.disabled = true;
+                testBtn.textContent = 'Testing…';
+                testResult.classList.add('hidden');
+
+                try {
+                    const res  = await fetch(TEST_URL, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                        body:    JSON.stringify({}),
+                    });
+                    const data = await res.json();
+
+                    if (res.ok && data.ok) {
+                        showFeedback(testResult, '✅ ' + data.message, 'ok');
+                    } else {
+                        showFeedback(testResult, '❌ ' + (data.error || 'Unknown error'), 'error');
+                    }
+                } catch (e) {
+                    showFeedback(testResult, '❌ Fetch failed: ' + e.message, 'error');
+                } finally {
+                    testBtn.disabled    = false;
+                    testBtn.textContent = 'Test Ollama connection';
+                }
+            });
+
+            // ── Upload PDF ────────────────────────────────────────────────────────
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const fileInput = document.getElementById('pdfFile');
+                if (!fileInput.files.length) {
+                    alert('Please choose a PDF file first.');
+                    return;
+                }
+
+                uploadBtn.disabled    = true;
+                uploadBtn.textContent = 'Uploading…';
+
+                const fd = new FormData(uploadForm);
+
+                try {
+                    const res  = await fetch(JSONIFY_URL, {
+                        method:  'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                        body:    fd,
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        alert('Upload failed: ' + (data.message || data.error || res.statusText));
+                        return;
+                    }
+
+                    currentJobId = data.job_id;
+                    startPolling();
+
+                } catch (e) {
+                    alert('Upload error: ' + e.message);
+                } finally {
+                    uploadBtn.disabled    = false;
+                    uploadBtn.textContent = '✨ JSONify PDF';
+                }
+            });
+
+            // ── Poll for job status ───────────────────────────────────────────────
+            function startPolling() {
+                resultCard.classList.add('hidden');
+                progressCard.classList.remove('hidden');
+                setProgress(10, 'Queued — waiting for the worker…');
+
+                pollTimer = setInterval(pollStatus, 3000); // check every 3 s
+            }
+
+            async function pollStatus() {
+                if (!currentJobId) return;
+
+                const url = STATUS_URL.replace('__ID__', currentJobId);
+
+                try {
+                    const res  = await fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } });
+                    const data = await res.json();
+
+                    switch (data.status) {
+                        case 'queued':
+                            setProgress(10, 'Queued — waiting for the worker…');
+                            break;
+
+                        case 'processing':
+                            setProgress(55, 'Phi4 is reading your PDF… (this may take a few minutes)');
+                            break;
+
+                        case 'done':
+                            stopPolling();
+                            setProgress(100, 'Done! Rendering preview…');
+                            setTimeout(() => {
+                                progressCard.classList.add('hidden');
+                                showResult(data.result);
+                            }, 600);
+                            break;
+
+                        case 'failed':
+                            stopPolling();
+                            setProgress(100, 'Processing failed.');
+                            progressBar.style.background = '#ef4444';
+                            progressMsg.textContent = '❌ ' + (data.error || 'Unknown error');
+                            break;
+                    }
+                } catch (e) {
+                    // network blip — keep polling
+                    console.warn('Poll error:', e.message);
+                }
+            }
+
+            // ── Show result ───────────────────────────────────────────────────────
+            function showResult(json) {
+                jsonPreview.textContent = JSON.stringify(json, null, 2);
+                saveResult.classList.add('hidden');
+                resultCard.classList.remove('hidden');
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // ── Save to database ──────────────────────────────────────────────────
+            saveBtn.addEventListener('click', async () => {
+                if (!currentJobId) return;
+
+                saveBtn.disabled    = true;
+                saveBtn.textContent = 'Saving…';
+                saveResult.classList.add('hidden');
+
+                try {
+                    const res  = await fetch(STORE_URL, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                        body:    JSON.stringify({ job_id: currentJobId }),
+                    });
+                    const data = await res.json();
+
+                    if (res.ok && data.success) {
+                        showFeedback(saveResult,
+                            '✅ Course saved as draft (ID ' + data.course_id + '). Reload the page to see it.',
+                            'ok'
+                        );
+                        saveBtn.disabled = true;
+                    } else {
+                        showFeedback(saveResult, '❌ ' + (data.error || data.message || 'Save failed'), 'error');
+                        saveBtn.disabled = false;
+                    }
+                } catch (e) {
+                    showFeedback(saveResult, '❌ ' + e.message, 'error');
+                    saveBtn.disabled = false;
+                } finally {
+                    saveBtn.textContent = '💾 Save to database';
+                }
+            });
+
+            // ── Discard ───────────────────────────────────────────────────────────
+            discardBtn.addEventListener('click', () => {
+                stopPolling();
+                currentJobId = null;
+                resultCard.classList.add('hidden');
+                progressCard.classList.add('hidden');
+                uploadForm.reset();
+                syncBranchVisibility();
+            });
+
+        })();
     </script>
 @endsection
