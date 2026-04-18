@@ -119,6 +119,49 @@ class AIController extends Controller
         return response()->json(['job_id' => $aiJob->id, 'status' => 'queued', 'message' => 'PDF queued.']);
     }
 
+    // ── Recut: re-run only Ollama using markdown saved in logs ────────────────
+    // Call: POST /ai/jobs/{id}/recut
+    public function recut($id)
+    {
+        $aiJob = AiJob::findOrFail($id);
+
+        // Extract raw markdown from logs
+        $markdown = $this->extractMarkdownFromLogs($aiJob);
+
+        if ($markdown === null) {
+            return response()->json([
+                'error' => 'No saved markdown found in job logs. '
+                    . 'The markdown is stored between __RAW_MARKDOWN_START__ and __RAW_MARKDOWN_END__ log entries. '
+                    . 'Re-run the full job to regenerate it.',
+            ], 422);
+        }
+
+        // Reset job for re-processing (keep attempt count, add to existing logs)
+        $existingLogs = $aiJob->logs ?? [];
+        $existingLogs[] = [
+            'ts'      => now()->format('H:i:s'),
+            'level'   => 'info',
+            'message' => '--- RECUT triggered by ' . (Auth::user()?->name ?? 'admin') . ' ---',
+        ];
+
+        $aiJob->update([
+            'status'        => 'queued',
+            'error_message' => null,
+            'result_json'   => null,
+            'finished_at'   => null,
+            'logs'          => $existingLogs,
+        ]);
+
+        // Dispatch with the saved markdown — skips MinerU entirely
+        ProcessPdfJob::dispatch($aiJob->id, $markdown);
+
+        return response()->json([
+            'ok'              => true,
+            'message'         => 'Recut queued. Ollama will re-process the saved markdown.',
+            'markdown_length' => mb_strlen($markdown),
+        ]);
+    }
+
     // ── List all jobs (paginated + filterable) ────────────────────────────────
     public function jobsList(Request $request)
     {
@@ -169,12 +212,27 @@ class AIController extends Controller
     public function logs($id)
     {
         $aiJob = AiJob::findOrFail($id);
+
+        // Filter out the raw markdown blob from the logs sent to the UI
+        // (it would flood the panel — the recut endpoint retrieves it directly)
+        $filteredLogs = array_values(array_filter($aiJob->logs ?? [], function ($entry) {
+            $msg = $entry['message'] ?? '';
+            if ($entry['level'] === 'raw') return false;
+            if ($msg === '__RAW_MARKDOWN_START__') return false;
+            if ($msg === '__RAW_MARKDOWN_END__') return false;
+            return true;
+        }));
+
+        // Tell the UI whether recut is available
+        $hasMarkdown = $this->extractMarkdownFromLogs($aiJob) !== null;
+
         return response()->json([
-            'id'       => $aiJob->id,
-            'status'   => $aiJob->status,
-            'logs'     => $aiJob->logs ?? [],
-            'error'    => $aiJob->error_message,
-            'progress' => $aiJob->progressPercent(),
+            'id'              => $aiJob->id,
+            'status'          => $aiJob->status,
+            'logs'            => $filteredLogs,
+            'error'           => $aiJob->error_message,
+            'progress'        => $aiJob->progressPercent(),
+            'can_recut'       => $hasMarkdown,
         ]);
     }
 
@@ -221,7 +279,6 @@ class AIController extends Controller
     {
         $aiJob = AiJob::findOrFail($id);
 
-        // Delete the stored PDF
         if ($aiJob->pdf_path && Storage::disk('local')->exists($aiJob->pdf_path)) {
             Storage::disk('local')->delete($aiJob->pdf_path);
         }
@@ -325,12 +382,23 @@ class AIController extends Controller
                 foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
                     $type    = $bData['type']    ?? 'markdown';
                     $content = is_string($bData['content']) ? $bData['content'] : '';
-                    $blk     = block::create([
+
+                    // Normalise list/table/separator content: must be JSON string
+                    if (in_array($type, ['list', 'table', 'separator', 'graph', 'function'])) {
+                        if (!is_string($content) || json_decode($content) === null) {
+                            // Try to encode if already array
+                            $raw = $bData['content'];
+                            $content = is_array($raw) ? json_encode($raw, JSON_UNESCAPED_UNICODE) : json_encode(['raw' => $content]);
+                        }
+                    }
+
+                    $blk = block::create([
                         'lesson_id'    => $lessonRecord->id,
                         'type'         => $type,
                         'content'      => $content,
                         'block_number' => $bData['block_number'] ?? ($bIdx + 1),
                     ]);
+
                     if ($type === 'exercise') {
                         $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
                     }
@@ -365,15 +433,52 @@ class AIController extends Controller
     public function stats()
     {
         return response()->json([
-            'total'      => AiJob::count(),
-            'queued'     => AiJob::where('status', 'queued')->count(),
-            'processing' => AiJob::where('status', 'processing')->count(),
-            'done'       => AiJob::where('status', 'done')->count(),
-            'saved'      => AiJob::where('status', 'saved')->count(),
-            'failed'     => AiJob::where('status', 'failed')->count(),
-            'cancelled'  => AiJob::where('status', 'cancelled')->count(),
-            'avg_duration' => AiJob::whereNotNull('duration_seconds')->avg('duration_seconds'),
+            'total'           => AiJob::count(),
+            'queued'          => AiJob::where('status', 'queued')->count(),
+            'processing'      => AiJob::where('status', 'processing')->count(),
+            'done'            => AiJob::where('status', 'done')->count(),
+            'saved'           => AiJob::where('status', 'saved')->count(),
+            'failed'          => AiJob::where('status', 'failed')->count(),
+            'cancelled'       => AiJob::where('status', 'cancelled')->count(),
+            'avg_duration'    => AiJob::whereNotNull('duration_seconds')->avg('duration_seconds'),
         ]);
+    }
+
+    // ── Helper: extract raw markdown from job logs ────────────────────────────
+    private function extractMarkdownFromLogs(AiJob $aiJob): ?string
+    {
+        $logs = $aiJob->logs ?? [];
+        $capturing = false;
+        $lines     = [];
+
+        foreach ($logs as $entry) {
+            $msg   = $entry['message'] ?? '';
+            $level = $entry['level']   ?? '';
+
+            if ($msg === '__RAW_MARKDOWN_START__') {
+                $capturing = true;
+                $lines     = [];
+                continue;
+            }
+
+            if ($msg === '__RAW_MARKDOWN_END__') {
+                // Found a complete block — keep it (last one wins in case of retries)
+                if (!empty($lines)) {
+                    $capturing = false;
+                }
+                continue;
+            }
+
+            if ($capturing && $level === 'raw') {
+                $lines[] = $msg;
+            }
+        }
+
+        if (empty($lines)) {
+            return null;
+        }
+
+        return implode('', $lines);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -398,6 +503,7 @@ class AIController extends Controller
             'progress'          => $job->progressPercent(),
             'can_retry'         => $job->canRetry(),
             'can_cancel'        => $job->canCancel(),
+            'can_recut'         => $this->extractMarkdownFromLogs($job) !== null,
             'started_at'        => $job->started_at?->toDateTimeString(),
             'finished_at'       => $job->finished_at?->toDateTimeString(),
             'duration_seconds'  => $job->duration_seconds,

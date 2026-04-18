@@ -45,6 +45,8 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
         ->name('admin.')
         ->group(function () {
 
+            Route::post('ai/jobs/{id}/recut', [AIController::class, 'recut']);
+
             // Control panel page
             Route::get('ai', [AIController::class, 'panel'])->name('ai.panel');
 

@@ -41,6 +41,37 @@
             to { transform: rotate(360deg); }
         }
 
+        .toolbar-save-container {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
+            background: var(--bg);
+            padding-bottom: 4px;
+        }
+
+        .btn-save-all {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-save-all:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-save-all.unsaved { background: #f59e0b; }
+        .btn-save-all.saved { background: #22c55e; }
+
     </style>
 @endsection
 
@@ -55,21 +86,8 @@
 
 
     @fragment('main-content')
-        <div class="blocks-wrapper" style="display:flex;gap:16px;align-items:flex-start">
-            <div style="flex:1;min-width:0">
-                <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
-                <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
-            </div>
-            <div style="position: sticky">
-                <livewire:modular_site.block.lesson-toolbar
-                :lesson="$lesson"
-                :course="$course"
-                :chapter="$chapter"
-                :blocks="$blocks" />
-            </div>
-
-
-        </div>
+        <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
+        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
 
         <div id="block-popup" class="modal-overlay">
             <div class="modal-content">
@@ -165,6 +183,15 @@
     @endfragment
 @endsection
 
+@section('right-sidebar')
+    <livewire:modular_site.block.lesson-toolbar
+        :lesson="$lesson"
+        :course="$course"
+        :chapter="$chapter"
+        :blocks="$blocks" />
+    <livewire:modular_site.block.blockcreate :lesson="$lesson" />
+@endsection
+
 @section('sidebar-elements')
 
 
@@ -188,7 +215,11 @@
     <script src="{{ asset('js/function.js') }}"></script>
 
 
+
+
     <script>
+
+
 
 
         // Helper function to update hidden input
@@ -1938,13 +1969,23 @@
             statusEl.style.color   = 'var(--text-muted)';
             statusEl.textContent   = 'Converting…';
 
+            // Safely grab CSRF token — the edditor layout now includes the meta tag
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.content : (document.querySelector('input[name="_token"]')?.value ?? '');
+
+            if (!csrfToken) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '❌ CSRF token missing. Please reload the page.';
+                return;
+            }
+
             try {
                 const res  = await fetch('{{ route("admin.ai.convert-block") }}', {
                     method:  'POST',
                     headers: {
                         'Content-Type':  'application/json',
                         'Accept':        'application/json',
-                        'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN':  csrfToken,
                     },
                     body: JSON.stringify({ block_id: _convertBlockId, target_type: targetType }),
                 });
@@ -1955,15 +1996,15 @@
                     statusEl.textContent = '✅ Converted to ' + targetType + '. Refreshing…';
                     setTimeout(() => {
                         closeConvertPanel();
-                        // Trigger Livewire re-fetch of the lesson (dispatches LessonChanged)
-                        window.dispatchEvent(new CustomEvent('refresh-blocks'));
-                        // If Livewire is available, call the component method directly
+                        // Dispatch to Livewire blocks component to reload
                         if (window.Livewire) {
-                            Livewire.dispatch('refresh-blocks');
+                            Livewire.dispatch('LessonChanged', {
+                                id: data.block?.lesson_id ?? null,
+                                chapterId: null
+                            });
                         }
-                        // Fallback: reload the page
-                        setTimeout(() => window.location.reload(), 800);
-                    }, 900);
+                        setTimeout(() => window.location.reload(), 600);
+                    }, 700);
                 } else {
                     statusEl.style.color = '#dc2626';
                     statusEl.textContent = '❌ ' + (data.error || data.message || 'Conversion failed');

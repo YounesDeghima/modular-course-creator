@@ -17,7 +17,9 @@ new class extends Component {
     use WithFileUploads;
 
     public $listeners = ['LessonChanged' => 'updateLesson',
-        'BlockCreated' => 'addBlock'];
+        'BlockCreated' => 'addBlock',
+        'triggerSaveAll' => 'saveAll',
+        'ScrollToBlock' => 'scrollToBlock'];
 
     public function mount($course, $chapter, $lesson, $blocks)
     {
@@ -37,12 +39,20 @@ new class extends Component {
 
     public function addBlock($id)
     {
+        if (!$id) return; // id=0 means toolbar refresh only
+
         $block = block::findOrFail($id);
 
         if ($block) {
             $this->blocks[] = $block->toArray();
+            // Scroll to newly created block after re-render
+            $this->dispatch('scrollToNewBlock', blockId: $id);
         }
+    }
 
+    public function scrollToBlock(int $blockId): void
+    {
+        $this->dispatch('scrollToNewBlock', blockId: $blockId);
     }
 
 
@@ -286,7 +296,7 @@ new class extends Component {
 
         @forelse($blocks as $block)
 
-            <div class="block-row type-{{ $block['type'] }}">
+            <div class="block-row type-{{ $block['type'] }}" data-id="{{ $block['id'] }}" data-block-id="{{ $block['id'] }}">
                 <input type="hidden" name="blocks[{{ $block['id'] }}][id]" wire:model="blocks.{{$loop->index}}.id">
                 <input type="hidden" name="blocks[{{ $block['id'] }}][block_number]"
                        wire:model="blocks.{{$loop->index}}.block_number">
@@ -325,8 +335,7 @@ new class extends Component {
                                             class="input-ghost content-style mbe-textarea"
                                             name="blocks[{{ $block['id'] }}][content]"
                                             wire:model="blocks.{{ $loop->index }}.content"
-                                            oninput="mbeUpdatePreview({{ $block['id'] }})"
-                                            rows="8"
+                                            oninput="autoResize(this); mbeUpdatePreview({{ $block['id'] }})"
                                             placeholder="Markdown and LaTeX supported. Use $...$ for inline math, $$...$$ for display math."
                                         ></textarea>
                                     <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
@@ -643,7 +652,8 @@ new class extends Component {
 
                         @default
                             <textarea class="input-ghost content-style"
-                                      rows="1" wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                                      oninput="autoResize(this)"
+                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
                     @endswitch
                 </div>
 
@@ -690,49 +700,49 @@ new class extends Component {
             </div>
         @endforelse
 
-            <div id="convert-panel" class="convert-panel-overlay" style="display:none" onclick="if(event.target===this)closeConvertPanel()">
-                <div class="convert-panel-modal">
-                    <div class="convert-panel-header">
-                        <span>⚡ Upgrade Markdown Block</span>
-                        <button type="button" onclick="closeConvertPanel()" class="convert-panel-close">✕</button>
-                    </div>
-
-                    <p class="convert-panel-sub">
-                        Choose a type to convert this block into.
-                        The original markdown text will be pre-filled so you only need to fine-tune.
-                    </p>
-
-                    <div id="convert-preview-snippet"
-                         class="convert-panel-snippet mbe-preview-rendered"
-                         style="max-height:160px;overflow:auto;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-subtle)">
-                    </div>
-
-                    <div class="convert-panel-grid">
-                        @foreach([
-                            ['header',      'H1',   'Heading',       '#EEEDFE', '#534AB7'],
-                            ['description', 'P',    'Paragraph',     '#f0f9ff', '#0369a1'],
-                            ['note',        '!',    'Note',          '#fef9c3', '#854d0e'],
-                            ['code',        '</>',  'Code',          '#F1EFE8', '#444441'],
-                            ['math',        '∑',    'Math (LaTeX)',  '#EEEDFE', '#534AB7'],
-                            ['exercise',    '?',    'Exercise',      '#EEEDFE', '#534AB7'],
-                            ['table',       '▦',    'Table',         '#E1F5EE', '#0F6E56'],
-                            ['list',        '≡',    'List',          '#fef3c7', '#92400e'],
-                            ['graph',       '≈',    'Graph',         '#E6F1FB', '#185FA5'],
-                            ['function',    'f(x)', 'Function Plot', '#E1F5EE', '#0F6E56'],
-                        ] as [$type, $icon, $label, $bg, $fg])
-                            <button type="button"
-                                    class="convert-type-btn"
-                                    onclick="doConvert('{{ $type }}')"
-                                    style="--btn-bg:{{ $bg }};--btn-fg:{{ $fg }}">
-                                <div class="convert-type-icon">{{ $icon }}</div>
-                                <span>{{ $label }}</span>
-                            </button>
-                        @endforeach
-                    </div>
-
-                    <div id="convert-status" style="margin-top:12px;font-size:12px;display:none"></div>
+        <div id="convert-panel" class="convert-panel-overlay" style="display:none" onclick="if(event.target===this)closeConvertPanel()">
+            <div class="convert-panel-modal">
+                <div class="convert-panel-header">
+                    <span>⚡ Upgrade Markdown Block</span>
+                    <button type="button" onclick="closeConvertPanel()" class="convert-panel-close">✕</button>
                 </div>
+
+                <p class="convert-panel-sub">
+                    Choose a type to convert this block into.
+                    The original markdown text will be pre-filled so you only need to fine-tune.
+                </p>
+
+                <div id="convert-preview-snippet"
+                     class="convert-panel-snippet mbe-preview-rendered"
+                     style="max-height:160px;overflow:auto;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-subtle)">
+                </div>
+
+                <div class="convert-panel-grid">
+                    @foreach([
+                        ['header',      'H1',   'Heading',       '#EEEDFE', '#534AB7'],
+                        ['description', 'P',    'Paragraph',     '#f0f9ff', '#0369a1'],
+                        ['note',        '!',    'Note',          '#fef9c3', '#854d0e'],
+                        ['code',        '</>',  'Code',          '#F1EFE8', '#444441'],
+                        ['math',        '∑',    'Math (LaTeX)',  '#EEEDFE', '#534AB7'],
+                        ['exercise',    '?',    'Exercise',      '#EEEDFE', '#534AB7'],
+                        ['table',       '▦',    'Table',         '#E1F5EE', '#0F6E56'],
+                        ['list',        '≡',    'List',          '#fef3c7', '#92400e'],
+                        ['graph',       '≈',    'Graph',         '#E6F1FB', '#185FA5'],
+                        ['function',    'f(x)', 'Function Plot', '#E1F5EE', '#0F6E56'],
+                    ] as [$type, $icon, $label, $bg, $fg])
+                        <button type="button"
+                                class="convert-type-btn"
+                                onclick="doConvert('{{ $type }}')"
+                                style="--btn-bg:{{ $bg }};--btn-fg:{{ $fg }}">
+                            <div class="convert-type-icon">{{ $icon }}</div>
+                            <span>{{ $label }}</span>
+                        </button>
+                    @endforeach
+                </div>
+
+                <div id="convert-status" style="margin-top:12px;font-size:12px;display:none"></div>
             </div>
+        </div>
     </div>
 
     <div class="save-container">
@@ -753,7 +763,7 @@ new class extends Component {
             <span x-show="status === 'idle'" wire:loading.remove wire:target="saveAll">Save All Changes</span>
 
             {{-- 2. Loading State: Triggered automatically by Livewire --}}
-        <span wire:loading wire:target="saveAll">
+            <span wire:loading wire:target="saveAll">
             <svg class="animate-spin" style="width:14px; height:14px; display:inline; margin-right:5px;"
                  viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"
@@ -767,6 +777,66 @@ new class extends Component {
             <span x-show="status === 'saved'" x-cloak style="color: #10b981; font-weight: bold;">Saved ✓</span>
         </button>
     </div>
-    <livewire:modular_site.block.blockcreate :lesson="$lesson"/>
 
 </div>
+
+<script>
+    /* ── Auto-resize all textareas to fit their content ── */
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+    }
+
+    function autoResizeAll() {
+        document.querySelectorAll('.blocks-list textarea').forEach(autoResize);
+    }
+
+    // Run on first load and after every Livewire re-render
+    document.addEventListener('DOMContentLoaded', autoResizeAll);
+    document.addEventListener('livewire:navigated', autoResizeAll);
+    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ component, succeed }) => {
+            succeed(() => setTimeout(autoResizeAll, 80));
+        });
+    }
+
+    // ── Toolbar "Save All" button wires into blocks Livewire component ──
+    window.addEventListener('toolbar-save', () => {
+        // Find the blocks Livewire component and call saveAll on it
+        const blocksEl = document.querySelector('[wire\\:id]');
+        if (blocksEl && window.Livewire) {
+            // Dispatch to all components — saveAll only exists on blocks component
+            Livewire.dispatch('triggerSaveAll');
+        }
+    });
+
+    // ── Scroll to newly created block ──
+    window.addEventListener('scrollToNewBlock', (e) => {
+        const blockId = e.detail?.blockId;
+        if (!blockId) return;
+
+        // Wait for Livewire to finish re-rendering, then scroll
+        const tryScroll = (attempts = 0) => {
+            // Try both data-block-id attr and the block-row cards by order
+            const el = document.querySelector(`[data-block-id="${blockId}"]`)
+                || document.querySelector(`.block-row[data-id="${blockId}"]`);
+
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Flash highlight
+                el.style.transition = 'box-shadow .3s';
+                el.style.boxShadow = '0 0 0 3px var(--accent)';
+                setTimeout(() => { el.style.boxShadow = ''; }, 1400);
+            } else if (attempts < 8) {
+                setTimeout(() => tryScroll(attempts + 1), 100);
+            } else {
+                // Fallback: scroll to last .block-row
+                const all = document.querySelectorAll('.block-row');
+                if (all.length) all[all.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+        setTimeout(() => tryScroll(), 80);
+    });
+
+</script>

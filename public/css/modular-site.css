@@ -358,6 +358,10 @@ body, main, .side-bar {
 
 .content-style {
     font-size: 14.5px;
+    resize: none;
+    overflow: hidden;
+    field-sizing: content; /* modern browsers */
+    min-height: 2em;
 }
 
 /* Code blocks */
@@ -1063,8 +1067,8 @@ textarea{
 }
 
 
-     /* ── Markdown block editor ── */
- .markdown-block-editor { display: flex; flex-direction: column; gap: 0; }
+/* ── Markdown block editor ── */
+.markdown-block-editor { display: flex; flex-direction: column; gap: 0; }
 
 .mbe-tabs {
     display: flex;
@@ -1088,7 +1092,15 @@ textarea{
 .mbe-tab--upgrade    { margin-left: auto; background: #EEEDFE; color: #534AB7; border-color: #c4bfef; font-weight: 500; }
 .mbe-tab--upgrade:hover { background: #534AB7; color: #fff; }
 
-.mbe-textarea        { min-height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.mbe-textarea        {
+    min-height: 80px;
+    height: auto;
+    resize: none;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    field-sizing: content; /* modern browsers: grows with content */
+}
 
 .mbe-preview-rendered {
     font-family: 'Geist', sans-serif;
@@ -1229,3 +1241,26 @@ textarea{
     color: var(--text);
 }
 
+.toolbar-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Livewire wrappers inside right-side-bar must stretch to fill */
+.right-side-bar > div[wire\:id],
+.right-side-bar > div:first-child {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* blockcreate headless component — must not take any space */
+.right-side-bar > div[wire\:id]:last-child:empty,
+.right-side-bar > div[wire\:id] > div[x-data]:only-child:empty {
+    display: none;
+}
