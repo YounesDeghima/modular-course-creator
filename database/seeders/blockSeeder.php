@@ -10,6 +10,6 @@ class blockSeeder extends Seeder
 {
     public function run(): void
     {
-        block::factory()->count(10000)->create();
+        block::factory()->count(1000)->create();
     }
 }
