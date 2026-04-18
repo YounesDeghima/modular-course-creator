@@ -12,7 +12,7 @@
     <!-- For math (optional - if you want rendered math instead of raw LaTeX) -->
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
-
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     @yield('css')
 
