@@ -1,5 +1,5 @@
 @extends('layouts.edditor')
-@include('partials.markdown_block_renderer')
+@include('components._markdown_block_renderer')
 @section('css')
     <link rel="stylesheet" href="{{ asset('css/modular-site-preview.css') }}">
     <link rel="stylesheet" href="{{ asset('css/block-page.css') }}">

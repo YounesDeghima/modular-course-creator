@@ -176,7 +176,7 @@
 
     {{-- New course popup --}}
 
-    <div class="ai-generator-wrap">
+    <div style="display: none" class="ai-generator-wrap">
 
         <div class="ai-generator-header">
             <span class="ai-badge">⚡ AI</span>
@@ -635,405 +635,405 @@
         });
     </script>
 
-    <script>
-        (() => {
-            'use strict';
+{{--    <script>--}}
+{{--        (() => {--}}
+{{--            'use strict';--}}
 
-            const CSRF            = document.querySelector('meta[name="csrf-token"]').content;
-            const TEST_OLLAMA_URL = "{{ route('admin.ai.test') }}";
-            const TEST_MINERU_URL = "{{ route('admin.ai.test-mineru') }}";
-            const JSONIFY_URL     = "{{ route('admin.ai.jsonify') }}";
-            const STATUS_URL      = "{{ route('admin.ai.status',  ['id' => '__ID__']) }}";
-            const LOGS_URL        = "{{ route('admin.ai.logs',    ['id' => '__ID__']) }}";
-            const STORE_URL       = "{{ route('admin.ai.store') }}";
-            const ACTIVE_JOBS_URL = "{{ route('admin.ai.jobs.active') }}";
+{{--            const CSRF            = document.querySelector('meta[name="csrf-token"]').content;--}}
+{{--            const TEST_OLLAMA_URL = "{{ route('admin.ai.test') }}";--}}
+{{--            const TEST_MINERU_URL = "{{ route('admin.ai.test-mineru') }}";--}}
+{{--            const JSONIFY_URL     = "{{ route('admin.ai.jsonify') }}";--}}
+{{--            const STATUS_URL      = "{{ route('admin.ai.status',  ['id' => '__ID__']) }}";--}}
+{{--            const LOGS_URL        = "{{ route('admin.ai.logs',    ['id' => '__ID__']) }}";--}}
+{{--            const STORE_URL       = "{{ route('admin.ai.store') }}";--}}
+{{--            const ACTIVE_JOBS_URL = "{{ route('admin.ai.jobs.active') }}";--}}
 
-            // ── Element refs ─────────────────────────────────────────────────────────
-            const uploadForm   = document.getElementById('pdfUploadForm');
-            const uploadBtn    = document.getElementById('uploadBtn');
-            const progressCard = document.getElementById('progressCard');
-            const progressBar  = document.getElementById('progressBar');
-            const progressMsg  = document.getElementById('progressMsg');
-            const logTerminal  = document.getElementById('logTerminal');
-            const resultCard   = document.getElementById('resultCard');
-            const jsonPreview  = document.getElementById('jsonPreview');
-            const saveBtn      = document.getElementById('saveBtn');
-            const discardBtn   = document.getElementById('discardBtn');
-            const saveResult   = document.getElementById('saveResult');
-            const yearSel      = document.getElementById('aiYear');
-            const branchLabel  = document.getElementById('aiBranchLabel');
-            const branchSel    = document.getElementById('aiBranch');
+{{--            // ── Element refs ─────────────────────────────────────────────────────────--}}
+{{--            const uploadForm   = document.getElementById('pdfUploadForm');--}}
+{{--            const uploadBtn    = document.getElementById('uploadBtn');--}}
+{{--            const progressCard = document.getElementById('progressCard');--}}
+{{--            const progressBar  = document.getElementById('progressBar');--}}
+{{--            const progressMsg  = document.getElementById('progressMsg');--}}
+{{--            const logTerminal  = document.getElementById('logTerminal');--}}
+{{--            const resultCard   = document.getElementById('resultCard');--}}
+{{--            const jsonPreview  = document.getElementById('jsonPreview');--}}
+{{--            const saveBtn      = document.getElementById('saveBtn');--}}
+{{--            const discardBtn   = document.getElementById('discardBtn');--}}
+{{--            const saveResult   = document.getElementById('saveResult');--}}
+{{--            const yearSel      = document.getElementById('aiYear');--}}
+{{--            const branchLabel  = document.getElementById('aiBranchLabel');--}}
+{{--            const branchSel    = document.getElementById('aiBranch');--}}
 
-            let currentJobId = null;
-            let pollTimer    = null;
-            let logPollTimer = null;
-            let lastLogCount = 0;   // how many entries we've already rendered
+{{--            let currentJobId = null;--}}
+{{--            let pollTimer    = null;--}}
+{{--            let logPollTimer = null;--}}
+{{--            let lastLogCount = 0;   // how many entries we've already rendered--}}
 
-            // ── Log colours ──────────────────────────────────────────────────────────
-            const LOG_COLOR = { info: '#94a3b8', ok: '#4ade80', warn: '#fbbf24', error: '#f87171' };
-            const LOG_ICON  = { info: '·', ok: '✓', warn: '⚠', error: '✕' };
+{{--            // ── Log colours ──────────────────────────────────────────────────────────--}}
+{{--            const LOG_COLOR = { info: '#94a3b8', ok: '#4ade80', warn: '#fbbf24', error: '#f87171' };--}}
+{{--            const LOG_ICON  = { info: '·', ok: '✓', warn: '⚠', error: '✕' };--}}
 
-            function appendLogEntry(entry) {
-                const color = LOG_COLOR[entry.level] || '#94a3b8';
-                const icon  = LOG_ICON[entry.level]  || '·';
-                const line  = document.createElement('div');
-                line.style.color = color;
-                line.textContent = `[${entry.ts}] ${icon} ${entry.message}`;
-                logTerminal.appendChild(line);
-                logTerminal.scrollTop = logTerminal.scrollHeight;
-            }
+{{--            function appendLogEntry(entry) {--}}
+{{--                const color = LOG_COLOR[entry.level] || '#94a3b8';--}}
+{{--                const icon  = LOG_ICON[entry.level]  || '·';--}}
+{{--                const line  = document.createElement('div');--}}
+{{--                line.style.color = color;--}}
+{{--                line.textContent = `[${entry.ts}] ${icon} ${entry.message}`;--}}
+{{--                logTerminal.appendChild(line);--}}
+{{--                logTerminal.scrollTop = logTerminal.scrollHeight;--}}
+{{--            }--}}
 
-            function clearTerminal() {
-                logTerminal.innerHTML = '';
-                lastLogCount = 0;
-            }
+{{--            function clearTerminal() {--}}
+{{--                logTerminal.innerHTML = '';--}}
+{{--                lastLogCount = 0;--}}
+{{--            }--}}
 
-            // ── Feedback helper ───────────────────────────────────────────────────────
-            function showFeedback(el, msg, type) {
-                el.textContent = msg;
-                el.className   = 'ai-result ' + type;
-                el.classList.remove('hidden');
-            }
+{{--            // ── Feedback helper ───────────────────────────────────────────────────────--}}
+{{--            function showFeedback(el, msg, type) {--}}
+{{--                el.textContent = msg;--}}
+{{--                el.className   = 'ai-result ' + type;--}}
+{{--                el.classList.remove('hidden');--}}
+{{--            }--}}
 
-            function setProgress(pct, msg) {
-                progressBar.style.width = pct + '%';
-                progressMsg.textContent = msg;
-            }
+{{--            function setProgress(pct, msg) {--}}
+{{--                progressBar.style.width = pct + '%';--}}
+{{--                progressMsg.textContent = msg;--}}
+{{--            }--}}
 
-            function stopPolling() {
-                if (pollTimer)    { clearInterval(pollTimer);    pollTimer    = null; }
-                if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null; }
-            }
+{{--            function stopPolling() {--}}
+{{--                if (pollTimer)    { clearInterval(pollTimer);    pollTimer    = null; }--}}
+{{--                if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null; }--}}
+{{--            }--}}
 
-            // ── Year → branch ─────────────────────────────────────────────────────────
-            function syncBranchVisibility() {
-                const show = parseInt(yearSel.value) > 1;
-                branchLabel.style.visibility = show ? 'visible' : 'hidden';
-                branchSel.style.visibility   = show ? 'visible' : 'hidden';
-                if (!show) branchSel.value = 'none';
-            }
-            yearSel.addEventListener('change', syncBranchVisibility);
-            syncBranchVisibility();
+{{--            // ── Year → branch ─────────────────────────────────────────────────────────--}}
+{{--            function syncBranchVisibility() {--}}
+{{--                const show = parseInt(yearSel.value) > 1;--}}
+{{--                branchLabel.style.visibility = show ? 'visible' : 'hidden';--}}
+{{--                branchSel.style.visibility   = show ? 'visible' : 'hidden';--}}
+{{--                if (!show) branchSel.value = 'none';--}}
+{{--            }--}}
+{{--            yearSel.addEventListener('change', syncBranchVisibility);--}}
+{{--            syncBranchVisibility();--}}
 
-            // ── Test Ollama ───────────────────────────────────────────────────────────
-            document.getElementById('testOllamaBtn').addEventListener('click', async () => {
-                const btn    = document.getElementById('testOllamaBtn');
-                const result = document.getElementById('testOllamaResult');
-                btn.disabled = true; btn.textContent = 'Testing…';
-                result.classList.add('hidden');
-                try {
-                    const res  = await fetch(TEST_OLLAMA_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:'{}' });
-                    const data = await res.json();
-                    showFeedback(result, res.ok && data.ok ? '✅ ' + data.message : '❌ ' + (data.error || 'Ollama not reachable'), res.ok && data.ok ? 'ok' : 'error');
-                } catch(e) { showFeedback(result, '❌ ' + e.message, 'error'); }
-                finally { btn.disabled = false; btn.textContent = 'Test Ollama'; }
-            });
+{{--            // ── Test Ollama ───────────────────────────────────────────────────────────--}}
+{{--            document.getElementById('testOllamaBtn').addEventListener('click', async () => {--}}
+{{--                const btn    = document.getElementById('testOllamaBtn');--}}
+{{--                const result = document.getElementById('testOllamaResult');--}}
+{{--                btn.disabled = true; btn.textContent = 'Testing…';--}}
+{{--                result.classList.add('hidden');--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(TEST_OLLAMA_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:'{}' });--}}
+{{--                    const data = await res.json();--}}
+{{--                    showFeedback(result, res.ok && data.ok ? '✅ ' + data.message : '❌ ' + (data.error || 'Ollama not reachable'), res.ok && data.ok ? 'ok' : 'error');--}}
+{{--                } catch(e) { showFeedback(result, '❌ ' + e.message, 'error'); }--}}
+{{--                finally { btn.disabled = false; btn.textContent = 'Test Ollama'; }--}}
+{{--            });--}}
 
-            // ── Test MinerU ───────────────────────────────────────────────────────────
-            document.getElementById('testMinerUBtn').addEventListener('click', async () => {
-                const btn    = document.getElementById('testMinerUBtn');
-                const result = document.getElementById('testMinerUResult');
-                btn.disabled = true; btn.textContent = 'Testing…';
-                showFeedback(result, '⏳ Checking MinerU installation…', 'warn');
-                try {
-                    const res  = await fetch(TEST_MINERU_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:'{}' });
-                    const data = await res.json();
-                    if (res.ok && data.ok) {
-                        showFeedback(result, `✅ ${data.message}\nVersion: ${data.version}\nCLI: ${data.cli}`, 'ok');
-                    } else {
-                        showFeedback(result, `❌ ${data.error} [step: ${data.step || '?'}]${data.detail ? '\n→ '+data.detail : ''}`, 'error');
-                    }
-                } catch(e) { showFeedback(result, '❌ ' + e.message, 'error'); }
-                finally { btn.disabled = false; btn.textContent = 'Test MinerU'; }
-            });
+{{--            // ── Test MinerU ───────────────────────────────────────────────────────────--}}
+{{--            document.getElementById('testMinerUBtn').addEventListener('click', async () => {--}}
+{{--                const btn    = document.getElementById('testMinerUBtn');--}}
+{{--                const result = document.getElementById('testMinerUResult');--}}
+{{--                btn.disabled = true; btn.textContent = 'Testing…';--}}
+{{--                showFeedback(result, '⏳ Checking MinerU installation…', 'warn');--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(TEST_MINERU_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:'{}' });--}}
+{{--                    const data = await res.json();--}}
+{{--                    if (res.ok && data.ok) {--}}
+{{--                        showFeedback(result, `✅ ${data.message}\nVersion: ${data.version}\nCLI: ${data.cli}`, 'ok');--}}
+{{--                    } else {--}}
+{{--                        showFeedback(result, `❌ ${data.error} [step: ${data.step || '?'}]${data.detail ? '\n→ '+data.detail : ''}`, 'error');--}}
+{{--                    }--}}
+{{--                } catch(e) { showFeedback(result, '❌ ' + e.message, 'error'); }--}}
+{{--                finally { btn.disabled = false; btn.textContent = 'Test MinerU'; }--}}
+{{--            });--}}
 
-            // ── Upload PDF ────────────────────────────────────────────────────────────
-            uploadForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('pdfFile');
-                if (!fileInput.files.length) { alert('Please choose a PDF file first.'); return; }
+{{--            // ── Upload PDF ────────────────────────────────────────────────────────────--}}
+{{--            uploadForm.addEventListener('submit', async (e) => {--}}
+{{--                e.preventDefault();--}}
+{{--                const fileInput = document.getElementById('pdfFile');--}}
+{{--                if (!fileInput.files.length) { alert('Please choose a PDF file first.'); return; }--}}
 
-                uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading…';
-                const fd = new FormData(uploadForm);
+{{--                uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading…';--}}
+{{--                const fd = new FormData(uploadForm);--}}
 
-                try {
-                    const res  = await fetch(JSONIFY_URL, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:fd });
-                    const data = await res.json();
-                    if (!res.ok) { alert('Upload failed: ' + (data.message || data.error || res.statusText)); return; }
-                    currentJobId = data.job_id;
-                    startPolling();
-                } catch(e) { alert('Upload error: ' + e.message); }
-                finally { uploadBtn.disabled = false; uploadBtn.textContent = '✨ JSONify PDF'; }
-            });
+{{--                try {--}}
+{{--                    const res  = await fetch(JSONIFY_URL, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, body:fd });--}}
+{{--                    const data = await res.json();--}}
+{{--                    if (!res.ok) { alert('Upload failed: ' + (data.message || data.error || res.statusText)); return; }--}}
+{{--                    currentJobId = data.job_id;--}}
+{{--                    startPolling();--}}
+{{--                } catch(e) { alert('Upload error: ' + e.message); }--}}
+{{--                finally { uploadBtn.disabled = false; uploadBtn.textContent = '✨ JSONify PDF'; }--}}
+{{--            });--}}
 
-            // ── Start polling (status + logs) ─────────────────────────────────────────
-            function startPolling() {
-                resultCard.classList.add('hidden');
-                progressCard.classList.remove('hidden');
-                clearTerminal();
-                setProgress(5, 'Job submitted — waiting for worker…');
-                appendLogEntry({ ts: '--:--:--', level: 'info', message: `Job #${currentJobId} submitted. Waiting for queue worker…` });
+{{--            // ── Start polling (status + logs) ─────────────────────────────────────────--}}
+{{--            function startPolling() {--}}
+{{--                resultCard.classList.add('hidden');--}}
+{{--                progressCard.classList.remove('hidden');--}}
+{{--                clearTerminal();--}}
+{{--                setProgress(5, 'Job submitted — waiting for worker…');--}}
+{{--                appendLogEntry({ ts: '--:--:--', level: 'info', message: `Job #${currentJobId} submitted. Waiting for queue worker…` });--}}
 
-                pollTimer    = setInterval(pollStatus, 3000);
-                logPollTimer = setInterval(pollLogs,   2000);
-            }
+{{--                pollTimer    = setInterval(pollStatus, 3000);--}}
+{{--                logPollTimer = setInterval(pollLogs,   2000);--}}
+{{--            }--}}
 
-            async function pollStatus() {
-                if (!currentJobId) return;
-                try {
-                    const res  = await fetch(STATUS_URL.replace('__ID__', currentJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });
-                    const data = await res.json();
+{{--            async function pollStatus() {--}}
+{{--                if (!currentJobId) return;--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(STATUS_URL.replace('__ID__', currentJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });--}}
+{{--                    const data = await res.json();--}}
 
-                    switch (data.status) {
-                        case 'queued':      setProgress(10, 'Queued — worker will pick this up shortly…'); break;
-                        case 'processing':  setProgress(55, 'Processing — MinerU + phi4 are running…'); break;
-                        case 'failed':
-                            stopPolling();
-                            setProgress(100, '❌ Job failed.');
-                            progressBar.style.background = '#ef4444';
-                            appendLogEntry({ ts: '--:--:--', level: 'error', message: 'Job failed: ' + (data.error || 'unknown error') });
-                            loadActiveJobs();
-                            break;
-                        case 'done':
-                            stopPolling();
-                            setProgress(100, '✅ Done! Preparing result…');
-                            appendLogEntry({ ts: '--:--:--', level: 'ok', message: 'Job complete. Loading result…' });
-                            await pollLogs();   // grab final logs
-                            setTimeout(() => {
-                                progressCard.classList.add('hidden');
-                                showResult(data.result, currentJobId);
-                            }, 800);
-                            loadActiveJobs();
-                            break;
-                    }
-                } catch(e) { /* blip */ }
-            }
+{{--                    switch (data.status) {--}}
+{{--                        case 'queued':      setProgress(10, 'Queued — worker will pick this up shortly…'); break;--}}
+{{--                        case 'processing':  setProgress(55, 'Processing — MinerU + phi4 are running…'); break;--}}
+{{--                        case 'failed':--}}
+{{--                            stopPolling();--}}
+{{--                            setProgress(100, '❌ Job failed.');--}}
+{{--                            progressBar.style.background = '#ef4444';--}}
+{{--                            appendLogEntry({ ts: '--:--:--', level: 'error', message: 'Job failed: ' + (data.error || 'unknown error') });--}}
+{{--                            loadActiveJobs();--}}
+{{--                            break;--}}
+{{--                        case 'done':--}}
+{{--                            stopPolling();--}}
+{{--                            setProgress(100, '✅ Done! Preparing result…');--}}
+{{--                            appendLogEntry({ ts: '--:--:--', level: 'ok', message: 'Job complete. Loading result…' });--}}
+{{--                            await pollLogs();   // grab final logs--}}
+{{--                            setTimeout(() => {--}}
+{{--                                progressCard.classList.add('hidden');--}}
+{{--                                showResult(data.result, currentJobId);--}}
+{{--                            }, 800);--}}
+{{--                            loadActiveJobs();--}}
+{{--                            break;--}}
+{{--                    }--}}
+{{--                } catch(e) { /* blip */ }--}}
+{{--            }--}}
 
-            async function pollLogs() {
-                if (!currentJobId) return;
-                try {
-                    const res  = await fetch(LOGS_URL.replace('__ID__', currentJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });
-                    const data = await res.json();
-                    const logs = data.logs || [];
+{{--            async function pollLogs() {--}}
+{{--                if (!currentJobId) return;--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(LOGS_URL.replace('__ID__', currentJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });--}}
+{{--                    const data = await res.json();--}}
+{{--                    const logs = data.logs || [];--}}
 
-                    // Only append new entries
-                    for (let i = lastLogCount; i < logs.length; i++) {
-                        appendLogEntry(logs[i]);
-                    }
-                    lastLogCount = logs.length;
-                } catch(e) { /* blip */ }
-            }
+{{--                    // Only append new entries--}}
+{{--                    for (let i = lastLogCount; i < logs.length; i++) {--}}
+{{--                        appendLogEntry(logs[i]);--}}
+{{--                    }--}}
+{{--                    lastLogCount = logs.length;--}}
+{{--                } catch(e) { /* blip */ }--}}
+{{--            }--}}
 
-            // ── Show result ───────────────────────────────────────────────────────────
-            window.showResult = function showResult(json, jobId) {
-                saveResult.classList.add('hidden');
-                saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save to database';
-                jsonPreview.textContent = JSON.stringify(json, null, 2);
-                saveBtn.dataset.jobId = jobId;
-                currentJobId = jobId;
-                resultCard.classList.remove('hidden');
-                resultCard.scrollIntoView({ behavior:'smooth', block:'start' });
-            };
+{{--            // ── Show result ───────────────────────────────────────────────────────────--}}
+{{--            window.showResult = function showResult(json, jobId) {--}}
+{{--                saveResult.classList.add('hidden');--}}
+{{--                saveBtn.disabled = false;--}}
+{{--                saveBtn.textContent = '💾 Save to database';--}}
+{{--                jsonPreview.textContent = JSON.stringify(json, null, 2);--}}
+{{--                saveBtn.dataset.jobId = jobId;--}}
+{{--                currentJobId = jobId;--}}
+{{--                resultCard.classList.remove('hidden');--}}
+{{--                resultCard.scrollIntoView({ behavior:'smooth', block:'start' });--}}
+{{--            };--}}
 
-            // ── Save to DB ────────────────────────────────────────────────────────────
-            saveBtn.addEventListener('click', async () => {
-                const jobId = saveBtn.dataset.jobId || currentJobId;
-                if (!jobId) { alert('No job selected.'); return; }
-                saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-                saveResult.classList.add('hidden');
-                try {
-                    const res  = await fetch(STORE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body: JSON.stringify({ job_id: parseInt(jobId) }) });
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        showFeedback(saveResult, '✅ Course saved as draft (ID ' + data.course_id + '). Reload to see it.', 'ok');
-                        saveBtn.disabled = true;
-                        loadActiveJobs();
-                    } else {
-                        showFeedback(saveResult, '❌ ' + (data.error || data.message || 'Save failed'), 'error');
-                        saveBtn.disabled = false;
-                    }
-                } catch(e) { showFeedback(saveResult, '❌ ' + e.message, 'error'); saveBtn.disabled = false; }
-                finally { saveBtn.textContent = '💾 Save to database'; }
-            });
+{{--            // ── Save to DB ────────────────────────────────────────────────────────────--}}
+{{--            saveBtn.addEventListener('click', async () => {--}}
+{{--                const jobId = saveBtn.dataset.jobId || currentJobId;--}}
+{{--                if (!jobId) { alert('No job selected.'); return; }--}}
+{{--                saveBtn.disabled = true; saveBtn.textContent = 'Saving…';--}}
+{{--                saveResult.classList.add('hidden');--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(STORE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body: JSON.stringify({ job_id: parseInt(jobId) }) });--}}
+{{--                    const data = await res.json();--}}
+{{--                    if (res.ok && data.success) {--}}
+{{--                        showFeedback(saveResult, '✅ Course saved as draft (ID ' + data.course_id + '). Reload to see it.', 'ok');--}}
+{{--                        saveBtn.disabled = true;--}}
+{{--                        loadActiveJobs();--}}
+{{--                    } else {--}}
+{{--                        showFeedback(saveResult, '❌ ' + (data.error || data.message || 'Save failed'), 'error');--}}
+{{--                        saveBtn.disabled = false;--}}
+{{--                    }--}}
+{{--                } catch(e) { showFeedback(saveResult, '❌ ' + e.message, 'error'); saveBtn.disabled = false; }--}}
+{{--                finally { saveBtn.textContent = '💾 Save to database'; }--}}
+{{--            });--}}
 
-            // ── Discard ───────────────────────────────────────────────────────────────
-            discardBtn.addEventListener('click', () => {
-                stopPolling();
-                currentJobId = null;
-                saveBtn.dataset.jobId = '';
-                saveBtn.disabled = false;
-                resultCard.classList.add('hidden');
-                progressCard.classList.add('hidden');
-                uploadForm.reset();
-                syncBranchVisibility();
-                clearTerminal();
-            });
+{{--            // ── Discard ───────────────────────────────────────────────────────────────--}}
+{{--            discardBtn.addEventListener('click', () => {--}}
+{{--                stopPolling();--}}
+{{--                currentJobId = null;--}}
+{{--                saveBtn.dataset.jobId = '';--}}
+{{--                saveBtn.disabled = false;--}}
+{{--                resultCard.classList.add('hidden');--}}
+{{--                progressCard.classList.add('hidden');--}}
+{{--                uploadForm.reset();--}}
+{{--                syncBranchVisibility();--}}
+{{--                clearTerminal();--}}
+{{--            });--}}
 
-            // ── Active jobs list ──────────────────────────────────────────────────────
-            const STATUS_PILL = {
-                queued:     'background:#fef3c7;color:#92400e',
-                processing: 'background:#dbeafe;color:#1e40af',
-                done:       'background:#d1fae5;color:#065f46',
-                failed:     'background:#fee2e2;color:#991b1b',
-                saved:      'background:#f3f4f6;color:#374151',
-            };
+{{--            // ── Active jobs list ──────────────────────────────────────────────────────--}}
+{{--            const STATUS_PILL = {--}}
+{{--                queued:     'background:#fef3c7;color:#92400e',--}}
+{{--                processing: 'background:#dbeafe;color:#1e40af',--}}
+{{--                done:       'background:#d1fae5;color:#065f46',--}}
+{{--                failed:     'background:#fee2e2;color:#991b1b',--}}
+{{--                saved:      'background:#f3f4f6;color:#374151',--}}
+{{--            };--}}
 
-            async function loadActiveJobs() {
-                const list = document.getElementById('activeJobsList');
-                try {
-                    const res  = await fetch(ACTIVE_JOBS_URL, { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });
-                    const jobs = await res.json();
+{{--            async function loadActiveJobs() {--}}
+{{--                const list = document.getElementById('activeJobsList');--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(ACTIVE_JOBS_URL, { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });--}}
+{{--                    const jobs = await res.json();--}}
 
-                    if (!jobs.length) {
-                        list.innerHTML = '<span style="color:#9ca3af;font-size:.82rem">No jobs yet.</span>';
-                        return;
-                    }
+{{--                    if (!jobs.length) {--}}
+{{--                        list.innerHTML = '<span style="color:#9ca3af;font-size:.82rem">No jobs yet.</span>';--}}
+{{--                        return;--}}
+{{--                    }--}}
 
-                    list.innerHTML = jobs.map(job => {
-                        const pillStyle = STATUS_PILL[job.status] || STATUS_PILL.queued;
-                        const isActive  = ['queued','processing'].includes(job.status);
-                        const canSave   = job.status === 'done';
-                        const canView   = true;
+{{--                    list.innerHTML = jobs.map(job => {--}}
+{{--                        const pillStyle = STATUS_PILL[job.status] || STATUS_PILL.queued;--}}
+{{--                        const isActive  = ['queued','processing'].includes(job.status);--}}
+{{--                        const canSave   = job.status === 'done';--}}
+{{--                        const canView   = true;--}}
 
-                        return `<div style="display:flex;align-items:center;gap:.5rem;
-                            padding:.45rem .5rem;border-bottom:1px solid #f3f4f6;flex-wrap:wrap">
-                    <span style="font-weight:600;color:#374151;min-width:58px">Job #${job.id}</span>
-                    <span style="${pillStyle};font-size:.72rem;font-weight:700;padding:.15rem .55rem;
-                        border-radius:999px;text-transform:uppercase;letter-spacing:.04em">
-                        ${job.status}${isActive ? ' ⏳' : ''}
-                    </span>
-                    <span style="color:#9ca3af;font-size:.75rem;flex:1">${job.updated_at || ''}</span>
-                    <div style="display:flex;gap:.4rem">
-                        <button onclick="openLogModal(${job.id})"
-                            class="ai-btn ai-btn--ghost" style="font-size:.72rem;padding:.2rem .6rem">
-                            📋 Logs
-                        </button>
-                        ${canSave ? `<button onclick="resumeJob(${job.id})"
-                            class="ai-btn ai-btn--success" style="font-size:.72rem;padding:.2rem .6rem">
-                            💾 Review & Save
-                        </button>` : ''}
-                    </div>
-                </div>`;
-                    }).join('');
+{{--                        return `<div style="display:flex;align-items:center;gap:.5rem;--}}
+{{--                            padding:.45rem .5rem;border-bottom:1px solid #f3f4f6;flex-wrap:wrap">--}}
+{{--                    <span style="font-weight:600;color:#374151;min-width:58px">Job #${job.id}</span>--}}
+{{--                    <span style="${pillStyle};font-size:.72rem;font-weight:700;padding:.15rem .55rem;--}}
+{{--                        border-radius:999px;text-transform:uppercase;letter-spacing:.04em">--}}
+{{--                        ${job.status}${isActive ? ' ⏳' : ''}--}}
+{{--                    </span>--}}
+{{--                    <span style="color:#9ca3af;font-size:.75rem;flex:1">${job.updated_at || ''}</span>--}}
+{{--                    <div style="display:flex;gap:.4rem">--}}
+{{--                        <button onclick="openLogModal(${job.id})"--}}
+{{--                            class="ai-btn ai-btn--ghost" style="font-size:.72rem;padding:.2rem .6rem">--}}
+{{--                            📋 Logs--}}
+{{--                        </button>--}}
+{{--                        ${canSave ? `<button onclick="resumeJob(${job.id})"--}}
+{{--                            class="ai-btn ai-btn--success" style="font-size:.72rem;padding:.2rem .6rem">--}}
+{{--                            💾 Review & Save--}}
+{{--                        </button>` : ''}--}}
+{{--                    </div>--}}
+{{--                </div>`;--}}
+{{--                    }).join('');--}}
 
-                    const hasActive = jobs.some(j => ['queued','processing'].includes(j.status));
-                    if (hasActive) setTimeout(loadActiveJobs, 4000);
+{{--                    const hasActive = jobs.some(j => ['queued','processing'].includes(j.status));--}}
+{{--                    if (hasActive) setTimeout(loadActiveJobs, 4000);--}}
 
-                } catch(e) {
-                    list.innerHTML = '<span style="color:#ef4444">Failed to load jobs.</span>';
-                }
-            }
+{{--                } catch(e) {--}}
+{{--                    list.innerHTML = '<span style="color:#ef4444">Failed to load jobs.</span>';--}}
+{{--                }--}}
+{{--            }--}}
 
-            document.getElementById('refreshJobsBtn').addEventListener('click', loadActiveJobs);
+{{--            document.getElementById('refreshJobsBtn').addEventListener('click', loadActiveJobs);--}}
 
-            window.resumeJob = async function(id) {
-                const res  = await fetch(STATUS_URL.replace('__ID__', id), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });
-                const data = await res.json();
-                if (data.status !== 'done') { alert('Job not finished yet.'); return; }
-                showResult(data.result, id);
-            };
+{{--            window.resumeJob = async function(id) {--}}
+{{--                const res  = await fetch(STATUS_URL.replace('__ID__', id), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });--}}
+{{--                const data = await res.json();--}}
+{{--                if (data.status !== 'done') { alert('Job not finished yet.'); return; }--}}
+{{--                showResult(data.result, id);--}}
+{{--            };--}}
 
-            // ── Log modal ─────────────────────────────────────────────────────────────
-            let modalPollTimer  = null;
-            let modalJobId      = null;
-            let modalLogCount   = 0;
+{{--            // ── Log modal ─────────────────────────────────────────────────────────────--}}
+{{--            let modalPollTimer  = null;--}}
+{{--            let modalJobId      = null;--}}
+{{--            let modalLogCount   = 0;--}}
 
-            const logModal       = document.getElementById('logModal');
-            const logModalTitle  = document.getElementById('logModalTitle');
-            const logModalStatus = document.getElementById('logModalStatus');
-            const logModalBody   = document.getElementById('logModalBody');
-            const logModalSave   = document.getElementById('logModalSaveBtn');
+{{--            const logModal       = document.getElementById('logModal');--}}
+{{--            const logModalTitle  = document.getElementById('logModalTitle');--}}
+{{--            const logModalStatus = document.getElementById('logModalStatus');--}}
+{{--            const logModalBody   = document.getElementById('logModalBody');--}}
+{{--            const logModalSave   = document.getElementById('logModalSaveBtn');--}}
 
-            const STATUS_PILL_MODAL = STATUS_PILL;
+{{--            const STATUS_PILL_MODAL = STATUS_PILL;--}}
 
-            window.openLogModal = async function(id) {
-                modalJobId    = id;
-                modalLogCount = 0;
-                logModalTitle.textContent = `Job #${id} — Logs`;
-                logModalBody.textContent  = 'Loading…';
-                logModalSave.classList.add('hidden');
-                logModal.style.display    = 'flex';
-                document.body.style.overflow = 'hidden';
+{{--            window.openLogModal = async function(id) {--}}
+{{--                modalJobId    = id;--}}
+{{--                modalLogCount = 0;--}}
+{{--                logModalTitle.textContent = `Job #${id} — Logs`;--}}
+{{--                logModalBody.textContent  = 'Loading…';--}}
+{{--                logModalSave.classList.add('hidden');--}}
+{{--                logModal.style.display    = 'flex';--}}
+{{--                document.body.style.overflow = 'hidden';--}}
 
-                await refreshModalLogs();
-                modalPollTimer = setInterval(refreshModalLogs, 2500);
-            };
+{{--                await refreshModalLogs();--}}
+{{--                modalPollTimer = setInterval(refreshModalLogs, 2500);--}}
+{{--            };--}}
 
-            async function refreshModalLogs() {
-                try {
-                    const res  = await fetch(LOGS_URL.replace('__ID__', modalJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });
-                    const data = await res.json();
+{{--            async function refreshModalLogs() {--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(LOGS_URL.replace('__ID__', modalJobId), { headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF} });--}}
+{{--                    const data = await res.json();--}}
 
-                    // Status pill
-                    const pillStyle = STATUS_PILL_MODAL[data.status] || STATUS_PILL_MODAL.queued;
-                    logModalStatus.style.cssText = pillStyle + ';font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;text-transform:uppercase';
-                    logModalStatus.textContent   = data.status;
+{{--                    // Status pill--}}
+{{--                    const pillStyle = STATUS_PILL_MODAL[data.status] || STATUS_PILL_MODAL.queued;--}}
+{{--                    logModalStatus.style.cssText = pillStyle + ';font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;text-transform:uppercase';--}}
+{{--                    logModalStatus.textContent   = data.status;--}}
 
-                    // Logs
-                    const logs = data.logs || [];
-                    if (logs.length === 0 && data.error) {
-                        logModalBody.textContent = '⚠ No logs recorded.\nError: ' + data.error;
-                    } else {
-                        // Build from scratch each refresh (simpler, modal is small)
-                        logModalBody.innerHTML = logs.map(e => {
-                            const color = LOG_COLOR[e.level] || '#94a3b8';
-                            return `<span style="color:${color}">[${e.ts}] ${LOG_ICON[e.level]||'·'} ${escHtml(e.message)}</span>`;
-                        }).join('\n');
-                        logModalBody.scrollTop = logModalBody.scrollHeight;
-                    }
+{{--                    // Logs--}}
+{{--                    const logs = data.logs || [];--}}
+{{--                    if (logs.length === 0 && data.error) {--}}
+{{--                        logModalBody.textContent = '⚠ No logs recorded.\nError: ' + data.error;--}}
+{{--                    } else {--}}
+{{--                        // Build from scratch each refresh (simpler, modal is small)--}}
+{{--                        logModalBody.innerHTML = logs.map(e => {--}}
+{{--                            const color = LOG_COLOR[e.level] || '#94a3b8';--}}
+{{--                            return `<span style="color:${color}">[${e.ts}] ${LOG_ICON[e.level]||'·'} ${escHtml(e.message)}</span>`;--}}
+{{--                        }).join('\n');--}}
+{{--                        logModalBody.scrollTop = logModalBody.scrollHeight;--}}
+{{--                    }--}}
 
-                    // Save button visibility
-                    if (data.status === 'done') {
-                        logModalSave.classList.remove('hidden');
-                        logModalSave.dataset.jobId = modalJobId;
-                    }
+{{--                    // Save button visibility--}}
+{{--                    if (data.status === 'done') {--}}
+{{--                        logModalSave.classList.remove('hidden');--}}
+{{--                        logModalSave.dataset.jobId = modalJobId;--}}
+{{--                    }--}}
 
-                    // Stop polling if terminal state
-                    if (['done','failed','saved'].includes(data.status)) {
-                        clearInterval(modalPollTimer);
-                    }
-                } catch(e) { /* blip */ }
-            }
+{{--                    // Stop polling if terminal state--}}
+{{--                    if (['done','failed','saved'].includes(data.status)) {--}}
+{{--                        clearInterval(modalPollTimer);--}}
+{{--                    }--}}
+{{--                } catch(e) { /* blip */ }--}}
+{{--            }--}}
 
-            function closeModal() {
-                clearInterval(modalPollTimer);
-                logModal.style.display       = 'none';
-                document.body.style.overflow = '';
-                modalJobId = null;
-            }
+{{--            function closeModal() {--}}
+{{--                clearInterval(modalPollTimer);--}}
+{{--                logModal.style.display       = 'none';--}}
+{{--                document.body.style.overflow = '';--}}
+{{--                modalJobId = null;--}}
+{{--            }--}}
 
-            document.getElementById('logModalClose').addEventListener('click',  closeModal);
-            document.getElementById('logModalClose2').addEventListener('click', closeModal);
-            logModal.addEventListener('click', e => { if (e.target === logModal) closeModal(); });
+{{--            document.getElementById('logModalClose').addEventListener('click',  closeModal);--}}
+{{--            document.getElementById('logModalClose2').addEventListener('click', closeModal);--}}
+{{--            logModal.addEventListener('click', e => { if (e.target === logModal) closeModal(); });--}}
 
-            logModalSave.addEventListener('click', async () => {
-                const jobId = logModalSave.dataset.jobId;
-                logModalSave.disabled = true; logModalSave.textContent = 'Saving…';
-                try {
-                    const res  = await fetch(STORE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body: JSON.stringify({ job_id: parseInt(jobId) }) });
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        alert('✅ Course saved as draft (ID ' + data.course_id + '). Reload to see it.');
-                        closeModal();
-                        loadActiveJobs();
-                    } else {
-                        alert('❌ ' + (data.error || 'Save failed'));
-                        logModalSave.disabled = false;
-                    }
-                } catch(e) { alert('❌ ' + e.message); logModalSave.disabled = false; }
-                finally { logModalSave.textContent = '💾 Save to database'; }
-            });
+{{--            logModalSave.addEventListener('click', async () => {--}}
+{{--                const jobId = logModalSave.dataset.jobId;--}}
+{{--                logModalSave.disabled = true; logModalSave.textContent = 'Saving…';--}}
+{{--                try {--}}
+{{--                    const res  = await fetch(STORE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF}, body: JSON.stringify({ job_id: parseInt(jobId) }) });--}}
+{{--                    const data = await res.json();--}}
+{{--                    if (res.ok && data.success) {--}}
+{{--                        alert('✅ Course saved as draft (ID ' + data.course_id + '). Reload to see it.');--}}
+{{--                        closeModal();--}}
+{{--                        loadActiveJobs();--}}
+{{--                    } else {--}}
+{{--                        alert('❌ ' + (data.error || 'Save failed'));--}}
+{{--                        logModalSave.disabled = false;--}}
+{{--                    }--}}
+{{--                } catch(e) { alert('❌ ' + e.message); logModalSave.disabled = false; }--}}
+{{--                finally { logModalSave.textContent = '💾 Save to database'; }--}}
+{{--            });--}}
 
-            function escHtml(s) {
-                return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            }
+{{--            function escHtml(s) {--}}
+{{--                return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');--}}
+{{--            }--}}
 
-            // ── Init ──────────────────────────────────────────────────────────────────
-            loadActiveJobs();
+{{--            // ── Init ──────────────────────────────────────────────────────────────────--}}
+{{--            loadActiveJobs();--}}
 
-        })();
-    </script>
+{{--        })();--}}
+{{--    </script>--}}
 
 
 

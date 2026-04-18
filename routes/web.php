@@ -45,44 +45,47 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
         ->name('admin.')
         ->group(function () {
 
-            Route::get('ai/debug-python', function () {
+            // Control panel page
+            Route::get('ai', [AIController::class, 'panel'])->name('ai.panel');
+
+            // Connection tests
+            Route::post('ai/test', [AIController::class, 'test'])->name('ai.test');
+            Route::post('ai/test-mineru', [AIController::class, 'testMinerU'])->name('ai.test-mineru');
+
+            // Upload & Job management
+            Route::post('ai/jsonify', [AIController::class, 'jsonify'])->name('ai.jsonify');
+            Route::get('ai/jobs', [AIController::class, 'jobsList'])->name('ai.jobs.list');
+            Route::get('ai/status/{id}', [AIController::class, 'status'])->name('ai.status');
+            Route::get('ai/logs/{id}', [AIController::class, 'logs'])->name('ai.logs');
+
+            Route::get('ai/stats', [AIController::class, 'stats'])->name('ai.stats');
+
+// Job detail & management
+            Route::get('ai/jobs/{id}', [AIController::class, 'jobDetail'])->name('ai.jobs.detail');
+            Route::patch('ai/jobs/{id}', [AIController::class, 'updateJob'])->name('ai.jobs.update');
+            Route::post('ai/jobs/{id}/retry', [AIController::class, 'retry'])->name('ai.jobs.retry');
+            Route::post('ai/jobs/{id}/cancel', [AIController::class, 'cancel'])->name('ai.jobs.cancel');
+            Route::delete('ai/jobs/{id}', [AIController::class, 'deleteJob'])->name('ai.jobs.delete');
+            Route::delete('ai/jobs/{id}/logs', [AIController::class, 'clearLogs'])->name('ai.jobs.clear-logs');
+
+// Bulk actions
+            Route::post('ai/bulk', [AIController::class, 'bulkAction'])->name('ai.bulk');
+
+            // Save result to course
+            Route::post('ai/store', [AIController::class, 'store'])->name('ai.store');
+
+            // Block converter
+            Route::post('ai/convert-block', [AIController::class, 'convertBlock'])->name('ai.convert-block');
+// Debug
+            Route::get('ai/debug-python',             function () {
                 $python = base_path('scripts/.venv/Scripts/python.exe');
-
                 $env = array_merge($_SERVER, $_ENV);
-                $env['PYTHONHASHSEED']   = '0';
-                $env['PYTHONUNBUFFERED'] = '1';
-                $env['SystemRoot']       = 'C:\\Windows';
-                $env['SYSTEMROOT']       = 'C:\\Windows';
-
-                // Strip web-server-only keys
-                foreach (array_keys($env) as $k) {
-                    if (str_starts_with($k, 'HTTP_')) unset($env[$k]);
-                }
-
-                $p = new \Symfony\Component\Process\Process(
-                    [$python, '-c', 'import sys; print(sys.executable); import mineru; print("OK")'],
-                    null, $env, null, 30
-                );
+                $env['PYTHONHASHSEED'] = '0'; $env['PYTHONUNBUFFERED'] = '1'; $env['SystemRoot'] = 'C:\\Windows';
+                foreach (array_keys($env) as $k) { if (str_starts_with($k, 'HTTP_')) unset($env[$k]); }
+                $p = new \Symfony\Component\Process\Process([$python, '-c', 'import sys; print(sys.executable); import mineru; print("OK")'], null, $env, null, 30);
                 $p->run();
-
-                return response()->json([
-                    'python_exists' => file_exists($python),
-                    'python_path'   => $python,
-                    'exit_code'     => $p->getExitCode(),
-                    'stdout'        => $p->getOutput(),
-                    'stderr'        => $p->getErrorOutput(),
-                ]);
+                return response()->json(['python_exists' => file_exists($python), 'exit_code' => $p->getExitCode(), 'stdout' => $p->getOutput(), 'stderr' => $p->getErrorOutput()]);
             })->name('ai.debug');
-
-            Route::get('ai/logs/{id}',    [AIController::class, 'logs'])->name('ai.logs');
-            Route::get('jobs/active', [AIController::class, 'activeJobs'])->name('ai.jobs.active');
-
-            Route::post('test',         [AIController::class, 'test'])->name('ai.test');
-            Route::post('test-mineru',  [AIController::class, 'testMinerU'])->name('ai.test-mineru');
-            Route::post('jsonify',      [AIController::class, 'jsonify'])->name('ai.jsonify');
-            Route::get('status/{id}',   [AIController::class, 'status'])->name('ai.status');
-            Route::post('store',        [AIController::class, 'store'])->name('ai.store');
-            Route::post('convert-block',[AIController::class, 'convertBlock'])->name('ai.convert-block');
 
 
             Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])

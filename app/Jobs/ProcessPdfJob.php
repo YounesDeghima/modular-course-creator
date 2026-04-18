@@ -16,153 +16,139 @@ class ProcessPdfJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** No HTTP/worker timeout — MinerU + phi4 can take several minutes. */
     public int $timeout = 0;
-
-    /** Surface failures immediately — no silent retries. */
-    public int $tries = 1;
+    public int $tries   = 1; // Laravel-level retries off; we handle retries ourselves
 
     public function __construct(public int $aiJobId) {}
 
     public function handle(): void
     {
         $aiJob = AiJob::findOrFail($this->aiJobId);
-        $aiJob->update(['status' => 'processing', 'logs' => []]);
+
+        // Skip cancelled jobs
+        if ($aiJob->status === 'cancelled') {
+            return;
+        }
+
+        $attempt = ($aiJob->attempt ?? 0) + 1;
+        $aiJob->update([
+            'status'     => 'processing',
+            'attempt'    => $attempt,
+            'started_at' => now(),
+            'logs'       => [],
+        ]);
+
+        $aiJob->log("═══ Attempt {$attempt}/{$aiJob->max_attempts} ═══", 'info');
         $aiJob->log('Job picked up by worker.', 'info');
-        $aiJob->log('Status → processing.', 'info');
+
+        $startTime = microtime(true);
 
         try {
-            // ── STEP 1: MinerU extraction ──────────────────────────────
+            // ── STEP 1: MinerU ────────────────────────────────────────
             $aiJob->log('STEP 1 — Starting MinerU PDF extraction.', 'info');
             $markdown = $this->extractWithMinerU($aiJob);
-            $chars = mb_strlen($markdown);
-            $aiJob->log("STEP 1 — Extraction complete. Got {$chars} characters of Markdown.", 'ok');
+            $chars    = mb_strlen($markdown);
+            $aiJob->log("STEP 1 — Done. Extracted {$chars} chars of Markdown.", 'ok');
 
-            // ── STEP 2: Ollama structuring ─────────────────────────────
-            $aiJob->log('STEP 2 — Sending Markdown to Ollama (phi4) for structuring.', 'info');
-            $aiJob->log('STEP 2 — This can take several minutes. No timeout set.', 'warn');
+            // ── STEP 2: Ollama ────────────────────────────────────────
+            $aiJob->log('STEP 2 — Sending to Ollama phi4 for structuring…', 'info');
+            $aiJob->log('STEP 2 — No timeout. Large PDFs can take minutes.', 'warn');
             $structured = $this->structureWithOllama($aiJob, $markdown);
 
-            $chapterCount = count($structured['chapters'] ?? []);
-            $lessonCount  = array_sum(array_map(
-                fn($ch) => count($ch['lessons'] ?? []),
-                $structured['chapters'] ?? []
-            ));
-            $blockCount = array_sum(array_map(
-                fn($ch) => array_sum(array_map(
-                    fn($l) => count($l['blocks'] ?? []),
-                    $ch['lessons'] ?? []
-                )),
-                $structured['chapters'] ?? []
-            ));
+            $chCount = count($structured['chapters'] ?? []);
+            $lCount  = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $structured['chapters'] ?? []));
+            $bCount  = array_sum(array_map(fn($c) => array_sum(array_map(fn($l) => count($l['blocks'] ?? []), $c['lessons'] ?? [])), $structured['chapters'] ?? []));
+            $aiJob->log("STEP 2 — Done. Chapters:{$chCount} Lessons:{$lCount} Blocks:{$bCount}.", 'ok');
 
-            $aiJob->log("STEP 2 — Ollama done. Chapters: {$chapterCount} | Lessons: {$lessonCount} | Blocks: {$blockCount}.", 'ok');
-
-            // ── STEP 3: Persist ────────────────────────────────────────
-            $aiJob->log('STEP 3 — Saving result JSON to database.', 'info');
+            // ── STEP 3: Save ──────────────────────────────────────────
+            $aiJob->log('STEP 3 — Persisting result JSON…', 'info');
+            $duration = (int)(microtime(true) - $startTime);
             $aiJob->update([
-                'status'      => 'done',
-                'result_json' => json_encode(
-                    $structured,
-                    JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
-                ),
+                'status'           => 'done',
+                'result_json'      => json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+                'finished_at'      => now(),
+                'duration_seconds' => $duration,
             ]);
-            $aiJob->log('STEP 3 — Done. Job complete. Ready to save as course.', 'ok');
+            $aiJob->log("STEP 3 — Complete in {$duration}s. Ready to save as course.", 'ok');
 
         } catch (\Throwable $e) {
+            $duration = (int)(microtime(true) - $startTime);
             $aiJob->log('FAILED — ' . $e->getMessage(), 'error');
-            $aiJob->log('File: ' . $e->getFile() . ':' . $e->getLine(), 'error');
+            $aiJob->log('At: ' . basename($e->getFile()) . ':' . $e->getLine(), 'error');
+
+            $willRetry = $attempt < ($aiJob->max_attempts ?? 3);
+
             $aiJob->update([
-                'status'        => 'failed',
-                'error_message' => $e->getMessage(),
+                'status'           => 'failed',
+                'error_message'    => $e->getMessage(),
+                'finished_at'      => now(),
+                'duration_seconds' => $duration,
             ]);
+
+            if ($willRetry) {
+                $delay = min(30 * $attempt, 120); // 30s, 60s, 120s
+                $aiJob->log("Will auto-retry in {$delay}s (attempt {$attempt}/{$aiJob->max_attempts}).", 'warn');
+                // Re-dispatch with delay — creates a fresh job in the queue
+                self::dispatch($aiJob->id)->delay(now()->addSeconds($delay));
+            } else {
+                $aiJob->log("Max attempts ({$aiJob->max_attempts}) reached. No more retries.", 'error');
+            }
         }
     }
 
-    // ── Step 1 ────────────────────────────────────────────────────────────────
+    // ── MinerU extraction ─────────────────────────────────────────────────────
     private function extractWithMinerU(AiJob $aiJob): string
     {
         $pdfAbsPath = Storage::disk('local')->path($aiJob->pdf_path);
         $scriptPath = base_path('scripts/mineru_extract.py');
 
-        $aiJob->log("PDF path: {$pdfAbsPath}", 'info');
-        $aiJob->log("MinerU script: {$scriptPath}", 'info');
+        $aiJob->log("PDF: {$pdfAbsPath}", 'info');
+        $aiJob->log("Script: {$scriptPath}", 'info');
 
-        if (! file_exists($scriptPath)) {
-            throw new \RuntimeException(
-                "MinerU bridge not found at {$scriptPath}. " .
-                "Copy mineru_extract.py to <laravel_root>/scripts/ and " .
-                "run: pip install magic-pdf[full] --extra-index-url https://wheels.myhloli.com"
-            );
+        if (!file_exists($scriptPath)) {
+            throw new \RuntimeException("mineru_extract.py not found at {$scriptPath}.");
         }
 
-        $pythonWin   = base_path('scripts/.venv/Scripts/python.exe');
-        $pythonUnix  = base_path('scripts/.venv/bin/python3');
+        $python = $this->resolvePython();
+        $aiJob->log("Python: {$python}", 'info');
+        $aiJob->log('Launching MinerU subprocess…', 'info');
 
-        if (file_exists($pythonWin)) {
-            $python = $pythonWin;
-        } elseif (file_exists($pythonUnix)) {
-            $python = $pythonUnix;
-        } else {
-            $python = PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3';
-        }
-
-        $aiJob->log("Python executable: {$python}", 'info');
-        $aiJob->log("Launching MinerU subprocess…", 'info');
-
-        $process = new Process(
-            [$python, $scriptPath, $pdfAbsPath],
-            null,
-            self::pythonEnv(),
-            null,
-            0
-        );
+        $process = new Process([$python, $scriptPath, $pdfAbsPath], null, self::pythonEnv(), null, 0);
         $process->run();
 
         $exitCode = $process->getExitCode();
         $stderr   = trim($process->getErrorOutput());
-        $stdout   = trim($process->getOutput());
-
-        $aiJob->log("MinerU process exited with code: {$exitCode}.", $exitCode === 0 ? 'info' : 'error');
+        $aiJob->log("MinerU exited with code {$exitCode}.", $exitCode === 0 ? 'info' : 'error');
 
         if ($stderr) {
-            // Log stderr line by line so it's readable
-            foreach (explode("\n", mb_substr($stderr, 0, 2000)) as $line) {
-                if (trim($line)) $aiJob->log("  stderr: {$line}", 'warn');
+            foreach (array_slice(explode("\n", $stderr), 0, 20) as $line) {
+                if (trim($line)) $aiJob->log("  stderr: " . trim($line), 'warn');
             }
         }
 
-        if (! $process->isSuccessful()) {
-            throw new \RuntimeException('MinerU process failed: ' . ($stderr ?: 'no stderr output'));
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('MinerU process failed: ' . ($stderr ?: 'no stderr'));
         }
 
-        $output = json_decode($stdout, true);
+        $output = json_decode($process->getOutput(), true);
 
-        if (! ($output['success'] ?? false)) {
-            $err = $output['error'] ?? 'unknown';
+        if (!($output['success'] ?? false)) {
+            $err    = $output['error']  ?? 'unknown';
             $detail = $output['detail'] ?? '';
-            $aiJob->log("MinerU returned failure: {$err}", 'error');
+            $aiJob->log("MinerU error: {$err}", 'error');
             if ($detail) $aiJob->log("Detail: {$detail}", 'error');
             throw new \RuntimeException('MinerU error: ' . $err);
         }
 
         $markdown = trim($output['markdown'] ?? '');
-
         if (empty($markdown)) {
-            throw new \RuntimeException(
-                'MinerU returned empty Markdown. PDF may be image-only.'
-            );
+            throw new \RuntimeException('MinerU returned empty Markdown. PDF may be image-only.');
         }
 
         return $markdown;
     }
 
-    // ── Step 2 ────────────────────────────────────────────────────────────────
-    /**
-     * The model's ONLY task: split the document into chapters/lessons
-     * and wrap each piece verbatim in a `markdown` block.
-     * No content transformation, no categorization.
-     */
+    // ── Ollama structuring ────────────────────────────────────────────────────
     private function structureWithOllama(AiJob $aiJob, string $markdown): array
     {
         $maxChars  = 40000;
@@ -170,9 +156,9 @@ class ProcessPdfJob implements ShouldQueue
             ? mb_substr($markdown, 0, $maxChars) . "\n\n[...truncated...]"
             : $markdown;
 
-        $originalLen = mb_strlen($markdown);
-        $sentLen     = mb_strlen($truncated);
-        $aiJob->log("Markdown length: {$originalLen} chars. Sending {$sentLen} chars to Ollama.", 'info');
+        $origLen = mb_strlen($markdown);
+        $sentLen = mb_strlen($truncated);
+        $aiJob->log("Markdown {$origLen} chars → sending {$sentLen} chars to Ollama.", 'info');
 
         $year   = $aiJob->year;
         $branch = $aiJob->branch;
@@ -188,38 +174,25 @@ SPLITTING RULES:
 - Each lesson = exactly ONE block (type "markdown") containing ALL content of that lesson, verbatim
 
 CONTENT RULES:
-- Copy markdown exactly — keep LaTeX ($...$, $$...$$), tables, code fences, bullet lists
+- Copy markdown exactly — keep LaTeX, tables, code fences, bullet lists
 - Do NOT summarise, paraphrase, or add anything
-- chapter_number and lesson_number start at 1 and count up
+- chapter_number and lesson_number start at 1
 
 Return ONLY valid JSON — no fences, no explanation.
 
-Required shape:
 {
-  "title": "<first # heading or first sentence>",
+  "title": "<first # heading>",
   "year": $year,
   "branch": "$branch",
   "description": "<one sentence>",
   "status": "draft",
   "chapters": [
     {
-      "title": "<chapter # heading>",
-      "description": "<first line of chapter>",
-      "chapter_number": 1,
-      "status": "draft",
+      "title": "...", "description": "...", "chapter_number": 1, "status": "draft",
       "lessons": [
         {
-          "title": "<lesson ## heading>",
-          "description": "<first line of lesson>",
-          "lesson_number": 1,
-          "status": "draft",
-          "blocks": [
-            {
-              "type": "markdown",
-              "content": "<ALL raw markdown of this lesson, verbatim>",
-              "block_number": 1
-            }
-          ]
+          "title": "...", "description": "...", "lesson_number": 1, "status": "draft",
+          "blocks": [{ "type": "markdown", "content": "<verbatim markdown>", "block_number": 1 }]
         }
       ]
     }
@@ -231,7 +204,7 @@ $truncated
 --- END ---
 PROMPT;
 
-        $aiJob->log("Posting to Ollama API (phi4, temperature=0, stream=false)…", 'info');
+        $aiJob->log('POST → http://localhost:11434/api/generate (phi4, stream=false)…', 'info');
 
         $response = Http::timeout(0)
             ->withOptions(['connect_timeout' => 10])
@@ -244,116 +217,81 @@ PROMPT;
             ]);
 
         if ($response->failed()) {
-            $aiJob->log("Ollama HTTP error: status " . $response->status(), 'error');
+            $aiJob->log('Ollama HTTP error: ' . $response->status(), 'error');
             throw new \RuntimeException('Ollama HTTP error: ' . $response->status());
         }
 
-        $aiJob->log("Ollama responded (HTTP 200). Parsing JSON…", 'info');
-
+        $aiJob->log('Ollama responded HTTP 200. Parsing JSON…', 'info');
         $jsonString = $response->json('response') ?? '';
 
         if (empty($jsonString)) {
             throw new \RuntimeException('Ollama returned an empty response.');
         }
 
-        $aiJob->log("Raw response length: " . mb_strlen($jsonString) . " chars.", 'info');
+        $aiJob->log('Response length: ' . mb_strlen($jsonString) . ' chars.', 'info');
 
-        // Strip accidental markdown fences
         $jsonString = preg_replace('/^```json\s*/i', '', trim($jsonString));
-        $jsonString = preg_replace('/```\s*$/',        '', $jsonString);
-
-        $decoded = json_decode($jsonString, true);
+        $jsonString = preg_replace('/```\s*$/', '', $jsonString);
+        $decoded    = json_decode($jsonString, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             $snippet = mb_substr($jsonString, 0, 300);
-            $aiJob->log("JSON parse failed: " . json_last_error_msg(), 'error');
-            $aiJob->log("Snippet: {$snippet}", 'error');
-            throw new \RuntimeException(
-                'Ollama output is not valid JSON: ' . json_last_error_msg()
-            );
+            $aiJob->log('JSON parse error: ' . json_last_error_msg(), 'error');
+            $aiJob->log('Snippet: ' . $snippet, 'error');
+            throw new \RuntimeException('Ollama output is not valid JSON: ' . json_last_error_msg());
         }
 
         if (empty($decoded['chapters'])) {
-            $aiJob->log("Ollama returned no chapters. Falling back to single-block structure.", 'warn');
+            $aiJob->log('No chapters found — using fallback single-block structure.', 'warn');
             return $this->fallbackStructure($aiJob, $markdown);
         }
 
-        $aiJob->log("JSON parsed successfully.", 'ok');
+        $aiJob->log('JSON parsed OK.', 'ok');
         return $decoded;
     }
 
-    // ── Fallback ──────────────────────────────────────────────────────────────
-    /** Ollama gave us nothing useful — wrap the whole Markdown in one block. */
     private function fallbackStructure(AiJob $aiJob, string $markdown): array
     {
         $title = 'Untitled Course';
-        if (preg_match('/^#\s+(.+)$/m', $markdown, $m)) {
-            $title = trim($m[1]);
-        }
-        $aiJob->log("Fallback: using title \"{$title}\" and wrapping all content in one block.", 'warn');
+        if (preg_match('/^#\s+(.+)$/m', $markdown, $m)) $title = trim($m[1]);
+        $aiJob->log("Fallback: title=\"{$title}\"", 'warn');
 
         return [
-            'title'       => $title,
-            'year'        => $aiJob->year,
-            'branch'      => $aiJob->branch,
-            'description' => 'Auto-extracted from PDF.',
-            'status'      => 'draft',
-            'chapters'    => [[
-                'title'          => $title,
-                'description'    => '',
-                'chapter_number' => 1,
-                'status'         => 'draft',
-                'lessons'        => [[
-                    'title'         => $title,
-                    'description'   => '',
-                    'lesson_number' => 1,
-                    'status'        => 'draft',
-                    'blocks'        => [[
-                        'type'         => 'markdown',
-                        'content'      => $markdown,
-                        'block_number' => 1,
-                    ]],
+            'title' => $title, 'year' => $aiJob->year, 'branch' => $aiJob->branch,
+            'description' => 'Auto-extracted from PDF.', 'status' => 'draft',
+            'chapters' => [[
+                'title' => $title, 'description' => '', 'chapter_number' => 1, 'status' => 'draft',
+                'lessons' => [[
+                    'title' => $title, 'description' => '', 'lesson_number' => 1, 'status' => 'draft',
+                    'blocks' => [['type' => 'markdown', 'content' => $markdown, 'block_number' => 1]],
                 ]],
             ]],
         ];
     }
 
-    /**
-     * Build a safe environment array for Python subprocesses on Windows.
-     *
-     * When PHP (running as a web server process) spawns a child process,
-     * the inherited environment is often stripped down and missing the
-     * Windows security APIs that Python needs to seed its hash randomizer.
-     * Passing PYTHONHASHSEED explicitly bypasses the OS random-number call
-     * that causes: "Fatal Python error: _Py_HashRandomization_Init"
-     *
-     * We merge the current PHP environment so PATH, SystemRoot, etc. are
-     * inherited, then override/add the Python-specific keys we need.
-     */
+    private function resolvePython(): string
+    {
+        $win  = base_path('scripts/.venv/Scripts/python.exe');
+        $unix = base_path('scripts/.venv/bin/python3');
+        if (file_exists($win))  return $win;
+        if (file_exists($unix)) return $unix;
+        return PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3';
+    }
+
     private static function pythonEnv(): array
     {
-        // Start with everything PHP can see
         $env = array_merge($_SERVER, $_ENV);
-
-        // Remove keys that aren't real environment variables
         foreach (array_keys($env) as $key) {
-            if (str_starts_with($key, 'HTTP_') || str_starts_with($key, 'argc') || $key === 'argv') {
+            if (str_starts_with($key, 'HTTP_') || in_array($key, ['argc', 'argv', 'REQUEST_URI', 'SCRIPT_NAME', 'SCRIPT_FILENAME', 'QUERY_STRING'])) {
                 unset($env[$key]);
             }
         }
-
-        // Required on Windows: give Python a fixed hash seed so it never
-        // has to call the OS random-number API during startup.
-        $env['PYTHONHASHSEED']    = '0';
-
-        // Unbuffered output so we can read stdout line-by-line reliably.
-        $env['PYTHONUNBUFFERED']  = '1';
-
-        // Make sure SystemRoot is set — Python on Windows needs it for DLL loading.
-        if (PHP_OS_FAMILY === 'Windows' && empty($env['SystemRoot'])) {
-            $env['SystemRoot'] = 'C:\\Windows';
+        $env['PYTHONHASHSEED']   = '0';
+        $env['PYTHONUNBUFFERED'] = '1';
+        if (PHP_OS_FAMILY === 'Windows') {
+            $env['SystemRoot'] ??= 'C:\\Windows';
+            $env['SYSTEMROOT'] ??= 'C:\\Windows';
         }
-
         return $env;
     }
 }

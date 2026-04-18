@@ -29,6 +29,10 @@
             <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
             <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>
             <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
+            <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
+                ✨ AI Generator
+            </a>
+
         </div>
 
         <div class="nav-right">
