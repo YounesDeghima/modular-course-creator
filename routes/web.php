@@ -41,115 +41,141 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {
-Route::prefix('admin')
-    ->name('admin.')
-    ->group(function () {
+    Route::prefix('admin')
+        ->name('admin.')
+        ->group(function () {
 
-        Route::get('jobs/active', [AIController::class, 'activeJobs'])->name('ai.jobs.active');
+            Route::get('ai/debug-python', function () {
+                $python = base_path('scripts/.venv/Scripts/python.exe');
 
-        Route::post('test', [AIController::class, 'test'])->name('ai.test');
+                $env = array_merge($_SERVER, $_ENV);
+                $env['PYTHONHASHSEED']   = '0';
+                $env['PYTHONUNBUFFERED'] = '1';
+                $env['SystemRoot']       = 'C:\\Windows';
+                $env['SYSTEMROOT']       = 'C:\\Windows';
 
-// Upload PDF → dispatch background job → returns job_id
-        Route::post('jsonify', [AIController::class, 'jsonify'])->name('ai.jsonify');
+                // Strip web-server-only keys
+                foreach (array_keys($env) as $k) {
+                    if (str_starts_with($k, 'HTTP_')) unset($env[$k]);
+                }
 
-// Poll job status
-        Route::get('status/{id}', [AIController::class, 'status'])->name('ai.status');
+                $p = new \Symfony\Component\Process\Process(
+                    [$python, '-c', 'import sys; print(sys.executable); import mineru; print("OK")'],
+                    null, $env, null, 30
+                );
+                $p->run();
 
-// Save finished result to the real DB tables
-        Route::post('store', [AIController::class, 'store'])->name('ai.store');
+                return response()->json([
+                    'python_exists' => file_exists($python),
+                    'python_path'   => $python,
+                    'exit_code'     => $p->getExitCode(),
+                    'stdout'        => $p->getOutput(),
+                    'stderr'        => $p->getErrorOutput(),
+                ]);
+            })->name('ai.debug');
 
+            Route::get('ai/logs/{id}',    [AIController::class, 'logs'])->name('ai.logs');
+            Route::get('jobs/active', [AIController::class, 'activeJobs'])->name('ai.jobs.active');
 
-        Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])
-            ->name('blocks.upload-media');
-
-
-        Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
-        Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
-        Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
-        Route::get('/main', [admincontroller::class, 'main'])->name('main');
-
-        Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
-        Route::put('/users/{user}',    [admincontroller::class, 'updateUser'])->name('users.update');
-        Route::delete('/users/{user}', [admincontroller::class, 'destroyUser'])->name('users.destroy');
-
-        Route::put('courses/toggle-everything', [coursecontroller::class, 'toggleEverything'])
-            ->name('courses.toggle-everything');
-
-        Route::resource('courses', coursecontroller::class);
-
-        Route::scopeBindings()->group(function () {
-
-            Route::put('courses/{course}/chapters/publish-all', [chaptercontroller::class, 'publishAll'])
-                ->name('courses.chapters.publish-all');
-            Route::put('courses/{course}/chapters/{chapter}/publish-all-lessons', [lessoncontroller::class, 'publishAll'])
-                ->name('courses.chapters.lessons.publish-all');
-            Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
-                ->name('courses.chapters.lessons.toggle-all');
-
-            Route::resource('courses.quiz', quizcontroller::class);
+            Route::post('test',         [AIController::class, 'test'])->name('ai.test');
+            Route::post('test-mineru',  [AIController::class, 'testMinerU'])->name('ai.test-mineru');
+            Route::post('jsonify',      [AIController::class, 'jsonify'])->name('ai.jsonify');
+            Route::get('status/{id}',   [AIController::class, 'status'])->name('ai.status');
+            Route::post('store',        [AIController::class, 'store'])->name('ai.store');
+            Route::post('convert-block',[AIController::class, 'convertBlock'])->name('ai.convert-block');
 
 
+            Route::post('/blocks/upload-media', [blockcontroller::class, 'uploadMedia'])
+                ->name('blocks.upload-media');
+
+
+            Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
+            Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
+            Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
+            Route::get('/main', [admincontroller::class, 'main'])->name('main');
+
+            Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
+            Route::put('/users/{user}',    [admincontroller::class, 'updateUser'])->name('users.update');
+            Route::delete('/users/{user}', [admincontroller::class, 'destroyUser'])->name('users.destroy');
+
+            Route::put('courses/toggle-everything', [coursecontroller::class, 'toggleEverything'])
+                ->name('courses.toggle-everything');
+
+            Route::resource('courses', coursecontroller::class);
+
+            Route::scopeBindings()->group(function () {
+
+                Route::put('courses/{course}/chapters/publish-all', [chaptercontroller::class, 'publishAll'])
+                    ->name('courses.chapters.publish-all');
+                Route::put('courses/{course}/chapters/{chapter}/publish-all-lessons', [lessoncontroller::class, 'publishAll'])
+                    ->name('courses.chapters.lessons.publish-all');
+                Route::put('courses/{course}/chapters/{chapter}/lessons/toggle-all', [lessoncontroller::class, 'toggleAll'])
+                    ->name('courses.chapters.lessons.toggle-all');
+
+                Route::resource('courses.quiz', quizcontroller::class);
 
 
 
-            Route::resource('courses.chapters',chaptercontroller::class);
-            Route::resource('courses.chapters.lessons', lessoncontroller::class);
-
-            Route::put('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/update-all', [blockcontroller::class, 'updateAll'])
-                ->name('courses.chapters.lessons.blocks.update-all');
-
-            Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
-        });
-
-        Route::get('preview', function () {
-            return (redirect()->route('admin.preview.courses'));
-        });
-        Route::scopeBindings()->group(function () {
-
-            Route::get('preview/courses', [previewcontroller::class, 'loadcourses'])->name('preview.courses');
-            Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'loadbackcourses'])->name('preview.backcourses');
-            Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'loadchapters'])->name('preview.chapters');
-            Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'loadlessons'])->name('preview.lessons');
-            Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'loadblocks'])->name('preview.blocks');
-
-        });
-
-        route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
-        route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
-
-        route::get('preview/courses/{course}/quiz',[previewcontroller::class , 'loadquiz'])->name('preview.courses.quiz');
 
 
-    });});
+                Route::resource('courses.chapters',chaptercontroller::class);
+                Route::resource('courses.chapters.lessons', lessoncontroller::class);
+
+                Route::put('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/update-all', [blockcontroller::class, 'updateAll'])
+                    ->name('courses.chapters.lessons.blocks.update-all');
+
+                Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
+            });
+
+            Route::get('preview', function () {
+                return (redirect()->route('admin.preview.courses'));
+            });
+            Route::scopeBindings()->group(function () {
+
+                Route::get('preview/courses', [previewcontroller::class, 'loadcourses'])->name('preview.courses');
+                Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'loadbackcourses'])->name('preview.backcourses');
+                Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'loadchapters'])->name('preview.chapters');
+                Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'loadlessons'])->name('preview.lessons');
+                Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'loadblocks'])->name('preview.blocks');
+
+            });
+
+            route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/lastlesson',[previewcontroller::class,'lastlesson'])->name('preview.lastlesson');
+            route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/nextlesson',[previewcontroller::class,'nextlesson'])->name('preview.nextlesson');
+
+            route::get('preview/courses/{course}/quiz',[previewcontroller::class , 'loadquiz'])->name('preview.courses.quiz');
+
+
+        });});
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {
-Route::prefix('user')
-    ->name('user.')
-    ->group(function () {
+    Route::prefix('user')
+        ->name('user.')
+        ->group(function () {
 
-        Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
+            Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 
-        Route::get('/home', [usercontroller::class, 'home'])->name('home');
+            Route::get('/home', [usercontroller::class, 'home'])->name('home');
 
-        Route::get('/main',[usercontroller::class,'main'])->name('main');
+            Route::get('/main',[usercontroller::class,'main'])->name('main');
 
-        Route::get('preview', function () {
-            return (redirect()->route('user.preview.courses'));
-        });
-        Route::scopeBindings()->group(function () {
-            Route::get('preview', [previewcontroller::class, 'user_loadyears'])->name('preview.years');
-            Route::get('preview/courses', [previewcontroller::class, 'user_loadcourses'])->name('preview.courses');
-            Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'user_loadbackcourses'])->name('preview.backcourses');
-            Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'user_loadchapters'])->name('preview.chapters');
-            Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'user_loadlessons'])->name('preview.lessons');
-            Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'user_loadblocks'])->name('preview.blocks');
+            Route::get('preview', function () {
+                return (redirect()->route('user.preview.courses'));
+            });
+            Route::scopeBindings()->group(function () {
+                Route::get('preview', [previewcontroller::class, 'user_loadyears'])->name('preview.years');
+                Route::get('preview/courses', [previewcontroller::class, 'user_loadcourses'])->name('preview.courses');
+                Route::get('preview/branch/{branch}/courses', [previewcontroller::class, 'user_loadbackcourses'])->name('preview.backcourses');
+                Route::get('preview/courses/{course}/chapters', [previewcontroller::class, 'user_loadchapters'])->name('preview.chapters');
+                Route::get('preview/courses/{course}/chapters/{chapter}/lessons', [previewcontroller::class, 'user_loadlessons'])->name('preview.lessons');
+                Route::get('preview/courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks', [previewcontroller::class, 'user_loadblocks'])->name('preview.blocks');
 
-        });
+            });
 
-        Route:: Resource('lesson.progress', lessonprogresscontroller::class);
-        Route:: Resource('chapter.progress', chapterprogresscontroller::class);
-        Route:: Resource('course.progress', courseprogresscontroller::class);
+            Route:: Resource('lesson.progress', lessonprogresscontroller::class);
+            Route:: Resource('chapter.progress', chapterprogresscontroller::class);
+            Route:: Resource('course.progress', courseprogresscontroller::class);
 
 
-    });});
+        });});
 

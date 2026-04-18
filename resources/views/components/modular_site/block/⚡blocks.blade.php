@@ -293,6 +293,55 @@ new class extends Component {
 
                 <div class="block-main-content">
                     @switch($block['type'])
+
+                        @case('markdown')
+                            {{--
+                                ADMIN EDITOR VIEW
+                                The textarea holds the raw Markdown/LaTeX.
+                                A live preview is rendered below it via marked.js + MathJax.
+                            --}}
+                            <div class="markdown-block-editor">
+                                <div class="mbe-tabs" data-block-id="{{ $block['id'] }}">
+                                    <button type="button"
+                                            class="mbe-tab active"
+                                            onclick="mbeSetTab({{ $block['id'] }}, 'edit')">
+                                        ✏️ Edit
+                                    </button>
+                                    <button type="button"
+                                            class="mbe-tab"
+                                            onclick="mbeSetTab({{ $block['id'] }}, 'preview')">
+                                        👁 Preview
+                                    </button>
+                                    <button type="button"
+                                            class="mbe-tab mbe-tab--upgrade"
+                                            onclick="openConvertPanel({{ $block['id'] }}, {{ json_encode($block['content']) }})">
+                                        ⚡ Upgrade block
+                                    </button>
+                                </div>
+
+                                {{-- Edit pane --}}
+                                <div id="mbe-edit-{{ $block['id'] }}" class="mbe-pane mbe-pane--active">
+                                        <textarea
+                                            class="input-ghost content-style mbe-textarea"
+                                            name="blocks[{{ $block['id'] }}][content]"
+                                            wire:model="blocks.{{ $loop->index }}.content"
+                                            oninput="mbeUpdatePreview({{ $block['id'] }})"
+                                            rows="8"
+                                            placeholder="Markdown and LaTeX supported. Use $...$ for inline math, $$...$$ for display math."
+                                        ></textarea>
+                                    <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
+                                        Markdown + LaTeX ($...$, $$...$$) · Images not supported in this block
+                                    </small>
+                                </div>
+
+                                {{-- Preview pane --}}
+                                <div id="mbe-preview-{{ $block['id'] }}"
+                                     class="mbe-pane mbe-preview-rendered"
+                                     style="display:none;padding:12px;border:1px solid var(--border);border-radius:6px;min-height:60px;background:var(--bg-subtle);">
+                                    <em style="color:var(--text-faint);font-size:12px;">Click Preview to render.</em>
+                                </div>
+                            </div>
+                            @break
                         @case('header')
                             <textarea type="text" name="blocks[{{ $block['id'] }}][content]"
                                       class="input-ghost title-style"
@@ -604,6 +653,7 @@ new class extends Component {
                         <select wire:change="updateBlockType({{ $loop->index }}, $event.target.value)"
                                 name="blocks[{{ $block['id'] }}][type]"
                                 id="select-{{ $block['id'] }}">
+                            <option value="markdown" {{ $block['type'] == 'markdown' ? 'selected' : '' }}>Markdown</option>
                             <option value="header" {{ $block['type'] == 'header' ? 'selected' : '' }}>H1</option>
                             <option value="description" {{ $block['type'] == 'description' ? 'selected' : '' }}>Text
                             </option>
@@ -631,11 +681,58 @@ new class extends Component {
                     </button>
                 </div>
             </div>
+
+
+
         @empty
             <div class="empty-state">
                 <p>No content here yet. Click the <strong>+</strong> button to add a block.</p>
             </div>
         @endforelse
+
+            <div id="convert-panel" class="convert-panel-overlay" style="display:none" onclick="if(event.target===this)closeConvertPanel()">
+                <div class="convert-panel-modal">
+                    <div class="convert-panel-header">
+                        <span>⚡ Upgrade Markdown Block</span>
+                        <button type="button" onclick="closeConvertPanel()" class="convert-panel-close">✕</button>
+                    </div>
+
+                    <p class="convert-panel-sub">
+                        Choose a type to convert this block into.
+                        The original markdown text will be pre-filled so you only need to fine-tune.
+                    </p>
+
+                    <div id="convert-preview-snippet"
+                         class="convert-panel-snippet mbe-preview-rendered"
+                         style="max-height:160px;overflow:auto;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-subtle)">
+                    </div>
+
+                    <div class="convert-panel-grid">
+                        @foreach([
+                            ['header',      'H1',   'Heading',       '#EEEDFE', '#534AB7'],
+                            ['description', 'P',    'Paragraph',     '#f0f9ff', '#0369a1'],
+                            ['note',        '!',    'Note',          '#fef9c3', '#854d0e'],
+                            ['code',        '</>',  'Code',          '#F1EFE8', '#444441'],
+                            ['math',        '∑',    'Math (LaTeX)',  '#EEEDFE', '#534AB7'],
+                            ['exercise',    '?',    'Exercise',      '#EEEDFE', '#534AB7'],
+                            ['table',       '▦',    'Table',         '#E1F5EE', '#0F6E56'],
+                            ['list',        '≡',    'List',          '#fef3c7', '#92400e'],
+                            ['graph',       '≈',    'Graph',         '#E6F1FB', '#185FA5'],
+                            ['function',    'f(x)', 'Function Plot', '#E1F5EE', '#0F6E56'],
+                        ] as [$type, $icon, $label, $bg, $fg])
+                            <button type="button"
+                                    class="convert-type-btn"
+                                    onclick="doConvert('{{ $type }}')"
+                                    style="--btn-bg:{{ $bg }};--btn-fg:{{ $fg }}">
+                                <div class="convert-type-icon">{{ $icon }}</div>
+                                <span>{{ $label }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+
+                    <div id="convert-status" style="margin-top:12px;font-size:12px;display:none"></div>
+                </div>
+            </div>
     </div>
 
     <div class="save-container">

@@ -4,27 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPdfJob;
 use App\Models\AiJob;
-use App\Models\course;
-use App\Models\chapter;
-use App\Models\lesson;
 use App\Models\block;
+use App\Models\chapter;
+use App\Models\course;
+use App\Models\lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 class AIController extends Controller
 {
-    /**
-     * ── Test endpoint ──────────────────────────────────────────────────
-     * POST /admin/ai/test
-     * Sends a simple "hi" prompt to local Ollama and returns the reply.
-     */
+    // ── Test Ollama ───────────────────────────────────────────────────────────
     public function test(Request $request)
     {
         try {
             $response = Http::timeout(30)->post('http://localhost:11434/api/generate', [
                 'model'  => 'phi4',
-                'prompt' => 'Say exactly: {"status":"ok","message":"Ollama is running"}',
+                'prompt' => 'Reply with exactly: {"status":"ok","message":"Ollama phi4 is running"}',
                 'stream' => false,
                 'format' => 'json',
             ]);
@@ -45,24 +41,17 @@ class AIController extends Controller
         }
     }
 
-    /**
-     * ── Upload PDF → dispatch job ──────────────────────────────────────
-     * POST /admin/ai/jsonify
-     * Stores the PDF, creates an AiJob record, dispatches the background job.
-     * Returns the job ID so the front-end can poll for status.
-     */
+    // ── Upload PDF → queue ────────────────────────────────────────────────────
     public function jsonify(Request $request)
     {
         $request->validate([
-            'pdf_file'    => 'required|file|mimes:pdf|max:51200', // 50 MB
-            'course_year' => 'required|in:1,2,3',
+            'pdf_file'      => 'required|file|mimes:pdf|max:102400',
+            'course_year'   => 'required|in:1,2,3',
             'course_branch' => 'nullable|in:mi,st,none',
         ]);
 
-        // Store the PDF
         $path = $request->file('pdf_file')->store('ai_uploads', 'local');
 
-        // Create a job record so we can track progress
         $aiJob = AiJob::create([
             'status'   => 'queued',
             'pdf_path' => $path,
@@ -70,64 +59,47 @@ class AIController extends Controller
             'branch'   => $request->course_branch ?? 'none',
         ]);
 
-        // Dispatch background job — no HTTP timeout risk
         ProcessPdfJob::dispatch($aiJob->id);
 
         return response()->json([
             'job_id'  => $aiJob->id,
             'status'  => 'queued',
-            'message' => 'PDF queued for processing. Poll /admin/ai/status/{id} for updates.',
+            'message' => 'PDF queued for processing.',
         ]);
     }
 
-    public function activeJobs()
-    {
-        $jobs = AiJob::whereNotIn('status', ['saved'])
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'status', 'created_at', 'updated_at']);
-
-        return response()->json($jobs);
-    }
-
-    /**
-     * ── Poll job status ────────────────────────────────────────────────
-     * GET /admin/ai/status/{id}
-     * Returns the current status + result JSON when done.
-     */
+    // ── Poll status ───────────────────────────────────────────────────────────
     public function status($id)
     {
         $aiJob = AiJob::findOrFail($id);
 
-        $response = [
+        $data = [
             'id'         => $aiJob->id,
-            'status'     => $aiJob->status,       // queued | processing | done | failed
+            'status'     => $aiJob->status,
             'created_at' => $aiJob->created_at,
             'updated_at' => $aiJob->updated_at,
         ];
 
-        if ($aiJob->status === 'done') {
-            $response['result'] = json_decode($aiJob->result_json, true);
-        }
+        if ($aiJob->status === 'done')   { $data['result'] = json_decode($aiJob->result_json, true); }
+        if ($aiJob->status === 'failed') { $data['error']  = $aiJob->error_message; }
 
-        if ($aiJob->status === 'failed') {
-            $response['error'] = $aiJob->error_message;
-        }
-
-        return response()->json($response);
+        return response()->json($data);
     }
 
-    /**
-     * ── Save result JSON to the database ──────────────────────────────
-     * POST /admin/ai/store
-     * Takes the JSON produced by the AI and persists it as a real Course
-     * with its Chapters, Lessons and Blocks — exactly like the existing
-     * controllers expect.
-     */
+    // ── Active jobs ───────────────────────────────────────────────────────────
+    public function activeJobs()
+    {
+        return response()->json(
+            AiJob::whereNotIn('status', ['saved'])
+                ->orderBy('created_at', 'desc')
+                ->get(['id', 'status', 'created_at', 'updated_at'])
+        );
+    }
+
+    // ── Save result to DB ─────────────────────────────────────────────────────
     public function store(Request $request)
     {
-        $request->validate([
-            'job_id' => 'required|exists:ai_jobs,id',
-        ]);
+        $request->validate(['job_id' => 'required|exists:ai_jobs,id']);
 
         $aiJob = AiJob::findOrFail($request->job_id);
 
@@ -136,22 +108,19 @@ class AIController extends Controller
         }
 
         $data = json_decode($aiJob->result_json, true);
-
-        if (!$data) {
+        if (! $data) {
             return response()->json(['error' => 'Result JSON is invalid.'], 422);
         }
 
-        // ── Create Course ──────────────────────────────────────────────
         $courseRecord = course::create([
-            'title'       => $data['title']       ?? 'Untitled Course',
-            'year'        => $data['year']         ?? $aiJob->year,
-            'branch'      => $data['branch']       ?? $aiJob->branch,
-            'description' => $data['description']  ?? '',
-            'status'      => 'draft',               // always start as draft
+            'title'       => $data['title']      ?? 'Untitled Course',
+            'year'        => $data['year']        ?? $aiJob->year,
+            'branch'      => $data['branch']      ?? $aiJob->branch,
+            'description' => $data['description'] ?? '',
+            'status'      => 'draft',
         ]);
 
         foreach (($data['chapters'] ?? []) as $chIdx => $chData) {
-            // ── Create Chapter ─────────────────────────────────────────
             $chapterRecord = chapter::create([
                 'course_id'      => $courseRecord->id,
                 'title'          => $chData['title']          ?? 'Chapter ' . ($chIdx + 1),
@@ -161,7 +130,6 @@ class AIController extends Controller
             ]);
 
             foreach (($chData['lessons'] ?? []) as $lIdx => $lData) {
-                // ── Create Lesson ──────────────────────────────────────
                 $lessonRecord = lesson::create([
                     'chapter_id'    => $chapterRecord->id,
                     'title'         => $lData['title']         ?? 'Lesson ' . ($lIdx + 1),
@@ -172,104 +140,239 @@ class AIController extends Controller
                 ]);
 
                 foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
-                    // ── Create Block ───────────────────────────────────
-                    $type    = $bData['type']    ?? 'description';
-                    $content = $bData['content'] ?? '';
+                    $type    = $bData['type']    ?? 'markdown';
+                    $content = is_string($bData['content']) ? $bData['content'] : '';
 
-                    // Normalize content based on block type
-                    $content = $this->normalizeBlockContent($type, $content);
-
-                    block::create([
+                    $blk = block::create([
                         'lesson_id'    => $lessonRecord->id,
                         'type'         => $type,
                         'content'      => $content,
                         'block_number' => $bData['block_number'] ?? ($bIdx + 1),
                     ]);
 
-                    // Auto-create a placeholder solution for exercise blocks
                     if ($type === 'exercise') {
-                        $block = block::where('lesson_id', $lessonRecord->id)
-                            ->orderBy('id', 'desc')
-                            ->first();
-                        if ($block) {
-                            $block->solutions()->create([
-                                'solution_number' => 1,
-                                'content'         => 'nothing here yet',
-                            ]);
-                        }
+                        $blk->solutions()->create([
+                            'solution_number' => 1,
+                            'content'         => 'nothing here yet',
+                        ]);
                     }
                 }
             }
         }
 
-        // Mark job as consumed
         $aiJob->update(['status' => 'saved']);
 
         return response()->json([
             'success'   => true,
             'course_id' => $courseRecord->id,
-            'message'   => 'Course saved to database as draft.',
+            'message'   => 'Course saved as draft. Open the editor to upgrade markdown blocks.',
+        ]);
+    }
+
+    // ── Convert block ─────────────────────────────────────────────────────────
+    /**
+     * POST /admin/ai/convert-block
+     * Teacher "upgrade" flow: turn a markdown block into an interactive type.
+     * The original markdown text is pre-filled so the teacher only adjusts.
+     */
+    public function convertBlock(Request $request)
+    {
+        $request->validate([
+            'block_id'    => 'required|exists:blocks,id',
+            'target_type' => 'required|in:header,description,note,exercise,code,math,
+                              graph,table,function,list,separator,ext,photo,video,markdown',
+        ]);
+
+        $blk        = block::findOrFail($request->block_id);
+        $targetType = trim($request->target_type);
+        $rawContent = $blk->content;
+
+        $newContent = $this->convertContent($rawContent, $targetType);
+
+        $blk->update(['type' => $targetType, 'content' => $newContent]);
+
+        if ($targetType === 'exercise' && $blk->solutions()->count() === 0) {
+            $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+        }
+
+        return response()->json(['success' => true, 'block' => $blk->fresh()]);
+    }
+
+    // ── Content converter ─────────────────────────────────────────────────────
+    private function convertContent(string $raw, string $targetType): string
+    {
+        $plain = trim(strip_tags(
+            preg_replace(['/#{1,6}\s+/', '/\*\*(.+?)\*\*/', '/\*(.+?)\*/'], ['', '$1', '$1'], $raw)
+        ));
+
+        return match ($targetType) {
+            'header', 'description', 'note', 'code', 'math', 'exercise', 'markdown'
+            => $raw,   // keep full markdown — teacher edits in-place
+
+            'table' => json_encode(
+                [['Column 1', 'Column 2'], [$plain, '']],
+                JSON_UNESCAPED_UNICODE
+            ),
+
+            'graph' => json_encode(
+                ['type' => 'line', 'labels' => ['A', 'B', 'C'], 'data' => [0, 0, 0]],
+                JSON_UNESCAPED_UNICODE
+            ),
+
+            'function' => json_encode([
+                'function' => 'sin(x)',
+                'x_min' => -10, 'x_max' => 10,
+                'y_min' => -5,  'y_max' => 5,
+                'color' => '#4f46e5', 'step' => 0.1,
+            ], JSON_UNESCAPED_UNICODE),
+
+            'list' => json_encode([
+                'style' => 'bullet',
+                'items' => array_values(array_filter(
+                    array_map('trim', preg_split('/\n|,/', $plain))
+                )),
+            ], JSON_UNESCAPED_UNICODE),
+
+            'separator' => json_encode(['type' => 'divider']),
+
+            'photo', 'video' => '',
+            'ext'            => $raw,
+
+            default => $raw,
+        };
+    }
+
+    // ── Job logs ─────────────────────────────────────────────────────────────
+    /**
+     * GET /admin/ai/logs/{id}
+     * Returns the full log array + current status for a job.
+     * Lightweight — only reads two columns.
+     */
+    public function logs($id)
+    {
+        $aiJob = AiJob::findOrFail($id);
+
+        return response()->json([
+            'id'     => $aiJob->id,
+            'status' => $aiJob->status,
+            'logs'   => $aiJob->logs ?? [],
+            'error'  => $aiJob->error_message,
+        ]);
+    }
+
+    // ── Test MinerU ───────────────────────────────────────────────────────────
+    public function testMinerU(Request $request)
+    {
+        $scriptPath = base_path('scripts/mineru_extract.py');
+
+        // 1. Script exists?
+        if (! file_exists($scriptPath)) {
+            return response()->json([
+                'ok'    => false,
+                'step'  => 'script_missing',
+                'error' => 'mineru_extract.py not found at ' . $scriptPath,
+            ], 422);
+        }
+
+        // 2. Resolve python
+        $pythonWin  = base_path('scripts/.venv/Scripts/python.exe');
+        $pythonUnix = base_path('scripts/.venv/bin/python3');
+
+        if (file_exists($pythonWin))      $python = $pythonWin;
+        elseif (file_exists($pythonUnix)) $python = $pythonUnix;
+        else                              $python = PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3';
+
+        // 3. Check mineru imports
+        $importCheck = new \Symfony\Component\Process\Process(
+            [$python, '-c', 'import mineru; print("mineru_ok")'],
+            null, $this->pythonEnv(), null, 30
+        );
+        $importCheck->run();
+
+        if (! str_contains($importCheck->getOutput(), 'mineru_ok')) {
+            return response()->json([
+                'ok'     => false,
+                'step'   => 'import_failed',
+                'error'  => 'Could not import mineru. Run: pip install mineru[pipeline] inside your venv.',
+                'detail' => trim($importCheck->getErrorOutput()),
+            ], 422);
+        }
+
+        // 4. Check mineru CLI executable exists (no fake PDF needed)
+        $scriptsDir = dirname($python);
+        $mineruExe  = $scriptsDir . DIRECTORY_SEPARATOR .
+            (PHP_OS_FAMILY === 'Windows' ? 'mineru.exe' : 'mineru');
+
+        if (! file_exists($mineruExe)) {
+            return response()->json([
+                'ok'    => false,
+                'step'  => 'cli_missing',
+                'error' => "mineru executable not found at {$mineruExe}. Run: pip install mineru[pipeline]",
+            ], 422);
+        }
+
+        // 5. Run `mineru --version` — proves the CLI works without needing a real PDF
+        $versionCheck = new \Symfony\Component\Process\Process(
+            [$mineruExe, '--version'],
+            null, $this->pythonEnv(), null, 30
+        );
+        $versionCheck->run();
+
+        $versionOut = trim($versionCheck->getOutput() . $versionCheck->getErrorOutput());
+
+        // --version may exit non-zero on some builds but still print the version
+        if (empty($versionOut)) {
+            return response()->json([
+                'ok'    => false,
+                'step'  => 'cli_error',
+                'error' => 'mineru CLI did not respond.',
+            ], 422);
+        }
+
+        return response()->json([
+            'ok'      => true,
+            'message' => 'MinerU is installed and ready.',
+            'version' => $versionOut,
+            'python'  => $python,
+            'cli'     => $mineruExe,
         ]);
     }
 
     /**
-     * Normalize block content based on type
-     * Ensures JSON-encoded types have valid JSON strings
+     * Safe environment for Python subprocesses on Windows.
+     * Fixes: "Fatal Python error: _Py_HashRandomization_Init:
+     *         failed to get random numbers to initialize Python"
+     *
+     * Root cause: PHP's web-server process runs with a restricted environment.
+     * When Symfony Process spawns Python, it inherits that restricted env and
+     * Python can't call the Windows CryptGenRandom API to seed its hash.
+     * Passing PYTHONHASHSEED=0 bypasses that OS call entirely.
      */
-    private function normalizeBlockContent(string $type, $content): string
+    private function pythonEnv(): array
     {
-        // Types that MUST be valid JSON
-        $jsonTypes = ['table', 'graph', 'function', 'list', 'separator'];
+        // Merge everything PHP can see
+        $env = array_merge($_SERVER, $_ENV);
 
-        if (!in_array($type, $jsonTypes)) {
-            // Plain text types — return as-is
-            return is_string($content) ? $content : '';
-        }
-
-        // Already a string — try to parse and re-encode to ensure validity
-        if (is_string($content)) {
-            $decoded = json_decode($content, true);
-
-            // If valid JSON, re-encode to normalize (prevents double-encoding)
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return json_encode($decoded, JSON_UNESCAPED_UNICODE);
+        // Strip non-env keys injected by PHP/web server
+        foreach (array_keys($env) as $key) {
+            if (str_starts_with($key, 'HTTP_') ||
+                str_starts_with($key, 'DOCUMENT_') ||
+                in_array($key, ['argc', 'argv', 'REQUEST_URI', 'SCRIPT_NAME',
+                    'SCRIPT_FILENAME', 'QUERY_STRING'])) {
+                unset($env[$key]);
             }
-
-            // Invalid JSON string — try to fix or return default
-            return $this->getDefaultJsonContent($type);
         }
 
-        // Array or object — encode to JSON
-        if (is_array($content) || is_object($content)) {
-            return json_encode($content, JSON_UNESCAPED_UNICODE);
+        // Core fix: bypass OS random-number call on Windows
+        $env['PYTHONHASHSEED']   = '0';
+        // Unbuffered so stdout is readable immediately
+        $env['PYTHONUNBUFFERED'] = '1';
+        // Python on Windows needs SystemRoot for DLL resolution
+        if (PHP_OS_FAMILY === 'Windows') {
+            $env['SystemRoot'] ??= 'C:\\Windows';
+            $env['SYSTEMROOT'] ??= 'C:\\Windows';
         }
 
-        // Fallback for unexpected types
-        return $this->getDefaultJsonContent($type);
+        return $env;
     }
-
-    /**
-     * Get default JSON content for each structured type
-     */
-    private function getDefaultJsonContent(string $type): string
-    {
-        $defaults = [
-            'table' => json_encode([['Column 1', 'Column 2'], ['Data 1', 'Data 2']]),
-            'graph' => json_encode(['type' => 'line', 'labels' => [], 'data' => []]),
-            'function' => json_encode([
-                'function' => 'sin(x)',
-                'x_min' => -10,
-                'x_max' => 10,
-                'y_min' => -5,
-                'y_max' => 5,
-                'color' => '#4f46e5',
-                'step' => 0.1
-            ]),
-            'list' => json_encode(['style' => 'bullet', 'items' => []]),
-            'separator' => json_encode(['type' => 'divider']),
-        ];
-
-        return $defaults[$type] ?? json_encode([]);
-    }
-
 }

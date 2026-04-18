@@ -1825,4 +1825,154 @@
         });
     </script>--}}
 
+    <script>
+        /* ── Load marked.js (local vendor file or CDN fallback) ── */
+    </script>
+    <script src="{{ asset('vendors/marked.min.js') }}"
+            onerror="document.head.insertAdjacentHTML('beforeend',
+          '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
+    </script>
+
+    {{-- MathJax 3 — fully local config, no CDN calls --}}
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath:  [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            },
+            startup: { typeset: false },
+        };
+    </script>
+    <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
+            onerror="document.head.insertAdjacentHTML('beforeend',
+          '<script src=\'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\'><\/script>')">
+    </script>
+
+    <script>
+        // ── Markdown block tab switching ──────────────────────────────────────────────
+        function mbeSetTab(blockId, tab) {
+            const editPane    = document.getElementById('mbe-edit-'    + blockId);
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            const tabs        = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (tab === 'edit') {
+                editPane.style.display    = '';
+                previewPane.style.display = 'none';
+                tabs[0].classList.add('active');
+            } else {
+                editPane.style.display    = 'none';
+                previewPane.style.display = '';
+                tabs[1].classList.add('active');
+                mbeRenderPreview(blockId);
+            }
+        }
+
+        function mbeUpdatePreview(blockId) {
+            // Only re-render if the preview pane is visible
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            if (previewPane && previewPane.style.display !== 'none') {
+                mbeRenderPreview(blockId);
+            }
+        }
+
+        function mbeRenderPreview(blockId) {
+            const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            if (!textarea || !previewPane) return;
+
+            const md = textarea.value || '';
+
+            if (typeof marked !== 'undefined') {
+                previewPane.innerHTML = marked.parse(md);
+            } else {
+                // Fallback: basic newline-to-br if marked.js not loaded
+                previewPane.innerHTML = md.replace(/\n/g, '<br>');
+            }
+
+            // Re-typeset math
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([previewPane]).catch(console.warn);
+            }
+        }
+
+        // ── Convert panel ─────────────────────────────────────────────────────────────
+        let _convertBlockId   = null;
+        let _convertRawContent = '';
+
+        function openConvertPanel(blockId, rawContent) {
+            _convertBlockId    = blockId;
+            _convertRawContent = rawContent;
+
+            // Show snippet preview
+            const snippetEl = document.getElementById('convert-preview-snippet');
+            if (snippetEl) {
+                snippetEl.innerHTML = typeof marked !== 'undefined'
+                    ? marked.parse(rawContent)
+                    : rawContent.replace(/\n/g, '<br>');
+                if (window.MathJax && MathJax.typesetPromise) {
+                    MathJax.typesetPromise([snippetEl]).catch(console.warn);
+                }
+            }
+
+            document.getElementById('convert-status').style.display = 'none';
+            document.getElementById('convert-panel').style.display  = 'flex';
+        }
+
+        function closeConvertPanel() {
+            document.getElementById('convert-panel').style.display = 'none';
+            _convertBlockId    = null;
+            _convertRawContent = '';
+        }
+
+        async function doConvert(targetType) {
+            if (!_convertBlockId) return;
+
+            const statusEl = document.getElementById('convert-status');
+            statusEl.style.display = 'block';
+            statusEl.style.color   = 'var(--text-muted)';
+            statusEl.textContent   = 'Converting…';
+
+            try {
+                const res  = await fetch('{{ route("admin.ai.convert-block") }}', {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type':  'application/json',
+                        'Accept':        'application/json',
+                        'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ block_id: _convertBlockId, target_type: targetType }),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    statusEl.style.color = '#059669';
+                    statusEl.textContent = '✅ Converted to ' + targetType + '. Refreshing…';
+                    setTimeout(() => {
+                        closeConvertPanel();
+                        // Trigger Livewire re-fetch of the lesson (dispatches LessonChanged)
+                        window.dispatchEvent(new CustomEvent('refresh-blocks'));
+                        // If Livewire is available, call the component method directly
+                        if (window.Livewire) {
+                            Livewire.dispatch('refresh-blocks');
+                        }
+                        // Fallback: reload the page
+                        setTimeout(() => window.location.reload(), 800);
+                    }, 900);
+                } else {
+                    statusEl.style.color = '#dc2626';
+                    statusEl.textContent = '❌ ' + (data.error || data.message || 'Conversion failed');
+                }
+            } catch (e) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '❌ Network error: ' + e.message;
+            }
+        }
+    </script>
+
 @endsection
