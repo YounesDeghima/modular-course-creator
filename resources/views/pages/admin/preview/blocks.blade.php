@@ -119,6 +119,174 @@
             border: 1px solid var(--border, #e5e7eb);
         }
     </style>
+
+    <style>
+        /* ── Code Runner Block ── */
+        .code-runner-block {
+            margin: 1.5rem 0;
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0d1117;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        .crb-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .crb-lang-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #79c0ff;
+            background: #1f3548;
+            padding: 2px 8px;
+            border-radius: 4px;
+            letter-spacing: .05em;
+        }
+
+        .crb-ver-badge {
+            font-size: 11px;
+            color: #8b949e;
+            background: #21262d;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .crb-run-btn {
+            background: #238636;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            letter-spacing: .03em;
+        }
+        .crb-run-btn:hover { background: #2ea043; }
+        .crb-run-btn:disabled { background: #484f58; cursor: not-allowed; }
+
+        .crb-copy-btn {
+            background: transparent;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .crb-copy-btn:hover { color: #e6edf3; border-color: #8b949e; }
+
+        .crb-code-wrap {
+            overflow-x: auto;
+            padding: 16px;
+        }
+
+        .crb-pre {
+            margin: 0;
+            white-space: pre;
+            font-size: 13px;
+            line-height: 1.65;
+            color: #e6edf3;
+        }
+
+        /* ── Terminal ── */
+        .crb-terminal-wrap {
+            border-top: 1px solid #30363d;
+            background: #010409;
+        }
+
+        .crb-terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: #0d1117;
+            border-bottom: 1px solid #21262d;
+            font-size: 11px;
+            color: #8b949e;
+            letter-spacing: .05em;
+        }
+
+        .crb-clear-btn {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .crb-clear-btn:hover { color: #e6edf3; background: #21262d; }
+
+        .crb-output {
+            min-height: 80px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #e6edf3;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .crb-line-stdout { color: #e6edf3; }
+        .crb-line-stderr { color: #ff7b72; }
+        .crb-line-info   { color: #8b949e; font-style: italic; }
+        .crb-line-success{ color: #3fb950; }
+        .crb-line-stdin  { color: #79c0ff; }
+
+        .crb-stdin-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px 8px;
+            border-top: 1px solid #21262d;
+            background: #0d1117;
+        }
+
+        .crb-prompt { color: #3fb950; font-weight: bold; font-size: 14px; }
+
+        .crb-stdin-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #79c0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            caret-color: #3fb950;
+        }
+
+        .crb-send-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #8b949e;
+            cursor: pointer;
+            padding: 3px 8px;
+            font-size: 13px;
+        }
+        .crb-send-btn:hover { color: #e6edf3; }
+
+        .crb-status {
+            padding: 4px 14px 6px;
+            font-size: 11px;
+            color: #8b949e;
+            min-height: 20px;
+        }
+
+        .crb-spinner { display: inline-block; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 @endsection
 
 @section('progress-bar')
@@ -254,7 +422,65 @@
                             @break
 
                         @case('code')
-                            <pre><code>{{ $block->content }}</code></pre>
+                            @php
+                                $codeData = json_decode($block->content ?? '', true);
+                                if (!is_array($codeData)) {
+                                    $codeData = ['language' => 'javascript', 'version' => '*', 'code' => $block->content ?? ''];
+                                }
+                                $codeLang    = $codeData['language'] ?? 'javascript';
+                                $codeVersion = $codeData['version']  ?? '*';
+                                $codeBody    = $codeData['code']     ?? '';
+                            @endphp
+
+                            <div class="code-runner-block" data-block-id="{{ $block->id }}">
+
+                                {{-- Header bar --}}
+                                <div class="crb-header">
+                                    <span class="crb-lang-badge">{{ strtoupper($codeLang) }}</span>
+                                    <span class="crb-ver-badge">v{{ $codeVersion }}</span>
+                                    <div style="flex:1"></div>
+                                    <button class="crb-run-btn" onclick="crbRun({{ $block->id }})">
+                                        ▶ Run
+                                    </button>
+                                    <button class="crb-copy-btn" onclick="crbCopy({{ $block->id }})">Copy</button>
+                                </div>
+
+                                {{-- Code display (read-only, syntax highlighted) --}}
+                                <div class="crb-code-wrap">
+                                    <pre class="crb-pre"><code class="crb-code" data-block-id="{{ $block->id }}">{{ $codeBody }}</code></pre>
+                                </div>
+
+                                {{-- Terminal output area (hidden until first Run) --}}
+                                <div class="crb-terminal-wrap" id="crb-terminal-{{ $block->id }}" style="display:none;">
+
+                                    <div class="crb-terminal-header">
+                                        <span>▸ Terminal</span>
+                                        <button class="crb-clear-btn" onclick="crbClear({{ $block->id }})">Clear</button>
+                                    </div>
+
+                                    {{-- Output lines --}}
+                                    <div class="crb-output" id="crb-output-{{ $block->id }}"></div>
+
+                                    {{-- Stdin input row (shown only when program asks for input) --}}
+                                    <div class="crb-stdin-row" id="crb-stdin-row-{{ $block->id }}" style="display:none;">
+                                        <span class="crb-prompt">›</span>
+                                        <input
+                                            type="text"
+                                            class="crb-stdin-input"
+                                            id="crb-stdin-{{ $block->id }}"
+                                            placeholder="Type input and press Enter…"
+                                            onkeydown="if(event.key==='Enter') crbSendStdin({{ $block->id }})"
+                                            autocomplete="off"
+                                            spellcheck="false"
+                                        >
+                                        <button class="crb-send-btn" onclick="crbSendStdin({{ $block->id }})">↵</button>
+                                    </div>
+
+                                    {{-- Status bar --}}
+                                    <div class="crb-status" id="crb-status-{{ $block->id }}"></div>
+                                </div>
+
+                            </div>
                             @break
 
                         @case('exercise')
@@ -462,6 +688,253 @@
 @endsection
 
 @section('js')
+
+    <script>
+        // ─────────────────────────────────────────────────────────────
+        //  Code Runner Block — student-facing runtime
+        //
+        //  Strategy:
+        //  1. For programs that need NO stdin (most demos): single POST to /code/run
+        //  2. For programs with scanf/input(): we run in two passes —
+        //     first run collects prompts, then we ask for input,
+        //     then re-run with that stdin pre-loaded.
+        //
+        //  True PTY-level interactivity requires WebSockets + a server-side
+        //  process manager (Phase 2). This version handles 90% of cases
+        //  including scanf with pre-collected stdin.
+        // ─────────────────────────────────────────────────────────────
+
+        const _crbState = {};
+
+        function crbGetState(id) {
+            if (!_crbState[id]) {
+                _crbState[id] = {
+                    running:   false,
+                    stdinBuffer: [],
+                    stdinResolve: null,
+                };
+            }
+            return _crbState[id];
+        }
+
+        function crbPrintLine(id, text, cls = 'crb-line-stdout') {
+            const output = document.getElementById(`crb-output-${id}`);
+            if (!output) return;
+
+            const div = document.createElement('div');
+            div.className = cls;
+            div.textContent = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function crbSetStatus(id, text) {
+            const el = document.getElementById(`crb-status-${id}`);
+            if (el) el.innerHTML = text;
+        }
+
+        function crbShowTerminal(id) {
+            const wrap = document.getElementById(`crb-terminal-${id}`);
+            if (wrap) wrap.style.display = 'block';
+        }
+
+        function crbClear(id) {
+            const output = document.getElementById(`crb-output-${id}`);
+            if (output) output.innerHTML = '';
+            crbSetStatus(id, '');
+            const stdinRow = document.getElementById(`crb-stdin-row-${id}`);
+            if (stdinRow) stdinRow.style.display = 'none';
+        }
+
+        function crbCopy(id) {
+            const code = document.querySelector(`.crb-code[data-block-id="${id}"]`);
+            if (code) navigator.clipboard.writeText(code.innerText);
+        }
+
+        // Show stdin input and wait for user to press Enter
+        function crbRequestStdin(id, promptText) {
+            return new Promise(resolve => {
+                const state = crbGetState(id);
+                state.stdinResolve = resolve;
+
+                crbShowTerminal(id);
+                if (promptText) crbPrintLine(id, promptText, 'crb-line-info');
+
+                const row = document.getElementById(`crb-stdin-row-${id}`);
+                const inp = document.getElementById(`crb-stdin-${id}`);
+                if (row) row.style.display = 'flex';
+                if (inp) { inp.value = ''; inp.focus(); }
+            });
+        }
+
+        function crbSendStdin(id) {
+            const inp   = document.getElementById(`crb-stdin-${id}`);
+            const state = crbGetState(id);
+            const value = inp ? inp.value : '';
+
+            if (inp) inp.value = '';
+
+            // Echo what the user typed
+            crbPrintLine(id, '› ' + value, 'crb-line-stdin');
+
+            // Hide input row
+            const row = document.getElementById(`crb-stdin-row-${id}`);
+            if (row) row.style.display = 'none';
+
+            // Collect into buffer and resolve the promise
+            state.stdinBuffer.push(value);
+
+            if (state.stdinResolve) {
+                state.stdinResolve(value);
+                state.stdinResolve = null;
+            }
+        }
+
+        async function crbRun(id) {
+            const state = crbGetState(id);
+            if (state.running) return;
+
+            const codeEl = document.querySelector(`.crb-code[data-block-id="${id}"]`);
+            const blockEl = document.querySelector(`.code-runner-block[data-block-id="${id}"]`);
+            if (!codeEl || !blockEl) return;
+
+            // Grab language/version from badges
+            const lang    = blockEl.querySelector('.crb-lang-badge')?.textContent?.trim()?.toLowerCase() || 'javascript';
+            const verText = blockEl.querySelector('.crb-ver-badge')?.textContent?.trim() || '*';
+            const version = verText.startsWith('v') ? verText.slice(1) : verText;
+            const code    = codeEl.innerText;
+
+            // Find correct version from Piston runtimes
+            let resolvedVersion = version;
+            if (window._lessonRuntimes) {
+                const match = window._lessonRuntimes.find(r =>
+                    r.language.toLowerCase() === lang.toLowerCase()
+                );
+                if (match) resolvedVersion = match.version;
+            }
+
+            state.running = true;
+            state.stdinBuffer = [];
+            crbShowTerminal(id);
+            crbClear(id);
+
+            const runBtn = blockEl.querySelector('.crb-run-btn');
+            if (runBtn) runBtn.disabled = true;
+
+            crbPrintLine(id, `Running ${lang}…`, 'crb-line-info');
+            crbSetStatus(id, '<span class="crb-spinner">⟳</span> Executing…');
+
+            try {
+                // ── Phase 1: dry run with empty stdin to detect input prompts ──
+                const phase1 = await fetch('/code/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: JSON.stringify({
+                        language: lang,
+                        version:  resolvedVersion,
+                        code:     code,
+                        stdin:    '',
+                    }),
+                });
+                const result1 = await phase1.json();
+
+                // Compile error check
+                if (result1.compile?.code !== 0 && result1.compile?.stderr) {
+                    crbPrintLine(id, '── Compile Error ──', 'crb-line-info');
+                    result1.compile.stderr.split('\n').forEach(l => crbPrintLine(id, l, 'crb-line-stderr'));
+                    crbSetStatus(id, '✗ Compile error');
+                    return;
+                }
+
+                // If stdout contains text and no empty-stdin-caused crash, and program exited 0 → done
+                const needsInput = result1.code !== 0 || result1.stdout === '' || result1.stderr.includes('EOF');
+
+                if (!needsInput) {
+                    // Program ran fine without stdin
+                    if (result1.stdout) {
+                        result1.stdout.split('\n').forEach(l => crbPrintLine(id, l, 'crb-line-stdout'));
+                    }
+                    if (result1.stderr) {
+                        result1.stderr.split('\n').forEach(l => crbPrintLine(id, l, 'crb-line-stderr'));
+                    }
+                    const exitColor = result1.code === 0 ? 'crb-line-success' : 'crb-line-stderr';
+                    crbPrintLine(id, `── Exited with code ${result1.code} ──`, exitColor);
+                    crbSetStatus(id, result1.code === 0 ? '✓ Done' : `✗ Exit code ${result1.code}`);
+                    return;
+                }
+
+                // ── Phase 2: program needs stdin — collect input from user ──
+                // Show any stdout the program printed before blocking
+                if (result1.stdout) {
+                    result1.stdout.split('\n').forEach(l => {
+                        if (l.trim()) crbPrintLine(id, l, 'crb-line-stdout');
+                    });
+                }
+
+                // Estimate how many stdin lines needed by counting common prompt patterns
+                const promptCount = Math.max(1,
+                    (result1.stdout.match(/[:?]\s*$/gm) || []).length
+                );
+
+                const stdinLines = [];
+                for (let i = 0; i < promptCount; i++) {
+                    const promptLine = result1.stdout.split('\n').filter(l => l.trim())[i] || 'Input:';
+                    const val = await crbRequestStdin(id, i === 0 ? null : promptLine);
+                    stdinLines.push(val);
+                }
+
+                crbPrintLine(id, '', 'crb-line-info'); // blank line separator
+                crbSetStatus(id, '<span class="crb-spinner">⟳</span> Re-running with input…');
+
+                // ── Phase 3: re-run with collected stdin ──
+                const phase3 = await fetch('/code/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: JSON.stringify({
+                        language: lang,
+                        version:  resolvedVersion,
+                        code:     code,
+                        stdin:    stdinLines.join('\n'),
+                    }),
+                });
+                const result3 = await phase3.json();
+
+                if (result3.stdout) {
+                    result3.stdout.split('\n').forEach(l => crbPrintLine(id, l, 'crb-line-stdout'));
+                }
+                if (result3.stderr) {
+                    result3.stderr.split('\n').forEach(l => crbPrintLine(id, l, 'crb-line-stderr'));
+                }
+
+                const exitColor3 = result3.code === 0 ? 'crb-line-success' : 'crb-line-stderr';
+                crbPrintLine(id, `── Exited with code ${result3.code} ──`, exitColor3);
+                crbSetStatus(id, result3.code === 0 ? '✓ Done' : `✗ Exit code ${result3.code}`);
+
+            } catch (e) {
+                crbPrintLine(id, 'Error: ' + e.message, 'crb-line-stderr');
+                crbSetStatus(id, '✗ Network error');
+            } finally {
+                state.running = false;
+                if (runBtn) runBtn.disabled = false;
+            }
+        }
+
+        // ── Pre-load runtimes for lesson page (for version resolution) ──
+        (async () => {
+            try {
+                const res  = await fetch('/code/runtimes');
+                const data = await res.json();
+                if (Array.isArray(data)) window._lessonRuntimes = data;
+            } catch {}
+        })();
+    </script>
+
 
 
 

@@ -37,7 +37,7 @@ class AIController extends Controller
                 'format' => 'json',
             ]);
             if ($response->failed()) {
-                return response()->json(['error' => 'Ollama did not respond. Is it running on port 11434?'], 502);
+                return response()->json(['error' => 'Ollama did not respond'], 502);
             }
             return response()->json(['ok' => true, 'message' => 'Ollama (phi4) is reachable!', 'raw' => $response->json()]);
         } catch (\Exception $e) {

@@ -184,3 +184,18 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 
         });});
 
+
+Route::middleware(['auth', updateLastSeen::class])->group(function () {
+    // Code execution (used by both lesson blocks and codeeditor page)
+    Route::post('/code/run',    [CodeRunnerController::class, 'run'])->name('code.run');
+    Route::get('/code/runtimes', [CodeRunnerController::class, 'runtimes'])->name('code.runtimes');
+
+    // Code editor page
+    Route::get('/codeeditor',   [CodeRunnerController::class, 'editorPage'])->name('codeeditor');
+
+    // Session history (codeeditor saves)
+    Route::post('/codeeditor/save',           [CodeRunnerController::class, 'saveSession'])->name('codeeditor.save');
+    Route::get('/codeeditor/history',         [CodeRunnerController::class, 'history'])->name('codeeditor.history');
+    Route::delete('/codeeditor/history/{id}', [CodeRunnerController::class, 'deleteSession'])->name('codeeditor.session.delete');
+});
+

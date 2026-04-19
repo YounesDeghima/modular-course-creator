@@ -102,7 +102,11 @@ new class extends Component {
             'header'      => 'New Heading',
             'description' => 'New paragraph text.',
             'note'        => 'Add your note here.',
-            'code'        => '// code here',
+            'code' => json_encode([
+                'language' => 'javascript',
+                'version'  => '*',
+                'code'     => '// code here',
+            ]),
             'math'        => '\text{expression}',
             'exercise'    => 'Solve the following...',
             'ext'         => '<p></p>',

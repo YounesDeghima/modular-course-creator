@@ -142,10 +142,21 @@ class blockcontroller extends Controller
                     $content = json_encode([
                         'type' => $data['separator_type'] ?? 'divider',
                     ]);
-                }else {
+                } elseif ($type === 'code') {
+                    // Parse JSON code block; rebuild if needed
+                    $rawContent = trim($data['content'] ?? '');
+                    $decoded    = json_decode($rawContent, true);
+                    if (is_array($decoded) && isset($decoded['code'])) {
+                        $content = $rawContent;
+                    } else {
+                        $content = json_encode([
+                            'language' => $data['language'] ?? 'javascript',
+                            'version'  => $data['version']  ?? '*',
+                            'code'     => $rawContent,
+                        ]);
+                    }
+                } else {
                     // For photo/video: content field already holds the storage path
-                    // (uploaded eagerly via uploadMedia endpoint)
-                    // For text types: content field holds the text
                     $content = trim($data['content'] ?? '');
                 }
 
@@ -241,8 +252,24 @@ class blockcontroller extends Controller
             $validated['content'] = json_encode([
                 'type' => $request->input('separator_type', 'divider'),
             ]);
+
+        } elseif ($request->type === 'code') {
+            // New JSON format: { language, version, code }
+            // Backward compat: if plain string sent, wrap it
+            $rawContent = $request->input('content', '');
+            $decoded    = json_decode($rawContent, true);
+            if (is_array($decoded) && isset($decoded['code'])) {
+                $validated['content'] = $rawContent; // already JSON
+            } else {
+                $validated['content'] = json_encode([
+                    'language' => $request->input('language', 'javascript'),
+                    'version'  => $request->input('version', '*'),
+                    'code'     => $rawContent,
+                ]);
+            }
+
         } else {
-            // Covers: header, description, note, exercise, code, math, ext, markdown
+            // Covers: header, description, note, exercise, math, ext, markdown
             $validated['content'] = $request->input('content', '');
         }
 

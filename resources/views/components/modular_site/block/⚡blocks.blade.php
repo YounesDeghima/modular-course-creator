@@ -361,10 +361,67 @@ new class extends Component {
                         @case('description')
                         @case('note')
                         @case('code')
-                            <textarea class="input-ghost content-style" name="blocks[{{ $block['id'] }}][content]"
-                                      rows="1"
-                                      oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"
-                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                            @php
+                                // Parse JSON content — backward compat: old plain-string code treated as JS
+                                $codeData = json_decode($block['content'] ?? '', true);
+                                if (!is_array($codeData)) {
+                                    $codeData = ['language' => 'javascript', 'version' => '*', 'code' => $block['content'] ?? ''];
+                                }
+                                $codeLang    = $codeData['language'] ?? 'javascript';
+                                $codeVersion = $codeData['version']  ?? '*';
+                                $codeBody    = $codeData['code']     ?? '';
+                            @endphp
+
+                            <div class="code-block-editor" data-block-id="{{ $block['id'] }}">
+
+                                {{-- Language + version selector row --}}
+                                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                                    <select
+                                        class="code-lang-select mini-type-select"
+                                        data-block-id="{{ $block['id'] }}"
+                                        style="flex:1;min-width:160px;"
+                                        onchange="codeBlockLangChange({{ $block['id'] }}, this.value)"
+                                    >
+                                        <option value="">⏳ Loading languages…</option>
+                                    </select>
+
+                                    <select
+                                        class="code-ver-select mini-type-select"
+                                        data-block-id="{{ $block['id'] }}"
+                                        style="width:120px;"
+                                        onchange="codeBlockVerChange({{ $block['id'] }}, this.value)"
+                                    >
+                                        <option value="{{ $codeVersion }}">{{ $codeVersion }}</option>
+                                    </select>
+
+                                    <span style="font-size:11px;color:var(--text-faint);">
+                Language · Version
+            </span>
+                                </div>
+
+                                {{-- Code textarea (teacher writes locked code here) --}}
+                                <textarea
+                                    class="input-ghost content-style code-block-textarea"
+                                    data-block-id="{{ $block['id'] }}"
+                                    rows="8"
+                                    spellcheck="false"
+                                    placeholder="Write code here. Students will see this as read-only and can run it."
+                                    style="font-family:'JetBrains Mono',monospace;font-size:13px;tab-size:4;"
+                                    oninput="codeBlockContentChange({{ $block['id'] }}, this.value)"
+                                >{{ $codeBody }}</textarea>
+
+                                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
+                                    🔒 Students cannot edit this code — they can only Run it and interact with the terminal below.
+                                </small>
+
+                                {{-- Hidden input holds JSON for Livewire + form submit --}}
+                                <input type="hidden"
+                                       name="blocks[{{ $block['id'] }}][content]"
+                                       class="code-block-json-hidden"
+                                       data-block-id="{{ $block['id'] }}"
+                                       wire:model="blocks.{{ $loop->index }}.content"
+                                       value="{{ e($block['content']) }}">
+                            </div>
                             @break
 
                         @case('exercise')
@@ -840,3 +897,114 @@ new class extends Component {
     });
 
 </script>
+
+<script>
+    // ── Code block state per block id ──
+    window._codeBlockState = window._codeBlockState || {};
+
+    function codeBlockGetState(id) {
+        if (!window._codeBlockState[id]) {
+            window._codeBlockState[id] = { language: 'javascript', version: '*', code: '' };
+        }
+        return window._codeBlockState[id];
+    }
+
+    function codeBlockWriteHidden(id) {
+        const state = codeBlockGetState(id);
+        const json  = JSON.stringify({ language: state.language, version: state.version, code: state.code });
+        const hidden = document.querySelector(`.code-block-json-hidden[data-block-id="${id}"]`);
+        if (hidden) {
+            hidden.value = json;
+            // Sync to Livewire if possible
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    function codeBlockLangChange(id, lang) {
+        const state = codeBlockGetState(id);
+        state.language = lang;
+
+        // Find the matching version options from cached runtimes
+        const versions = (window._pistonRuntimes || [])
+            .filter(r => r.language === lang)
+            .map(r => r.version);
+
+        const verSelect = document.querySelector(`.code-ver-select[data-block-id="${id}"]`);
+        if (verSelect) {
+            verSelect.innerHTML = versions.map(v => `<option value="${v}">${v}</option>`).join('');
+            state.version = versions[0] || '*';
+        }
+
+        codeBlockWriteHidden(id);
+    }
+
+    function codeBlockVerChange(id, ver) {
+        codeBlockGetState(id).version = ver;
+        codeBlockWriteHidden(id);
+    }
+
+    function codeBlockContentChange(id, code) {
+        codeBlockGetState(id).code = code;
+        codeBlockWriteHidden(id);
+    }
+
+    // ── Load runtimes from Piston and populate all language selects ──
+    async function loadPistonRuntimes() {
+        try {
+            const res  = await fetch('/code/runtimes');
+            const data = await res.json();
+
+            if (!Array.isArray(data)) return;
+            window._pistonRuntimes = data;
+
+            // Group by language — keep latest version per language
+            const langMap = {};
+            data.forEach(r => {
+                if (!langMap[r.language]) langMap[r.language] = r.version;
+            });
+
+            document.querySelectorAll('.code-lang-select').forEach(sel => {
+                const blockId      = parseInt(sel.dataset.blockId);
+                const hidden       = document.querySelector(`.code-block-json-hidden[data-block-id="${blockId}"]`);
+                const currentState = (() => {
+                    try { return JSON.parse(hidden?.value || '{}'); } catch { return {}; }
+                })();
+                const currentLang = currentState.language || 'javascript';
+                const currentVer  = currentState.version  || '*';
+
+                // Initialise state
+                const state = codeBlockGetState(blockId);
+                state.language = currentLang;
+                state.version  = currentVer;
+                state.code     = currentState.code || '';
+
+                // Populate textarea
+                const ta = document.querySelector(`.code-block-textarea[data-block-id="${blockId}"]`);
+                if (ta && state.code) ta.value = state.code;
+
+                // Build <option> list
+                sel.innerHTML = Object.keys(langMap)
+                    .sort()
+                    .map(lang => `<option value="${lang}" ${lang === currentLang ? 'selected' : ''}>${lang}</option>`)
+                    .join('');
+
+                // Populate version select for current lang
+                const verSelect = document.querySelector(`.code-ver-select[data-block-id="${blockId}"]`);
+                if (verSelect) {
+                    const versions = data.filter(r => r.language === currentLang).map(r => r.version);
+                    verSelect.innerHTML = versions
+                        .map(v => `<option value="${v}" ${v === currentVer ? 'selected' : ''}>${v}</option>`)
+                        .join('');
+                }
+            });
+
+        } catch (e) {
+            console.warn('Piston not reachable:', e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPistonRuntimes);
+    document.addEventListener('livewire:navigated', loadPistonRuntimes);
+    document.addEventListener('livewire:update', () => setTimeout(loadPistonRuntimes, 200));
+</script>
+
