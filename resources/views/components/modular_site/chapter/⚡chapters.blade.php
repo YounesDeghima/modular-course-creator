@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\chapter;
+use App\Models\lesson;
 use Livewire\Component;
 
 new class extends Component {
@@ -11,22 +12,23 @@ new class extends Component {
     public $currentChapter;
     public $currentLesson;
 
-    protected $listeners = ['chapterCreated' => 'addChapter' ,
-                            'ChapterUpdated'=>'updateChapter',
-                            'ChapterDeleted'=>'deleteChapter'];
+    protected $listeners = ['chapterCreated' => 'addChapter',
+        'ChapterUpdated' => 'updateChapter',
+        'ChapterDeleted' => 'deleteChapter'];
 
-    public function mount($course,$chapters,$chapter,$lesson)
+    public function mount($course, $chapters, $chapter, $lesson)
     {
         $this->allPublished = $this->chapters->where('status', '=', 'draft')->count() === 0;
         $this->course = $course;
         $this->chapters = $chapters;
         $this->currentChapter = $chapter;
-        $this->currentLesson  = $lesson;
+        $this->currentLesson = $lesson;
 
     }
 
-    public function refreshChapters(){
-        $this->chapters = chapter::where('course_id','=',$this->course->id)->orderBy('chapter_number')->get();
+    public function refreshChapters()
+    {
+        $this->chapters = chapter::where('course_id', '=', $this->course->id)->orderBy('chapter_number')->get();
     }
 
     public function addChapter(int $id)
@@ -40,14 +42,17 @@ new class extends Component {
         $this->refreshChapters();
     }
 
-    public function toggleLessons($chapterId){
+    public function toggleLessons($chapterId)
+    {
         if (in_array($chapterId, $this->openChapters)) {
             $this->openChapters = array_diff($this->openChapters, [$chapterId]);
         } else {
             $this->openChapters[] = $chapterId;
         }
     }
-    public function updateChapter($id){
+
+    public function updateChapter($id)
+    {
         $updatedChapter = \App\Models\Chapter::find($id);
 
         if ($updatedChapter) {
@@ -60,14 +65,16 @@ new class extends Component {
 
     }
 
-    public function deleteChapter($id){
+    public function deleteChapter($id)
+    {
         $this->chapters = $this->chapters->reject(function ($chapter) use ($id) {
             return $chapter->id === $id;
         });
         $this->refreshChapters();
     }
 
-    public function togglestatus($id){
+    public function togglestatus($id)
+    {
         $chapter = chapter::findOrFail($id);
         $newStatus = ($chapter->status === 'published') ? 'draft' : 'published';
         $chapter->update(['status' => $newStatus]);
@@ -84,30 +91,33 @@ new class extends Component {
         $this->allPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
     }
 
-    public function updateMasterToggle(){
-        $this->allPublished =$this->chapters->where('status','=','draft')->count()===0;
+    public function updateMasterToggle()
+    {
+        $this->allPublished = $this->chapters->where('status', '=', 'draft')->count() === 0;
     }
 
-    public function masterToggle(){
+    public function masterToggle()
+    {
 
         $isAllPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
+        $chapterIds = $this->chapters->pluck('id');
+        $newStatus  = $isAllPublished ? 'draft' : 'published';
 
-        if ($isAllPublished) {
-            // Use the Model Query, not the collection, to avoid the Exception
-            chapter::whereIn('id', $this->chapters->pluck('id'))->update(['status' => 'draft']);
-        } else {
-            chapter::whereIn('id', $this->chapters->pluck('id'))->update(['status' => 'published']);
-        }
+        lesson::whereIn('chapter_id', $chapterIds)->update(['status' => $newStatus]);
+
+
+        chapter::whereIn('id', $chapterIds)->update(['status' => $newStatus]);
 
         // Refresh the local collection and the toggle state
         $this->chapters = chapter::where('course_id', $this->course->id)->get();
         $this->allPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
 
+        $this->dispatch('masterToggle');
+
     }
 
 };
 ?>
-
 
 
 <div>
@@ -126,7 +136,9 @@ new class extends Component {
     </div>
     @if($chapters)
         @foreach($chapters as $chapter)
-            <div class="chapter-group" x-data="{open : false,open_update_modal : false,open_lesson_update_modal:false,openLessonModalId:null}" wire:key="chapter-{{ $chapter->id }}">
+            <div class="chapter-group"
+                 x-data="{open : false,open_update_modal : false,open_lesson_update_modal:false,openLessonModalId:null}"
+                 wire:key="chapter-{{ $chapter->id }}">
 
                 <div class="chapter-header" @click="open=!open">
                     <div class="header-left">
@@ -153,13 +165,9 @@ new class extends Component {
                 <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson"/>
 
 
-
-
-
                 <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter"/>
 
             </div>
-
 
         @endforeach
     @else

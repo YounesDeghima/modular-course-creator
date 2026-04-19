@@ -11,7 +11,8 @@ new class extends Component {
 
     public $listeners = ['lessonCreated' => 'addLesson',
                          'LessonUpdated' => 'UpdateLesson',
-                         'LessonDeleted' => 'DeleteLesson'];
+                         'LessonDeleted' => 'DeleteLesson',
+                         'masterToggle' => 'refreshlessons'];
 
     public $allPublished;
 
