@@ -1,4 +1,4 @@
-@extends('layouts.edditor')
+@extends('layouts.calendar')
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -12,32 +12,33 @@
     </style>
 @endsection
 
-@section('sidebar-elements')
+{{--@section('sidebar-elements')
     <livewire:calendar.eventcreate/>
-@endsection
+@endsection--}}
 
 @section('main')
 <livewire:calendar.calendar/>
 @endsection
 
+
+
+
+
 @section('js')
     {{--<script>
-
-
-
-        window.CAL_EVENTS   = @json($events);
         window.CAL_IS_ADMIN = true;
 
-        // document.addEventListener('DOMContentLoaded', () => {
-        //     // Set default CSRF header
-        //     axios.defaults.headers.common['X-CSRF-TOKEN'] =
-        //         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        //
-        //     // Initial render
-        //     render();
-        // });
+        window.CAL_IS_ADMIN = true;
 
+        document.addEventListener('livewire:updated', () => {
+            console.log('livewire updated, CAL_EVENTS:', window.CAL_EVENTS);
+            if (typeof render === 'function') render();
+        });
     </script>
-    <script src="{{ asset('js/axios.min.js') }}"></script>--}}
-    {{--<script src="{{ asset('js/calendar.js') }}"></script>--}}
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="{{ asset('js/calendar.js') }}"></script>--}}
 @endsection
+
+
+
+

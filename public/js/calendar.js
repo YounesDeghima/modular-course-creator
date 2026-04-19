@@ -73,19 +73,16 @@ document.querySelectorAll('.type-filter').forEach(el => {
 });
 
 // ── Modal open/close ──
-document.getElementById('cal-add-btn').addEventListener('click', () => openModal());
-document.getElementById('cal-modal-close').addEventListener('click', closeModal);
-document.getElementById('cal-cancel-btn').addEventListener('click', closeModal);
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
 
 // Visibility selector
-document.querySelectorAll('.vis-opt').forEach(opt => {
+/*document.querySelectorAll('.vis-opt').forEach(opt => {
     opt.addEventListener('click', () => {
         document.querySelectorAll('.vis-opt').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         fVis.value = opt.dataset.val;
     });
-});
+});*/
 
 function openModal(event = null) {
     editingId = event ? event.id : null;
@@ -114,7 +111,7 @@ function openModal(event = null) {
 function closeModal() { modal.classList.remove('open'); editingId = null; }
 
 // ── Submit ──
-document.getElementById('cal-submit-btn').addEventListener('click', async () => {
+/*document.getElementById('cal-submit-btn').addEventListener('click', async () => {
     const payload = {
         title:       fTitle.value.trim(),
         description: fDesc.value.trim(),
@@ -145,7 +142,7 @@ document.getElementById('cal-submit-btn').addEventListener('click', async () => 
     } catch (err) {
         alert(err.response?.data?.message || 'Error saving event.');
     }
-});
+});*/
 
 // ── Delete ──
 if (deleteBtn) {
@@ -177,6 +174,14 @@ function dateStr(y,m,d) { return `${y}-${pad(m+1)}-${pad(d)}`; }
 
 // ── Render ──
 function render() {
+    events = window.CAL_EVENTS || [];
+
+    // Re-grab DOM refs every render (Livewire may have replaced them)
+    const monthView  = document.getElementById('month-view');
+    const weekView   = document.getElementById('week-view');
+    const agendaView = document.getElementById('agenda-view');
+    const monthTitle = document.getElementById('cal-month-title');
+
     const today = new Date();
     const todayStr = dateStr(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -203,6 +208,8 @@ function render() {
 }
 
 function renderMonth(todayStr) {
+    const daysGrid = document.getElementById('days-grid');
+
     const year  = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const first = new Date(year, month, 1).getDay();
@@ -266,6 +273,9 @@ function makeCell(day, ds, todayStr, otherMonth) {
 }
 
 function renderWeek(todayStr) {
+    const weekGrid   = document.getElementById('week-grid');
+    const monthTitle = document.getElementById('cal-month-title');
+
     const wd  = currentDate.getDay();
     const mon = new Date(currentDate);
     mon.setDate(currentDate.getDate() - wd);
@@ -326,6 +336,10 @@ function renderWeek(todayStr) {
 }
 
 function renderAgenda(todayStr) {
+
+    const agendaList = document.getElementById('agenda-list');
+
+
     agendaList.innerHTML = '';
 
     const sorted = filteredEvents()
@@ -379,6 +393,9 @@ function renderAgenda(todayStr) {
 }
 
 function renderUpcoming(todayStr) {
+
+    const upcomingList = document.getElementById('upcoming-list');
+
     upcomingList.innerHTML = '';
     const next5 = filteredEvents()
         .filter(e => (e.end_date || e.start_date).substring(0,10) >= todayStr)

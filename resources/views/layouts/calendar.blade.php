@@ -56,27 +56,8 @@
         </div>
     </nav>
 </header>
-<div class="middle">
-    <div class="side-bar">
 
-        <button class="sidebar-toggle" id="sidebarToggle">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-            </svg>
-        </button>
-
-        <div class="sidebar-content">
-            @yield('sidebar-elements')
-        </div>
-
-    </div>
-    <main>
-        @yield('navigation')
-        @yield('main')
-    </main>
-</div>
+@yield("main")
 
 
 
@@ -119,23 +100,23 @@
     });
 
 
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
-        // Restore saved preference
-        if (localStorage.getItem('theme') === 'dark') {
+    // Restore saved preference
+    if (localStorage.getItem('theme') === 'dark') {
         html.setAttribute('data-theme', 'dark');
     }
 
-        themeToggle.addEventListener('click', () => {
+    themeToggle.addEventListener('click', () => {
         const isDark = html.getAttribute('data-theme') === 'dark';
         if (isDark) {
-        html.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
-    } else {
-        html.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-    }
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
     });
 </script>
 
