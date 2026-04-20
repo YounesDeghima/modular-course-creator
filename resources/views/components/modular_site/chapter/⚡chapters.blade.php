@@ -115,6 +115,8 @@ new class extends Component {
     </div>
 
     {{-- ── Chapter list ── --}}
+
+
     @forelse($chapters as $chapter)
         @php $isActive = $currentChapter && $currentChapter->id === $chapter->id; @endphp
         <div
@@ -163,6 +165,8 @@ new class extends Component {
             <p>No chapters yet.</p>
         </div>
     @endforelse
+
+
 
 </div>
 
