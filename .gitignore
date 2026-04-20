@@ -22,3 +22,28 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Python virtual environments
+**/scripts/.venv/
+**/venv/
+.venv/
+
+**/scripts/.ven/
+**/ven/
+.ven/
+
+# Python cache and metadata
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# MinerU / AI Model specific
+**/magic-pdf.json
+**/models/
+**/output/
+/storage/app/private/ai_uploads/*

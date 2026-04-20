@@ -41,6 +41,37 @@
             to { transform: rotate(360deg); }
         }
 
+        .toolbar-save-container {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
+            background: var(--bg);
+            padding-bottom: 4px;
+        }
+
+        .btn-save-all {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-save-all:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-save-all.unsaved { background: #f59e0b; }
+        .btn-save-all.saved { background: #22c55e; }
+
     </style>
 @endsection
 
@@ -55,14 +86,8 @@
 
 
     @fragment('main-content')
-        <div class="blocks-wrapper">
-
-            <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
-
-
-
-            <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
-        </div>
+        <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
+        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
 
         <div id="block-popup" class="modal-overlay">
             <div class="modal-content">
@@ -158,6 +183,15 @@
     @endfragment
 @endsection
 
+@section('right-sidebar')
+    <livewire:modular_site.block.lesson-toolbar
+        :lesson="$lesson"
+        :course="$course"
+        :chapter="$chapter"
+        :blocks="$blocks" />
+    <livewire:modular_site.block.blockcreate :lesson="$lesson" />
+@endsection
+
 @section('sidebar-elements')
 
 
@@ -181,7 +215,11 @@
     <script src="{{ asset('js/function.js') }}"></script>
 
 
+
+
     <script>
+
+
 
 
         // Helper function to update hidden input
@@ -221,5 +259,165 @@
         });
     </script>
 
+
+    <script>
+        /* ── Load marked.js (local vendor file or CDN fallback) ── */
+    </script>
+    <script src="{{ asset('vendors/marked.min.js') }}"
+            onerror="document.head.insertAdjacentHTML('beforeend',
+          '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
+    </script>
+
+    {{-- MathJax 3 — fully local config, no CDN calls --}}
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath:  [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            },
+            startup: { typeset: false },
+        };
+    </script>
+    <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
+            onerror="document.head.insertAdjacentHTML('beforeend',
+          '<script src=\'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\'><\/script>')">
+    </script>
+
+    <script>
+        // ── Markdown block tab switching ──────────────────────────────────────────────
+        function mbeSetTab(blockId, tab) {
+            const editPane    = document.getElementById('mbe-edit-'    + blockId);
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            const tabs        = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (tab === 'edit') {
+                editPane.style.display    = '';
+                previewPane.style.display = 'none';
+                tabs[0].classList.add('active');
+            } else {
+                editPane.style.display    = 'none';
+                previewPane.style.display = '';
+                tabs[1].classList.add('active');
+                mbeRenderPreview(blockId);
+            }
+        }
+
+        function mbeUpdatePreview(blockId) {
+            // Only re-render if the preview pane is visible
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            if (previewPane && previewPane.style.display !== 'none') {
+                mbeRenderPreview(blockId);
+            }
+        }
+
+        function mbeRenderPreview(blockId) {
+            const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
+            const previewPane = document.getElementById('mbe-preview-' + blockId);
+            if (!textarea || !previewPane) return;
+
+            const md = textarea.value || '';
+
+            if (typeof marked !== 'undefined') {
+                previewPane.innerHTML = marked.parse(md);
+            } else {
+                // Fallback: basic newline-to-br if marked.js not loaded
+                previewPane.innerHTML = md.replace(/\n/g, '<br>');
+            }
+
+            // Re-typeset math
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([previewPane]).catch(console.warn);
+            }
+        }
+
+        // ── Convert panel ─────────────────────────────────────────────────────────────
+        let _convertBlockId   = null;
+        let _convertRawContent = '';
+
+        function openConvertPanel(blockId, rawContent) {
+            _convertBlockId    = blockId;
+            _convertRawContent = rawContent;
+
+            // Show snippet preview
+            const snippetEl = document.getElementById('convert-preview-snippet');
+            if (snippetEl) {
+                snippetEl.innerHTML = typeof marked !== 'undefined'
+                    ? marked.parse(rawContent)
+                    : rawContent.replace(/\n/g, '<br>');
+                if (window.MathJax && MathJax.typesetPromise) {
+                    MathJax.typesetPromise([snippetEl]).catch(console.warn);
+                }
+            }
+
+            document.getElementById('convert-status').style.display = 'none';
+            document.getElementById('convert-panel').style.display  = 'flex';
+        }
+
+        function closeConvertPanel() {
+            document.getElementById('convert-panel').style.display = 'none';
+            _convertBlockId    = null;
+            _convertRawContent = '';
+        }
+
+        async function doConvert(targetType) {
+            if (!_convertBlockId) return;
+
+            const statusEl = document.getElementById('convert-status');
+            statusEl.style.display = 'block';
+            statusEl.style.color   = 'var(--text-muted)';
+            statusEl.textContent   = 'Converting…';
+
+            // Safely grab CSRF token — the edditor layout now includes the meta tag
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.content : (document.querySelector('input[name="_token"]')?.value ?? '');
+
+            if (!csrfToken) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '❌ CSRF token missing. Please reload the page.';
+                return;
+            }
+
+            try {
+                const res  = await fetch('{{ route("admin.ai.convert-block") }}', {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type':  'application/json',
+                        'Accept':        'application/json',
+                        'X-CSRF-TOKEN':  csrfToken,
+                    },
+                    body: JSON.stringify({ block_id: _convertBlockId, target_type: targetType }),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    statusEl.style.color = '#059669';
+                    statusEl.textContent = '✅ Converted to ' + targetType + '. Refreshing…';
+                    setTimeout(() => {
+                        closeConvertPanel();
+                        // Dispatch to Livewire blocks component to reload
+                        if (window.Livewire) {
+                            Livewire.dispatch('LessonChanged', {
+                                id: data.block?.lesson_id ?? null,
+                                chapterId: null
+                            });
+                        }
+                        setTimeout(() => window.location.reload(), 600);
+                    }, 700);
+                } else {
+                    statusEl.style.color = '#dc2626';
+                    statusEl.textContent = '❌ ' + (data.error || data.message || 'Conversion failed');
+                }
+            } catch (e) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '❌ Network error: ' + e.message;
+            }
+        }
+    </script>
 
 @endsection

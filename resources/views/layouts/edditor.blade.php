@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
@@ -29,6 +30,10 @@
             <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
             <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>
             <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
+            <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
+                ✨ AI Generator
+            </a>
+
         </div>
 
         <div class="nav-right">
@@ -76,6 +81,11 @@
         @yield('navigation')
         @yield('main')
     </main>
+    @hasSection('right-sidebar')
+        <div class="right-side-bar">
+            @yield('right-sidebar')
+        </div>
+    @endif
 </div>
 
 
@@ -119,23 +129,23 @@
     });
 
 
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
-        // Restore saved preference
-        if (localStorage.getItem('theme') === 'dark') {
+    // Restore saved preference
+    if (localStorage.getItem('theme') === 'dark') {
         html.setAttribute('data-theme', 'dark');
     }
 
-        themeToggle.addEventListener('click', () => {
+    themeToggle.addEventListener('click', () => {
         const isDark = html.getAttribute('data-theme') === 'dark';
         if (isDark) {
-        html.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
-    } else {
-        html.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-    }
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
     });
 </script>
 
