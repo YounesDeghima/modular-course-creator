@@ -260,7 +260,7 @@ body, main, .side-bar {
 /* ── Breadcrumb ── */
 .route-header {
     margin-bottom: 20px;
-    padding-bottom: 14px;
+    padding: 20px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -1061,3 +1061,6 @@ textarea{
     border-top: 1px solid var(--border);
     opacity: 0.6;
 }
+
+
+
