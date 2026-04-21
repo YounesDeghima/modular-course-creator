@@ -511,7 +511,7 @@
     flex: 1;
 }
 #block-popup {
-    display: none;
+
     flex-direction: column;
     gap: 12px;
     background: var(--bg);

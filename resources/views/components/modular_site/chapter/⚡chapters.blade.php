@@ -91,84 +91,115 @@ new class extends Component {
     }
 };
 ?>
+<div>
 
-<div class="chapters-panel">
+    <div class="chapters-panel">
 
-    {{-- ── Master toggle ── --}}
-    <div class="panel-toolbar">
+
+        <div>
+
+        </div>
+
+        {{-- ── Master toggle ── --}}
+        <div class="panel-toolbar">
+            @placeholder
+            <div>
+                <div class="panel-toolbar">
+                    <div style="width: 60px; height: 12px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
+                    <div style="width: 80px; height: 24px; background: var(--border); border-radius: 6px; animation: pulse 2s infinite;"></div>
+                </div>
+
+                @foreach(range(1, 5) as $i)
+                    <div class="chapter-header" style="border-bottom: 1px solid var(--border-mid); pointer-events: none;">
+                        <div class="header-left">
+                            <div style="width: 10px; height: 10px; background: var(--border); border-radius: 2px;"></div>
+                            <div style="width: 25px; height: 18px; background: var(--border); border-radius: 4px;"></div>
+                            <div style="width: 120px; height: 14px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
+                        </div>
+                        <div class="header-right">
+                            <div style="width: 60px; height: 18px; background: var(--border); border-radius: 20px;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            @endplaceholder
         <span class="panel-label">
             {{ $chapters->count() }} {{ Str::plural('chapter', $chapters->count()) }}
         </span>
-        <button
-            class="master-toggle-btn {{ $allPublished ? 'is-published' : 'is-draft' }}"
-            wire:click="masterToggle"
-            title="{{ $allPublished ? 'Unpublish all' : 'Publish all' }}"
-        >
-            @if($allPublished)
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>
-                Draft all
-            @else
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                Publish all
-            @endif
-        </button>
-    </div>
+            <button
+                class="master-toggle-btn {{ $allPublished ? 'is-published' : 'is-draft' }}"
+                wire:click="masterToggle"
+                title="{{ $allPublished ? 'Unpublish all' : 'Publish all' }}"
+            >
+                @if($allPublished)
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>
+                    Draft all
+                @else
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    Publish all
+                @endif
+            </button>
+        </div>
 
-    {{-- ── Chapter list ── --}}
+        {{-- ── Chapter list ── --}}
 
 
-    @forelse($chapters as $chapter)
-        @php $isActive = $currentChapter && $currentChapter->id === $chapter->id; @endphp
-        <div
-            class="chapter-group{{ $isActive ? ' chapter-active' : '' }}"
-            x-data="{ open: {{ $isActive ? 'true' : 'false' }}, open_update_modal: false }"
-            wire:key="chapter-{{ $chapter->id }}"
-        >
-            {{-- Chapter header --}}
-            <div class="chapter-header" @click="open = !open">
-                <div class="header-left">
-                    <svg class="ch-arrow" :class="open ? 'ch-arrow-open' : ''"
-                         width="10" height="10" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.5">
-                        <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                    <span class="chapter-number">{{ $chapter->chapter_number }}</span>
-                    <strong class="chapter-title">{{ $chapter->title }}</strong>
-                </div>
-                <div class="header-right">
-                    <button
-                        type="button"
-                        class="status-pill {{ $chapter->status }}"
-                        wire:click.stop="togglestatus({{ $chapter->id }})"
-                    >{{ $chapter->status === 'published' ? '✓' : '○' }} {{ ucfirst($chapter->status) }}</button>
-                    <button class="icon-btn" @click.stop="open_update_modal = true" title="Edit chapter">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+
+        @forelse($chapters as $chapter)
+            @php $isActive = $currentChapter && $currentChapter->id === $chapter->id; @endphp
+            <div
+                class="chapter-group{{ $isActive ? ' chapter-active' : '' }}"
+                x-data="{ open: {{ $isActive ? 'true' : 'false' }}, open_update_modal: false }"
+                wire:key="chapter-{{ $chapter->id }}"
+            >
+                {{-- Chapter header --}}
+                <div class="chapter-header" @click="open = !open">
+                    <div class="header-left">
+                        <svg class="ch-arrow" :class="open ? 'ch-arrow-open' : ''"
+                             width="10" height="10" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.5">
+                            <polyline points="9 18 15 12 9 6"/>
                         </svg>
-                    </button>
+                        <span class="chapter-number">{{ $chapter->chapter_number }}</span>
+                        <strong class="chapter-title">{{ $chapter->title }}</strong>
+                    </div>
+                    <div class="header-right">
+                        <button
+                            type="button"
+                            class="status-pill {{ $chapter->status }}"
+                            wire:click.stop="togglestatus({{ $chapter->id }})"
+                        >{{ $chapter->status === 'published' ? '✓' : '○' }} {{ ucfirst($chapter->status) }}</button>
+                        <button class="icon-btn" @click.stop="open_update_modal = true" title="Edit chapter">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+
+                {{-- Lessons --}}
+                <div x-show="open" x-transition:enter="transition-open" style="display:none;">
+                    <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson" wire:key="lessons-{{ $chapter->id }}"/>
+                </div>
+
+                <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter" wire:key="chupdate-{{ $chapter->id }}"/>
             </div>
-
-            {{-- Lessons --}}
-            <div x-show="open" x-transition:enter="transition-open" style="display:none;">
-                <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson" wire:key="lessons-{{ $chapter->id }}"/>
+        @empty
+            <div class="panel-empty">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:8px;">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                </svg>
+                <p>No chapters yet.</p>
             </div>
-
-            <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter" wire:key="chupdate-{{ $chapter->id }}"/>
-        </div>
-    @empty
-        <div class="panel-empty">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:8px;">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-            </svg>
-            <p>No chapters yet.</p>
-        </div>
-    @endforelse
+        @endforelse
 
 
 
+    </div>
 </div>
+
 
 <style>
     /* ── Panel shell ── */
