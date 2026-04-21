@@ -39,11 +39,21 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
 });
 
+Route::get('codeeditor', [App\Http\Controllers\CodeEditorController::class, 'index'])
+    ->name('codeeditor');
 
 Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+
+            Route::get('codeeditor', function () {
+                return view('pages.admin.codeeditor');
+            })->name('codeeditor');
+
+            Route::post('code-runner/run',   [CodeRunnerController::class, 'run'])->name('code-runner.run');
+            Route::post('code-runner/stdin', [CodeRunnerController::class, 'sendStdin'])->name('code-runner.stdin');
+
 
             Route::post('ai/jobs/{id}/recut', [AIController::class, 'recut']);
 
@@ -157,6 +167,9 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('user')
         ->name('user.')
         ->group(function () {
+
+            Route::post('code-runner/run',   [CodeRunnerController::class, 'run'])->name('code-runner.run');
+
 
             Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 

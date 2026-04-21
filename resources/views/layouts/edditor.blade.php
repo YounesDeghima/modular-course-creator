@@ -33,6 +33,10 @@
             <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
                 ✨ AI Generator
             </a>
+            {{-- 🔥 NEW: Code Editor link --}}
+            <a href="{{ route('admin.codeeditor') }}" data-item='Code Editor' style="color: #10b981; font-weight: bold;">
+                💻 Code Editor
+            </a>
 
         </div>
 
@@ -92,7 +96,7 @@
 
 
 @yield('js')
-<<script src="{{ asset('vendors/chart.js') }}"></script>
+<script src="{{ asset('vendors/chart.js') }}"></script>
 <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
 <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 

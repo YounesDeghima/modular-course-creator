@@ -41,10 +41,15 @@ new class extends Component {
     {
         if (!$id) return; // id=0 means toolbar refresh only
 
-        $block = block::findOrFail($id);
+        $block = block::with('solutions')->findOrFail($id);
 
         if ($block) {
-            $this->blocks[] = $block->toArray();
+            $arr = $block->toArray();
+            if ($block->type === 'exercise') {
+                $arr['solutions'] = $block->solutions->map(fn($s) => $s->toArray())->toArray();
+            }
+            $this->hydrateBlockFields($arr);
+            $this->blocks[] = $arr;
             // Scroll to newly created block after re-render
             $this->dispatch('scrollToNewBlock', blockId: $id);
         }
@@ -110,9 +115,9 @@ new class extends Component {
             // Re-encode structured types
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
-                    'type' => $blockData['graph_type'] ?? 'line',
+                    'type'   => $blockData['graph_type'] ?? 'line',
                     'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
-                    'data' => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
+                    'data'   => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
                 ]);
             }
 
@@ -121,17 +126,27 @@ new class extends Component {
             }
 
             if ($blockData['type'] === 'function') {
-
                 $content = json_encode([
                     'function' => $blockData['func_expression'] ?? 'sin(x)',
-                    'x_min' => $blockData['x_min'] ?? -10,
-                    'x_max' => $blockData['x_max'] ?? 10,
-                    'y_min' => $blockData['y_min'] ?? -5,
-                    'y_max' => $blockData['y_max'] ?? 5,
-                    'color' => $blockData['color'] ?? '#4f46e5',
-                    'step' => $blockData['step'] ?? 0.1,
+                    'x_min'    => $blockData['x_min'] ?? -10,
+                    'x_max'    => $blockData['x_max'] ?? 10,
+                    'y_min'    => $blockData['y_min'] ?? -5,
+                    'y_max'    => $blockData['y_max'] ?? 5,
+                    'color'    => $blockData['color'] ?? '#4f46e5',
+                    'step'     => $blockData['step'] ?? 0.1,
                 ]);
+            }
 
+            // code: content already contains "// lang:xxx\n<code>" set by JS syncToLivewire()
+            // Nothing extra needed — just save $content as-is.
+
+            if ($blockData['type'] === 'list') {
+                // list content is already JSON — re-encode only if it's a plain string
+                $decoded = json_decode($blockData['content'] ?? '', true);
+                if (!is_array($decoded)) {
+                    $items = array_filter(array_map('trim', explode("\n", $blockData['content'] ?? '')));
+                    $content = json_encode(['style' => 'bullet', 'items' => array_values($items)]);
+                }
             }
 
             block::where('id', $blockData['id'])->update([
@@ -304,6 +319,137 @@ new class extends Component {
                 <div class="block-main-content">
                     @switch($block['type'])
 
+                        @case('code')
+                            @php
+                                $blockId  = $block['id'];
+                                $rawContent  = $block['content'] ?? '';
+                                $storedLang = 'python';
+                                if (preg_match('/^\/\/\s*lang:(\w+)/m', $rawContent, $m)) {
+                                    $storedLang = strtolower(trim($m[1]));
+                                    $displayContent = preg_replace('/^\/\/\s*lang:\w+\n?/m', '', $rawContent, 1);
+                                } else {
+                                    $displayContent = $rawContent;
+                                }
+                                $runEndpoint = route('admin.code-runner.run');
+                            @endphp
+
+                            <div id="block-{{ $blockId }}" class="ce-inline-block" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-subtle);width:100%;">
+                                {{-- Toolbar --}}
+                                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;"></span>
+                                    <select id="lang-{{ $blockId }}" onchange="ceBlockLangChange({{ $blockId }}, this.value)" style="background:var(--bg-subtle);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 7px;font-size:11px;font-family:inherit;cursor:pointer;outline:none;">
+                                        @foreach(['python','javascript','c','cpp','bash'] as $l)
+                                            <option value="{{ $l }}" {{ $storedLang === $l ? 'selected' : '' }}>{{ $l }}</option>
+                                        @endforeach
+                                    </select>
+                                    <span style="flex:1;font-size:11px;color:var(--text-faint);">Ctrl+Enter = Run · Tab = indent</span>
+                                    <button id="run-btn-{{ $blockId }}" onclick="ceBlockRun({{ $blockId }})" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s;white-space:nowrap;" onmouseover="this.style.filter='brightness(.9)'" onmouseout="this.style.filter=''">▶ Run</button>
+                                    <button onclick="ceBlockClear({{ $blockId }})" style="background:var(--bg-subtle);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Clear</button>
+                                </div>
+
+                                <textarea id="code-{{ $blockId }}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" onkeydown="ceBlockKey(event, {{ $blockId }})" style="display:block;width:100%;min-height:160px;background:var(--bg);color:var(--text);border:none;outline:none;padding:14px 16px;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:13px;line-height:1.7;tab-size:4;white-space:pre;overflow-x:auto;resize:vertical;box-sizing:border-box;">{{ $displayContent }}</textarea>
+
+                                <input type="hidden" id="content-{{ $blockId }}" data-index="{{ $loop->index }}">
+
+                                <div id="terminal-{{ $blockId }}" style="display:none;height:240px;border-top:1px solid #30363d;"></div>
+                            </div>
+
+                            <script>
+                                (function() {
+                                    const BLOCK_ID = {{ $blockId }};
+                                    const ENDPOINT = '{{ $runEndpoint }}';
+                                    const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+                                    const LW_INDEX = {{ $loop->index }};  // Livewire blocks array index
+                                    const INITIAL  = @json("// lang:{$storedLang}\n" . $displayContent);
+
+                                    let runner = null;
+
+                                    function getCode() { return document.getElementById('code-' + BLOCK_ID)?.value ?? ''; }
+                                    function getLang() { return document.getElementById('lang-' + BLOCK_ID)?.value ?? 'python'; }
+
+                                    /**
+                                     * Push current code+lang into the Livewire component state.
+                                     * We call @this.set() which is the correct way to update
+                                     * Livewire properties from external JS (no wire:model needed).
+                                     */
+                                    function syncToLivewire() {
+                                        const value = '// lang:' + getLang() + '\n' + getCode();
+                                        // @this is the Livewire component instance bound to the nearest [wire:id] ancestor
+                                        try {
+                                            const el = document.getElementById('block-' + BLOCK_ID);
+                                            const component = Livewire.find(el?.closest('[wire\\:id]')?.getAttribute('wire:id'));
+                                            if (component) {
+                                                component.set('blocks.' + LW_INDEX + '.content', value);
+                                            }
+                                        } catch(e) {}
+                                    }
+
+                                    function getOrCreateRunner() {
+                                        if (runner) return runner;
+                                        const termEl = document.getElementById('terminal-' + BLOCK_ID);
+                                        termEl.style.display = 'block';
+                                        runner = CeRunner.create(termEl, {
+                                            endpoint:  ENDPOINT,
+                                            csrfToken: CSRF,
+                                            onStatus: msg => {
+                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
+                                                if (btn) btn.textContent = msg === 'Running…' ? '⏳' : '▶ Run';
+                                            },
+                                            onDone: _code => {
+                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
+                                                if (btn) { btn.textContent = '▶ Run'; btn.disabled = false; }
+                                            },
+                                        });
+                                        return runner;
+                                    }
+
+                                    // Seed Livewire state with initial value on first render
+                                    document.addEventListener('livewire:init', function onInit() {
+                                        document.removeEventListener('livewire:init', onInit);
+                                        syncToLivewire();
+                                    });
+                                    // Also seed immediately in case livewire:init already fired
+                                    if (window.Livewire) { setTimeout(syncToLivewire, 100); }
+
+                                    window.ceBlockRun          = window.ceBlockRun          || function(id){};
+                                    window.ceBlockClear        = window.ceBlockClear        || function(id){};
+                                    window.ceBlockLangChange   = window.ceBlockLangChange   || function(id, lang){};
+                                    window.ceBlockKey          = window.ceBlockKey          || function(e, id){};
+
+                                    const _r = window.ceBlockRun, _c = window.ceBlockClear,
+                                        _l = window.ceBlockLangChange, _k = window.ceBlockKey;
+
+                                    window.ceBlockRun = function(id) {
+                                        if (id !== BLOCK_ID) { _r(id); return; }
+                                        document.getElementById('run-btn-' + BLOCK_ID).disabled = true;
+                                        getOrCreateRunner().run(getLang(), getCode());
+                                    };
+                                    window.ceBlockClear = function(id) {
+                                        if (id !== BLOCK_ID) { _c(id); return; }
+                                        runner?.clear();
+                                    };
+                                    window.ceBlockLangChange = function(id, lang) {
+                                        if (id !== BLOCK_ID) { _l(id, lang); return; }
+                                        syncToLivewire();
+                                    };
+                                    window.ceBlockKey = function(e, id) {
+                                        if (id !== BLOCK_ID) { _k(e, id); return; }
+                                        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); window.ceBlockRun(BLOCK_ID); return; }
+                                        if (e.key === 'Tab') {
+                                            e.preventDefault();
+                                            const t = e.target, s = t.selectionStart;
+                                            t.value = t.value.substring(0, s) + '    ' + t.value.substring(t.selectionEnd);
+                                            t.selectionStart = t.selectionEnd = s + 4;
+                                        }
+                                        // Debounced sync — don't call Livewire on every keystroke
+                                        clearTimeout(window['_ceSync_' + BLOCK_ID]);
+                                        window['_ceSync_' + BLOCK_ID] = setTimeout(syncToLivewire, 600);
+                                    };
+                                })();
+                            </script>
+                            @break
+
+
                         @case('markdown')
                             {{--
                                 ADMIN EDITOR VIEW
@@ -359,12 +505,19 @@ new class extends Component {
                             @break
 
                         @case('description')
+                            <textarea class="input-ghost content-style"
+                                      oninput="autoResize(this)"
+                                      name="blocks[{{ $block['id'] }}][content]"
+                                      wire:model="blocks.{{ $loop->index }}.content"
+                                      placeholder="Paragraph text…"></textarea>
+                            @break
+
                         @case('note')
-                        @case('code')
-                            <textarea class="input-ghost content-style" name="blocks[{{ $block['id'] }}][content]"
-                                      rows="1"
-                                      oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"
-                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                            <textarea class="input-ghost content-style"
+                                      oninput="autoResize(this)"
+                                      name="blocks[{{ $block['id'] }}][content]"
+                                      wire:model="blocks.{{ $loop->index }}.content"
+                                      placeholder="Note text…"></textarea>
                             @break
 
                         @case('exercise')
@@ -645,6 +798,7 @@ new class extends Component {
                             <textarea class="input-ghost content-style"
                                       placeholder="Paste HTML, iframe embed, or script code here..." rows="4"
                                       style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;"
+                                      name="blocks[{{ $block['id'] }}][content]"
                                       wire:model="blocks.{{ $loop->index }}.content"></textarea>
                             <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw
                                 HTML - Be careful with external scripts</small>
@@ -653,6 +807,7 @@ new class extends Component {
                         @default
                             <textarea class="input-ghost content-style"
                                       oninput="autoResize(this)"
+                                      name="blocks[{{ $block['id'] }}][content]"
                                       wire:model="blocks.{{ $loop->index }}.content"></textarea>
                     @endswitch
                 </div>

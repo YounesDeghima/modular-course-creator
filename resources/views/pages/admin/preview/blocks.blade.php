@@ -237,6 +237,84 @@
             <div class="preview" id="preview">
                 @foreach($blocks as $block)
                     @switch($block->type)
+
+
+                        @case('code')
+                            @php
+                                $blockId  = $block->id;
+                                $rawContent  = $block->content ?? '';
+                                $storedLang = 'python';
+                                if (preg_match('/^\/\/\s*lang:(\w+)/m', $rawContent, $m)) {
+                                    $storedLang = strtolower(trim($m[1]));
+                                    $displayContent = preg_replace('/^\/\/\s*lang:\w+\n?/m', '', $rawContent, 1);
+                                } else {
+                                    $displayContent = $rawContent;
+                                }
+                                $runEndpoint = request()->routeIs('admin.*') ? route('admin.code-runner.run') : route('user.code-runner.run');
+                            @endphp
+
+                            <div id="block-{{ $blockId }}" class="ce-inline-block" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-subtle);margin:1.5rem 0;">
+                                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;"></span>
+                                    <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">{{ $storedLang }}</span>
+                                    <span style="flex:1;font-size:11px;color:var(--text-faint);">Ctrl+Enter = Run</span>
+                                    <button id="run-btn-{{ $blockId }}" onclick="ceBlockRun({{ $blockId }})" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s;white-space:nowrap;" onmouseover="this.style.filter='brightness(.9)'" onmouseout="this.style.filter=''">▶ Run</button>
+                                    <button onclick="ceBlockClear({{ $blockId }})" style="background:var(--bg-subtle);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Clear</button>
+                                </div>
+
+                                <pre style="margin:0;padding:14px 16px;background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:13px;line-height:1.7;overflow-x:auto;white-space:pre;"><code>{{ $displayContent }}</code></pre>
+
+                                <div id="terminal-{{ $blockId }}" style="display:none;height:240px;border-top:1px solid #30363d;"></div>
+                            </div>
+
+                            <script>
+                                (function() {
+                                    const BLOCK_ID = {{ $blockId }};
+                                    const ENDPOINT = '{{ $runEndpoint }}';
+                                    const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+                                    let runner = null;
+
+                                    function getCode() { return document.querySelector('#block-{{ $blockId }} pre code')?.textContent ?? ''; }
+                                    function getLang() { return '{{ $storedLang }}'; }
+
+                                    function getOrCreateRunner() {
+                                        if (runner) return runner;
+                                        const termEl = document.getElementById('terminal-' + BLOCK_ID);
+                                        termEl.style.display = 'block';
+                                        runner = CeRunner.create(termEl, {
+                                            endpoint:  ENDPOINT,
+                                            csrfToken: CSRF,
+                                            onStatus: msg => {
+                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
+                                                if (btn) btn.textContent = msg === 'Running…' ? '⏳' : '▶ Run';
+                                            },
+                                            onDone: code => {
+                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
+                                                if (btn) { btn.textContent = '▶ Run'; btn.disabled = false; }
+                                            },
+                                        });
+                                        return runner;
+                                    }
+
+                                    window.ceBlockRun = window.ceBlockRun || function(id){};
+                                    window.ceBlockClear = window.ceBlockClear || function(id){};
+
+                                    const _r = window.ceBlockRun, _c = window.ceBlockClear;
+
+                                    window.ceBlockRun = function(id) {
+                                        if (id !== BLOCK_ID) { _r(id); return; }
+                                        document.getElementById('run-btn-' + BLOCK_ID).disabled = true;
+                                        getOrCreateRunner().run(getLang(), getCode());
+                                    };
+                                    window.ceBlockClear = function(id) {
+                                        if (id !== BLOCK_ID) { _c(id); return; }
+                                        runner?.clear();
+                                    };
+                                })();
+                            </script>
+                            @break
+
                         @case('markdown')
                             <div class="block-markdown-view" data-md="{{ e($block->content) }}"></div>
                             @break
@@ -251,10 +329,6 @@
 
                         @case('note')
                             <div class="note">{{ $block->content }}</div>
-                            @break
-
-                        @case('code')
-                            <pre><code>{{ $block->content }}</code></pre>
                             @break
 
                         @case('exercise')
