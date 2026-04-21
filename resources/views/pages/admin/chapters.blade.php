@@ -10,6 +10,10 @@
 
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         .chapter-modal{
             display: flex;

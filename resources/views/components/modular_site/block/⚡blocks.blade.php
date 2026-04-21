@@ -651,7 +651,7 @@ new class extends Component {
 
     {{-- ── Save bar ── --}}
     <div class="be-save-bar">
-        <livewire:modular_site.block.blockcreate :lesson="$lesson"/>
+       {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
 
         <button
             type="button"
@@ -678,6 +678,67 @@ new class extends Component {
 
 </div>
 
+
+
+<script>
+    /* ── Auto-resize all textareas to fit their content ── */
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+    }
+
+    function autoResizeAll() {
+        document.querySelectorAll('.blocks-list textarea').forEach(autoResize);
+    }
+
+    // Run on first load and after every Livewire re-render
+    document.addEventListener('DOMContentLoaded', autoResizeAll);
+    document.addEventListener('livewire:navigated', autoResizeAll);
+    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ component, succeed }) => {
+            succeed(() => setTimeout(autoResizeAll, 80));
+        });
+    }
+
+    // ── Toolbar "Save All" button wires into blocks Livewire component ──
+    window.addEventListener('toolbar-save', () => {
+        // Find the blocks Livewire component and call saveAll on it
+        const blocksEl = document.querySelector('[wire\\:id]');
+        if (blocksEl && window.Livewire) {
+            // Dispatch to all components — saveAll only exists on blocks component
+            Livewire.dispatch('triggerSaveAll');
+        }
+    });
+
+    // ── Scroll to newly created block ──
+    window.addEventListener('scrollToNewBlock', (e) => {
+        const blockId = e.detail?.blockId;
+        if (!blockId) return;
+
+        // Wait for Livewire to finish re-rendering, then scroll
+        const tryScroll = (attempts = 0) => {
+            // Try both data-block-id attr and the block-row cards by order
+            const el = document.querySelector(`[data-block-id="${blockId}"]`)
+                || document.querySelector(`.block-row[data-id="${blockId}"]`);
+
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Flash highlight
+                el.style.transition = 'box-shadow .3s';
+                el.style.boxShadow = '0 0 0 3px var(--accent)';
+                setTimeout(() => { el.style.boxShadow = ''; }, 1400);
+            } else if (attempts < 8) {
+                setTimeout(() => tryScroll(attempts + 1), 100);
+            } else {
+                // Fallback: scroll to last .block-row
+                const all = document.querySelectorAll('.block-row');
+                if (all.length) all[all.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+        setTimeout(() => tryScroll(), 80);
+    });
+</script>
 <style>
     /* ════════════════════════════════════
        BLOCKS EDITOR
@@ -915,45 +976,3 @@ new class extends Component {
     .be-save-btn:disabled { opacity:.6;cursor:not-allowed; }
     .be-spin { animation:be-spin .7s linear infinite; }
 </style>
-
-<script>
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-    }
-    function autoResizeAll() {
-        document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
-    }
-    document.addEventListener('DOMContentLoaded', autoResizeAll);
-    document.addEventListener('livewire:navigated', autoResizeAll);
-    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
-    if (window.Livewire) {
-        Livewire.hook('commit', ({ component, succeed }) => {
-            succeed(() => setTimeout(autoResizeAll, 80));
-        });
-    }
-
-    window.addEventListener('toolbar-save', () => {
-        if (window.Livewire) Livewire.dispatch('triggerSaveAll');
-    });
-
-    window.addEventListener('scrollToNewBlock', (e) => {
-        const blockId = e.detail?.blockId;
-        if (!blockId) return;
-        const tryScroll = (attempts = 0) => {
-            const el = document.querySelector(`[data-block-id="${blockId}"]`) || document.querySelector(`.be-block[data-id="${blockId}"]`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.style.transition = 'box-shadow .3s';
-                el.style.boxShadow = '0 0 0 3px var(--accent)';
-                setTimeout(() => { el.style.boxShadow = ''; }, 1400);
-            } else if (attempts < 8) {
-                setTimeout(() => tryScroll(attempts + 1), 100);
-            } else {
-                const all = document.querySelectorAll('.be-block');
-                if (all.length) all[all.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        };
-        setTimeout(() => tryScroll(), 80);
-    });
-</script>
