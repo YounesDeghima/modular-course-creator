@@ -201,36 +201,7 @@
 @section('sidebar-elements')
     <div style="padding:16px 12px;display:flex;flex-direction:column;gap:16px;">
 
-        <div>
-            <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:8px;">
-                Platform overview
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;" x-data="{
-                        totalUsers: '{{ $totalUsers }}',
-                        totalCourses: '{{ $totalCourses }}',
-                        pubLessons: '{{ $pubLessons }}',
-                        draftLessons: '{{ $draftLessons }}'
-                    }"
-                             @stats-updated.window="
-                        totalUsers = $event.detail[0].totalUsers;
-                        totalCourses = $event.detail[0].totalCourses;
-                        pubLessons = $event.detail[0].pubLessons;
-                        draftLessons = $event.detail[0].draftLessons;">
-
-                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);" >
-                    <span>Users</span><span style="font-weight:500;color:var(--text);" x-text="totalUsers">{{ $totalUsers }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Courses</span><span style="font-weight:500;color:var(--text);" x-text="totalCourses">{{ $totalCourses }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Published</span><span style="font-weight:500;color:#065f46;" x-text="pubLessons">{{ $pubLessons }} lessons</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 6px;color:var(--text-muted);">
-                    <span>Drafts</span><span style="font-weight:500;color:#6b7280;" x-text="draftLessons">{{ $draftLessons }} lessons</span>
-                </div>
-            </div>
-        </div>
+        <livewire:platform-overview :user="$user" lazy/>
 
         <div style="height:1px;background:var(--border);"></div>
 
@@ -245,7 +216,7 @@
                 <a href="{{ route('admin.calendar') }}"
                    style="padding:6px 8px;border-radius:6px;font-size:13px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:background .13s;display:block;"
                    onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
-                    <span style="font-size:14px;">📅</span> Calendar
+                    <span style="font-size:14px;"></span> Calendar
                 </a>
 
             </div>

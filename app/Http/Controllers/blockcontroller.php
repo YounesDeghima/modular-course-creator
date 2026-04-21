@@ -203,15 +203,14 @@ class blockcontroller extends Controller
         $validated = $request->validate([
             'type'         => 'required|in:header,description,note,exercise,
                                 code,photo,video,math,graph,table,ext,function,
-                                list,separator',
-
+                                list,separator,markdown',   // ← markdown added
             'block_number' => 'required|integer',
         ]);
 
         $validated['lesson_id'] = $lesson->id;
 
         if (in_array($request->type, ['photo', 'video'])) {
-            $validated['content'] = ''; // file uploaded separately via uploadMedia
+            $validated['content'] = '';
         } elseif ($request->type === 'table') {
             $validated['content'] = json_encode($request->input('table_data', [['Column 1', 'Column 2'], ['Row 1', 'Data']]));
         } elseif ($request->type === 'function') {
@@ -235,14 +234,15 @@ class blockcontroller extends Controller
             ]);
         } elseif ($request->type === 'list') {
             $validated['content'] = json_encode([
-                'style' => $request->input('list_style', 'bullet'), // bullet, numbered, checklist
+                'style' => $request->input('list_style', 'bullet'),
                 'items' => array_filter(array_map('trim', explode("\n", $request->input('list_items', '')))),
             ]);
         } elseif ($request->type === 'separator') {
             $validated['content'] = json_encode([
-                'type' => $request->input('separator_type', 'divider'), // page_break, section_break, divider
+                'type' => $request->input('separator_type', 'divider'),
             ]);
-        }else {
+        } else {
+            // Covers: header, description, note, exercise, code, math, ext, markdown
             $validated['content'] = $request->input('content', '');
         }
 
@@ -298,9 +298,10 @@ class blockcontroller extends Controller
         }
 
         $validated = $request->validate([
-            'type'         => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function',
+            'type'         => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function,list,separator,markdown',
             'block_number' => 'required|integer',
             'content'      => 'nullable|string',
+
         ]);
 
         if ($block->type === 'exercise') {

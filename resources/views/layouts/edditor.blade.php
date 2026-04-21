@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
     @yield('css')
 
@@ -29,6 +31,10 @@
             <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
             <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>
             <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
+            <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
+                ✨ AI Generator
+            </a>
+
         </div>
 
         <div class="nav-right">
@@ -76,6 +82,11 @@
         @yield('navigation')
         @yield('main')
     </main>
+    @hasSection('right-sidebar')
+        <div class="right-side-bar">
+            @yield('right-sidebar')
+        </div>
+    @endif
 </div>
 
 
@@ -86,7 +97,7 @@
 <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
 <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script src="{{ asset('js/function.js') }}"></script>
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -119,23 +130,23 @@
     });
 
 
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
-        // Restore saved preference
-        if (localStorage.getItem('theme') === 'dark') {
+    // Restore saved preference
+    if (localStorage.getItem('theme') === 'dark') {
         html.setAttribute('data-theme', 'dark');
     }
 
-        themeToggle.addEventListener('click', () => {
+    themeToggle.addEventListener('click', () => {
         const isDark = html.getAttribute('data-theme') === 'dark';
         if (isDark) {
-        html.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
-    } else {
-        html.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-    }
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
     });
 </script>
 
