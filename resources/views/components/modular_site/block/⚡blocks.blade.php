@@ -73,20 +73,23 @@ new class extends Component {
 
     public function updatedBlocks($value, $key)
     {
-        if (str_contains($key, 'func_expression') || str_contains($key, 'x_min') ||
-            str_contains($key, 'x_max') || str_contains($key, 'y_min') ||
-            str_contains($key, 'y_max') || str_contains($key, 'color') ||
+        if (str_contains($key, 'func_expression') ||
+            str_contains($key, 'x_min') ||
+            str_contains($key, 'x_max') ||
+            str_contains($key, 'y_min') ||
+            str_contains($key, 'y_max') ||
+            str_contains($key, 'color') ||
             str_contains($key, 'step')) {
 
             $index = explode('.', $key)[0];
             $this->blocks[$index]['content'] = json_encode([
                 'function' => $this->blocks[$index]['func_expression'] ?? 'sin(x)',
-                'x_min'    => $this->blocks[$index]['x_min']  ?? -10,
-                'x_max'    => $this->blocks[$index]['x_max']  ?? 10,
-                'y_min'    => $this->blocks[$index]['y_min']  ?? -5,
-                'y_max'    => $this->blocks[$index]['y_max']  ?? 5,
-                'color'    => $this->blocks[$index]['color']  ?? '#4f46e5',
-                'step'     => $this->blocks[$index]['step']   ?? 0.1,
+                'x_min' => $this->blocks[$index]['x_min'] ?? -10,
+                'x_max' => $this->blocks[$index]['x_max'] ?? 10,
+                'y_min' => $this->blocks[$index]['y_min'] ?? -5,
+                'y_max' => $this->blocks[$index]['y_max'] ?? 5,
+                'color' => $this->blocks[$index]['color'] ?? '#4f46e5',
+                'step' => $this->blocks[$index]['step'] ?? 0.1,
             ]);
         }
     }
@@ -98,9 +101,9 @@ new class extends Component {
 
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
-                    'type'   => $blockData['graph_type']   ?? 'line',
+                    'type' => $blockData['graph_type'] ?? 'line',
                     'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
-                    'data'   => array_map('trim', explode(',', $blockData['graph_data']   ?? '')),
+                    'data' => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
                 ]);
             }
             if ($blockData['type'] === 'table') {
@@ -109,24 +112,25 @@ new class extends Component {
             if ($blockData['type'] === 'function') {
                 $content = json_encode([
                     'function' => $blockData['func_expression'] ?? 'sin(x)',
-                    'x_min'    => $blockData['x_min']  ?? -10,
-                    'x_max'    => $blockData['x_max']  ?? 10,
-                    'y_min'    => $blockData['y_min']  ?? -5,
-                    'y_max'    => $blockData['y_max']  ?? 5,
-                    'color'    => $blockData['color']  ?? '#4f46e5',
-                    'step'     => $blockData['step']   ?? 0.1,
+                    'x_min' => $blockData['x_min'] ?? -10,
+                    'x_max' => $blockData['x_max'] ?? 10,
+                    'y_min' => $blockData['y_min'] ?? -5,
+                    'y_max' => $blockData['y_max'] ?? 5,
+                    'color' => $blockData['color'] ?? '#4f46e5',
+                    'step' => $blockData['step'] ?? 0.1,
                 ]);
             }
 
             block::where('id', $blockData['id'])->update([
-                'content'      => $content,
-                'type'         => $blockData['type'],
+                'content' => $content,
+                'type' => $blockData['type'],
                 'block_number' => $blockData['block_number'],
             ]);
 
             if ($blockData['type'] === 'exercise') {
                 foreach ($blockData['solutions'] ?? [] as $solution) {
-                    exercisesolution::where('id', $solution['id'])->update(['content' => $solution['content']]);
+                    exercisesolution::where('id', $solution['id'])
+                        ->update(['content' => $solution['content']]);
                 }
             }
             if (in_array($blockData['type'], ['photo', 'video'])) {
@@ -142,18 +146,18 @@ new class extends Component {
         if (in_array($block['type'], ['function', 'graph'])) {
             $data = json_decode($block['content'], true) ?? [];
             $block['func_expression'] = $data['function'] ?? 'sin(x)';
-            $block['x_min']  = $data['x_min']  ?? -10;
-            $block['x_max']  = $data['x_max']  ?? 10;
-            $block['y_min']  = $data['y_min']  ?? -5;
-            $block['y_max']  = $data['y_max']  ?? 5;
-            $block['color']  = $data['color']  ?? '#4f46e5';
-            $block['step']   = $data['step']   ?? 0.1;
+            $block['x_min'] = $data['x_min'] ?? -10;
+            $block['x_max'] = $data['x_max'] ?? 10;
+            $block['y_min'] = $data['y_min'] ?? -5;
+            $block['y_max'] = $data['y_max'] ?? 5;
+            $block['color'] = $data['color'] ?? '#4f46e5';
+            $block['step'] = $data['step'] ?? 0.1;
         }
         if ($block['type'] === 'graph') {
             $data = json_decode($block['content'], true) ?? [];
-            $block['graph_type']   = $data['type']   ?? 'line';
+            $block['graph_type'] = $data['type'] ?? 'line';
             $block['graph_labels'] = implode(',', $data['labels'] ?? []);
-            $block['graph_data']   = implode(',', $data['data']   ?? []);
+            $block['graph_data'] = implode(',', $data['data'] ?? []);
         }
     }
 
@@ -173,7 +177,12 @@ new class extends Component {
     {
         $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
         if ($swapWith < 0 || $swapWith >= count($this->blocks)) return;
-        [$this->blocks[$index], $this->blocks[$swapWith]] = [$this->blocks[$swapWith], $this->blocks[$index]];
+
+        // Swap in array
+        [$this->blocks[$index], $this->blocks[$swapWith]] =
+            [$this->blocks[$swapWith], $this->blocks[$index]];
+
+        // Persist new order
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
             block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
@@ -185,7 +194,10 @@ new class extends Component {
         $this->blocks[$index]['type'] = $newType;
         if ($newType === 'table' && !is_array(json_decode($this->blocks[$index]['content'] ?? '', true))) {
             $this->blocks[$index]['content'] = json_encode([['Header 1', 'Header 2'], ['', '']]);
-            Block::where('id', $this->blocks[$index]['id'])->update(['type' => $newType, 'content' => $this->blocks[$index]['content']]);
+            Block::where('id', $this->blocks[$index]['id'])->update([
+                'type' => $newType,
+                'content' => $this->blocks[$index]['content'],
+            ]);
             return;
         }
         Block::where('id', $this->blocks[$index]['id'])->update(['type' => $newType]);
@@ -195,7 +207,10 @@ new class extends Component {
     {
         $path = $this->photos[$key]->store('blocks', 'public');
         foreach ($this->blocks as &$block) {
-            if ($block['id'] == $key) { $block['content'] = $path; break; }
+            if ($block['id'] == $key) {
+                $block['content'] = $path;
+                break;
+            }
         }
     }
 
@@ -203,30 +218,36 @@ new class extends Component {
     {
         $path = $this->videos[$key]->store('blocks', 'public');
         foreach ($this->blocks as &$block) {
-            if ($block['id'] == $key) { $block['content'] = $path; break; }
+            if ($block['id'] == $key) {
+                $block['content'] = $path;
+                break;
+            }
         }
     }
 
     public function addTableRow($blockId)
     {
-        $index     = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
         $tableData = json_decode($this->blocks[$index]['content'], true);
-        $cols      = count($tableData[0] ?? ['']);
+        $cols = count($tableData[0] ?? ['']);
+
         $tableData[] = array_fill(0, $cols, '');
         $this->blocks[$index]['content'] = json_encode($tableData);
     }
 
     public function addTableCol($blockId)
     {
-        $index     = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
         $tableData = json_decode($this->blocks[$index]['content'], true);
-        foreach ($tableData as &$row) { $row[] = ''; }
+        foreach ($tableData as &$row) {
+            $row[] = '';
+        }
         $this->blocks[$index]['content'] = json_encode($tableData);
     }
 
     public function updateTableCell($blockId, $rowIndex, $colIndex, $value)
     {
-        $index     = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
         $tableData = json_decode($this->blocks[$index]['content'], true);
         $tableData[$rowIndex][$colIndex] = $value;
         $this->blocks[$index]['content'] = json_encode($tableData);
@@ -265,8 +286,28 @@ new class extends Component {
     </div>
 
     {{-- ── Blocks ── --}}
+
     <div class="be-blocks">
 
+        @placeholder
+        <div class="be-block-skeleton" style="padding: 15px;">
+
+            <div>
+                @foreach(range(1, 10) as $i)
+
+                    <div style="width: 100%; height: 80px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow: hidden;" class="be-block type-header">
+
+                        <div class="be-block-body">
+                            <div class="be-block-side" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;">
+                                <span class="be-type-label" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;"></span>
+                            </div>
+                            <div class="be-input be-input-title" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endplaceholder
         @forelse($blocks as $block)
             @php $cfg = $typeConfig[$block['type']] ?? ['label'=>$block['type'],'accent'=>'#94a3b8']; @endphp
 
@@ -285,6 +326,8 @@ new class extends Component {
 
                 {{-- Content --}}
                 <div class="be-block-body">
+
+
                     @switch($block['type'])
 
                         @case('markdown')
@@ -511,41 +554,109 @@ new class extends Component {
 
                         @case('function')
                             @php
-                                $funcData = json_decode($block['content'], true) ?? ['function'=>'y=sin(x)','x_min'=>-10,'x_max'=>10,'y_min'=>-6,'y_max'=>6,'color'=>'#4f46e5','step'=>0.05];
+                                $funcData = json_decode($block['content'], true) ?? [
+                                    'function' => 'y = sin(x)',
+                                    'x_min'    => -10,
+                                    'x_max'    => 10,
+                                    'y_min'    => -6,
+                                    'y_max'    => 6,
+                                    'color'    => '#4f46e5',
+                                    'step'     => 0.05,
+                                ];
                             @endphp
-                            <div class="be-function-wrap" data-block-id="{{ $block['id'] }}">
-                                <div class="be-field">
-                                    <label class="be-field-label">Equation (e.g. <code>y=sin(x)</code>, <code>x^2+y^2=25</code>)</label>
+
+                            <div class="function-editor" data-block-id="{{ $block['id'] }}">
+
+                                {{-- Row 1: equation input --}}
+                                <div style="margin-bottom:8px;">
+                                    <label
+                                        style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">
+                                        Equation (any form: <code>y=sin(x)</code>, <code>x^2+y^2=1</code>,
+                                        <code>y-x^2=0</code> …)
+                                    </label>
                                     <input type="text"
-                                           class="be-input be-input-mono"
                                            name="blocks[{{ $block['id'] }}][func_expression]"
                                            wire:model="blocks.{{ $loop->index }}.func_expression"
-                                           placeholder="y = sin(x)">
+                                           class="input-ghost func-eq-input"
+                                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 10px;letter-spacing:.02em;"
+                                           placeholder="e.g.  y = x^2   or   x^2 + y^2 = 25   or   sin(y) = cos(x)">
                                 </div>
-                                <div class="be-field-row" style="margin-top:8px;">
-                                    @foreach(['x_min'=>'X min','x_max'=>'X max','y_min'=>'Y min','y_max'=>'Y max','step'=>'Resolution'] as $field => $lbl)
-                                        <div class="be-field">
-                                            <label class="be-field-label">{{ $lbl }}</label>
-                                            <input type="number" class="be-input be-input-sm"
-                                                   name="blocks[{{ $block['id'] }}][{{ $field }}]"
-                                                   wire:model="blocks.{{ $loop->index }}.{{ $field }}"
-                                                   step="any">
-                                        </div>
-                                    @endforeach
-                                    <div class="be-field">
-                                        <label class="be-field-label">Color</label>
-                                        <input type="color" class="be-color-input"
-                                               name="blocks[{{ $block['id'] }}][color]"
-                                               wire:model="blocks.{{ $loop->index }}.color">
+
+                                {{-- Row 2: ranges + color --}}
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                                    <div style="flex:1;min-width:70px;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
+                                            min</label>
+                                        <input type="number" name="blocks[{{ $block['id'] }}][x_min]"
+                                               wire:model="blocks.{{ $loop->index }}.x_min"
+                                               class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:70px;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">X
+                                            max</label>
+                                        <input type="number" name="blocks[{{ $block['id'] }}][x_max]"
+                                               wire:model="blocks.{{ $loop->index }}.x_max"
+                                               class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:70px;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
+                                            min</label>
+                                        <input type="number" name="blocks[{{ $block['id'] }}][y_min]"
+                                               wire:model="blocks.{{ $loop->index }}.y_min"
+                                               class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:1;min-width:70px;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Y
+                                            max</label>
+                                        <input type="number" name="blocks[{{ $block['id'] }}][y_max]"
+                                               wire:model="blocks.{{ $loop->index }}.y_max"
+                                               class="input-ghost" style="width:100%;padding:5px 8px;" step="any">
+                                    </div>
+                                    <div style="flex:0 0 auto;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Color</label>
+                                        <input type="color" name="blocks[{{ $block['id'] }}][color]"
+                                               wire:model="blocks.{{ $loop->index }}.color"
+                                               style="width:48px;height:32px;border:none;cursor:pointer;border-radius:4px;">
+                                    </div>
+                                    <div style="flex:1;min-width:70px;">
+                                        <label
+                                            style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:2px;">Resolution</label>
+                                        <input type="number" name="blocks[{{ $block['id'] }}][step]"
+                                               wire:model="blocks.{{ $loop->index }}.step"
+                                               class="input-ghost" style="width:100%;padding:5px 8px;"
+                                               step="0.005" min="0.005" max="0.5">
                                     </div>
                                 </div>
-                                <div class="be-canvas-wrap" wire:ignore>
-                                    <canvas id="func-canvas-{{ $block['id'] }}" style="width:100%;height:auto;display:block;border-radius:4px;background:var(--bg);"></canvas>
-                                    <div id="func-error-{{ $block['id'] }}" style="display:none;position:absolute;bottom:10px;left:10px;font-size:11px;color:#ef4444;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:4px;"></div>
+
+                                {{-- Canvas preview --}}
+                                <div class="function-preview" wire:ignore
+                                     style="position:relative;margin-top:10px;padding:10px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                                    <canvas id="func-canvas-{{ $block['id'] }}"
+                                            style="width:100%;height:auto;display:block;border-radius:4px;background:var(--bg);">
+                                    </canvas>
+                                    <div id="func-error-{{ $block['id'] }}"
+                                         style="display:none;position:absolute;bottom:14px;left:14px;font-size:11px;
+                                                     color:#ef4444;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:4px;"></div>
                                 </div>
-                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]" class="function-content-hidden" value="{{ $block['content'] }}">
-                                <span class="be-hint">Supports: + − * / ^ sin cos tan sqrt abs log ln exp pi e</span>
+
+                                <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:5px;">
+                                    Supports: + − * / ^ sin cos tan asin acos atan sqrt abs log ln exp pi e — both x and
+                                    y variables.
+                                </small>
                             </div>
+
+                            {{-- Hidden input keeps JSON for blockcontroller —
+                                 its name must NOT conflict with func_expression / x_min etc.
+                                 The JS below writes to it on every change.                  --}}
+                            <input type="hidden"
+                                   name="blocks[{{ $block['id'] }}][content]"
+                                   class="function-content-hidden"
+                                   value="{{ $block['content'] }}">
                             @break
 
                         @case('ext')

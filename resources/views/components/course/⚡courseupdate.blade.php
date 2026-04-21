@@ -87,7 +87,7 @@ new class extends Component {
         <div style="display:flex;gap:8px;">
             <div class="info-row" style="flex:1">
                 <label>Year</label>
-                <select name="year" class="year-input" wire:model.live="year">
+                <select name="year" class="value-input" wire:model.live="year">
                     <option value="1">Year 1</option>
                     <option value="2">Year 2</option>
                     <option value="3">Year 3</option>
@@ -96,7 +96,7 @@ new class extends Component {
             @if($year!=1)
             <div class="info-row" style="flex:1;">
                 <label class="branch-label">Branch</label>
-                <select name="branch" class="branch-input" wire:model.live="branch">
+                <select name="branch" class="value-input" wire:model.live="branch">
                     @if($year!=1)
                     <option value="mi">MI</option>
                     <option value="st">ST</option>
@@ -115,9 +115,15 @@ new class extends Component {
                       style="min-height:70px;" wire:model.live="description"></textarea>
         </div>
 
-        <button class="value-input" type="submit">
+        <button class="btn-save" type="submit">
             <span wire:loading.remove wire:target="save">Save changes</span>
-            <span wire:loading wire:target="save">Saving...</span>
+            <span wire:loading wire:target="save" class="saving-state">
+                <svg class="spin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                Saving…
+            </span>
         </button>
     </form>
 

@@ -10,10 +10,6 @@
 
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
         .chapter-modal{
             display: flex;
@@ -91,7 +87,7 @@
 
     @fragment('main-content')
         <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
-        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"/>
+        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks" lazy/>
 
         <div id="block-popup" class="modal-overlay">
             <div class="modal-content">
@@ -200,7 +196,7 @@
 
 
 
-    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters" :chapter="$chapter" :lesson="$lesson"/>
+    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters" :chapter="$chapter" :lesson="$lesson" lazy/>
 
 
     <livewire:modular_site.chapter.chaptercreate :course="$course"/>
