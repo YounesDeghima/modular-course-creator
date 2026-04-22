@@ -20,6 +20,7 @@
 
 
 </head>
+<script src="{{ asset('js/code-blocks.js') }}"></script>
 
 <body>
 <header>
@@ -34,6 +35,7 @@
             <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
                 ✨ AI Generator
             </a>
+            <a href="{{ route('admin.code.editor') }}" data-item="Editor">Code Editor</a>
 
         </div>
 

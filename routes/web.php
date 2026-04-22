@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\eventcontroller;
 use App\Http\Middleware\updateLastSeen;
 use App\Http\Controllers\AIController;
+use App\Http\Controllers\CodeEditorController;
 
 
 Route::get('/', function () {
@@ -37,6 +38,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/events', [EventController::class, 'store'])->name('events.store');
     Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+    Route::prefix('api/code')->name('code.')->middleware(['auth', 'throttle:60,1'])->group(function () {
+        Route::get('runtimes', [CodeEditorController::class, 'runtimes'])->name('runtimes');
+        Route::post('execute', [CodeEditorController::class, 'execute'])->name('execute');
+        Route::post('judge',   [CodeEditorController::class, 'judge'])->name('judge');
+    });
+
+    Route::get('/admin/code-editor', [CodeEditorController::class, 'adminEditor'])->name('admin.code.editor');
+    Route::get('/api/code/runtimes', [CodeEditorController::class, 'runtimes']);
+    Route::post('/api/code/execute', [CodeEditorController::class, 'execute']);
+    Route::post('/api/code/judge', [CodeEditorController::class, 'judge']);
 });
 
 
@@ -44,6 +55,7 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+            Route::get('/editor', [CodeEditorController::class, 'adminEditor'])->name('editor');
 
             Route::post('ai/jobs/{id}/recut', [AIController::class, 'recut']);
 
@@ -157,6 +169,7 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('user')
         ->name('user.')
         ->group(function () {
+            Route::get('/editor', [CodeEditorController::class, 'userEditor'])->name('editor');
 
             Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 

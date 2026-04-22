@@ -254,8 +254,88 @@
                             @break
 
                         @case('code')
-                            <pre><code>{{ $block->content }}</code></pre>
+                            @php
+                                $codeData = json_decode($block->content ?? '{}', true);
+                                $isJson   = is_array($codeData);
+                                $cbMode   = $isJson ? ($codeData['mode']     ?? 'free') : 'free';
+                                $cbLang   = $isJson ? ($codeData['language']  ?? '')     : '';
+                                $cbVer    = $isJson ? ($codeData['version']   ?? '')     : '';
+                                $cbCode   = $isJson ? ($codeData['code']      ?? '')     : ($block->content ?? '');
+                                $cbProblem= $isJson ? ($codeData['problem']   ?? '')     : '';
+                                $cbTests  = $isJson ? ($codeData['test_cases'] ?? [])    : [];
+                                $cbId     = $block->id;
+                            @endphp
+
+                            <div class="scb-wrap" id="scb-{{ $cbId }}" data-block-id="{{ $cbId }}"
+                                 data-lang="{{ $cbLang }}" data-version="{{ $cbVer }}"
+                                 data-mode="{{ $cbMode }}" data-code="{{ htmlspecialchars($cbCode) }}">
+
+                                {{-- Problem statement (judge mode) --}}
+                                @if($cbMode === 'judge' && $cbProblem)
+                                    <div class="scb-problem">
+                                        <div class="scb-problem-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                                            Problem
+                                        </div>
+                                        <p class="scb-problem-text">{{ $cbProblem }}</p>
+                                    </div>
+                                @endif
+
+                                {{-- Toolbar --}}
+                                <div class="scb-toolbar">
+                                    <div class="scb-toolbar-left">
+                                        <span class="scb-dot" style="background:#ff5f57"></span>
+                                        <span class="scb-dot" style="background:#febc2e"></span>
+                                        <span class="scb-dot" style="background:#28c840"></span>
+                                        <span class="scb-lang-badge">{{ strtoupper($cbLang ?: 'Code') }}</span>
+                                    </div>
+                                    <div class="scb-toolbar-right">
+                                        <button type="button" class="scb-btn-reset" data-block="{{ $cbId }}" onclick="scbReset('{{ $cbId }}')">Reset</button>
+                                        @if($cbMode === 'judge')
+                                            <button type="button" class="scb-btn-run" data-block="{{ $cbId }}" onclick="scbSubmit('{{ $cbId }}')">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                                Submit
+                                            </button>
+                                        @else
+                                            <button type="button" class="scb-btn-run" data-block="{{ $cbId }}" onclick="scbRun('{{ $cbId }}')">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                                Run
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- CodeMirror host --}}
+                                <div class="scb-cm-host" id="scb-cm-{{ $cbId }}"></div>
+
+                                {{-- stdin (free mode only) --}}
+                                @if($cbMode === 'free')
+                                    <div class="scb-stdin-wrap" id="scb-stdin-wrap-{{ $cbId }}">
+                                        <div class="scb-stdin-label">stdin (optional)</div>
+                                        <textarea class="scb-stdin" id="scb-stdin-{{ $cbId }}" placeholder="Type input for your program…"></textarea>
+                                    </div>
+                                @endif
+
+                                {{-- Output / terminal --}}
+                                <div class="scb-output-wrap" id="scb-output-wrap-{{ $cbId }}" style="display:none;">
+                                    <div class="scb-output-header">
+                                        <span class="scb-output-label">Output</span>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <span id="scb-badge-{{ $cbId }}" class="scb-badge" style="display:none;"></span>
+                                            <button type="button" class="scb-btn-tiny" onclick="document.getElementById('scb-output-wrap-{{ $cbId }}').style.display='none'">Hide</button>
+                                        </div>
+                                    </div>
+                                    <div class="scb-terminal" id="scb-terminal-{{ $cbId }}"></div>
+                                </div>
+
+                                {{-- Judge results --}}
+                                @if($cbMode === 'judge')
+                                    <div class="scb-judge-wrap" id="scb-judge-{{ $cbId }}" style="display:none;"></div>
+                                @endif
+
+                            </div>
                             @break
+
 
                         @case('exercise')
                             <div class="exercise">
@@ -685,5 +765,344 @@
         // Re-run when Livewire swaps content
         document.addEventListener('livewire:navigated', () => setTimeout(renderAllMarkdownBlocks, 150));
         document.addEventListener('livewire:morph',     () => setTimeout(renderAllMarkdownBlocks, 150));
+    </script>
+@endonce
+
+@once
+    <style>
+        .scb-wrap {
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0d1117;
+            margin: 12px 0;
+        }
+        .scb-problem {
+            padding: 12px 14px;
+            border-bottom: 1px solid #30363d;
+            background: #161b22;
+        }
+        .scb-problem-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #60a5fa;
+            margin-bottom: 6px;
+        }
+        .scb-problem-text { font-size: 13px; color: #e2e8f0; line-height: 1.6; margin: 0; }
+        .scb-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .scb-toolbar-left, .scb-toolbar-right { display: flex; align-items: center; gap: 6px; }
+        .scb-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .scb-lang-badge {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            color: #8b949e;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 2px 7px;
+        }
+        .scb-btn-run {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 11px;
+            border-radius: 5px;
+            border: none;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            background: #4f46e5;
+            color: #fff;
+            transition: background .15s;
+        }
+        .scb-btn-run:hover { background: #4338ca; }
+        .scb-btn-run:disabled { opacity: .5; cursor: not-allowed; }
+        .scb-btn-reset {
+            font-size: 10px;
+            padding: 3px 8px;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background: none;
+            color: #8b949e;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .scb-btn-reset:hover { background: #161b22; color: #e2e8f0; }
+        .scb-btn-tiny {
+            font-size: 9px;
+            padding: 2px 7px;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background: none;
+            color: #8b949e;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .scb-cm-host {
+            min-height: 80px;
+            max-height: 500px;
+            overflow: auto;
+        }
+        .scb-cm-host .cm-editor { background: #0d1117; }
+        .scb-cm-host .cm-scroller { overflow: auto; }
+        .scb-stdin-wrap {
+            border-top: 1px solid #30363d;
+            background: #0d1117;
+        }
+        .scb-stdin-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4a5568; padding: 5px 10px 0; }
+        .scb-stdin {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #e2e8f0;
+            font-size: 11px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            padding: 6px 10px 8px;
+            resize: vertical;
+            min-height: 40px;
+            max-height: 120px;
+        }
+        .scb-stdin::placeholder { color: #4a5568; }
+        .scb-output-wrap { border-top: 1px solid #30363d; }
+        .scb-output-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .scb-output-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4a5568; }
+        .scb-terminal {
+            padding: 10px 12px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            font-size: 12px;
+            line-height: 1.65;
+            background: #0d1117;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .scb-out-stderr  { color: #f87171; display: block; }
+        .scb-out-compile { color: #fbbf24; display: block; }
+        .scb-out-system  { color: #60a5fa; font-style: italic; display: block; }
+        .scb-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+        .scb-badge.ok   { background: #064e3b; color: #6ee7b7; }
+        .scb-badge.fail { background: #450a0a; color: #fca5a5; }
+        /* judge */
+        .scb-judge-wrap { padding: 10px; border-top: 1px solid #30363d; display: flex; flex-direction: column; gap: 6px; }
+        .scb-judge-summary { font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 6px; }
+        .scb-judge-summary.all-pass { background: #064e3b; color: #6ee7b7; }
+        .scb-judge-summary.has-fail { background: #450a0a; color: #fca5a5; }
+        .scb-test-result { display: flex; flex-direction: column; gap: 4px; padding: 7px 9px; border-radius: 6px; border: 1px solid; font-size: 11px; font-family: 'JetBrains Mono','Fira Code',monospace; }
+        .scb-test-result.pass { border-color: #064e3b; background: #0a1f18; }
+        .scb-test-result.fail { border-color: #450a0a; background: #1a0808; }
+        .scb-test-result-header { font-weight: 700; font-size: 10px; }
+        .scb-test-result.pass .scb-test-result-header { color: #6ee7b7; }
+        .scb-test-result.fail .scb-test-result-header { color: #fca5a5; }
+        .scb-test-diff { color: #8b949e; margin-top: 2px; }
+        .scb-test-diff span { color: #e2e8f0; }
+    </style>
+@endonce
+
+{{-- ════════ SCRIPT (once per page) ════════ --}}
+@once
+    <script type="module">
+        import { EditorState } from 'https://esm.sh/@codemirror/state@6';
+        import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from 'https://esm.sh/@codemirror/view@6';
+        import { defaultKeymap, history, historyKeymap, indentWithTab } from 'https://esm.sh/@codemirror/commands@6';
+        import { indentOnInput, bracketMatching } from 'https://esm.sh/@codemirror/language@6';
+        import { python }     from 'https://esm.sh/@codemirror/lang-python@6';
+        import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6';
+        import { cpp }        from 'https://esm.sh/@codemirror/lang-cpp@6';
+        import { java }       from 'https://esm.sh/@codemirror/lang-java@6';
+        import { rust }       from 'https://esm.sh/@codemirror/lang-rust@6';
+        import { oneDark }    from 'https://esm.sh/@codemirror/theme-one-dark@6';
+        import { autocompletion } from 'https://esm.sh/@codemirror/autocomplete@6';
+
+        const CM_LANG = {
+            python: python(), javascript: javascript(), typescript: javascript({ typescript: true }),
+            cpp: cpp(), 'c++': cpp(), c: cpp(), java: java(), rust: rust(),
+        };
+        const SCB_VIEWS = {};
+        const SCB_INITIAL = {};
+
+        function initStudentBlock(el) {
+            const id      = el.dataset.blockId;
+            const lang    = el.dataset.lang || 'python';
+            const code    = el.dataset.code || '';
+            const host    = document.getElementById(`scb-cm-${id}`);
+            if (!host || SCB_VIEWS[id]) return;
+
+            SCB_INITIAL[id] = code;
+
+            SCB_VIEWS[id] = new EditorView({
+                state: EditorState.create({
+                    doc: code,
+                    extensions: [
+                        lineNumbers(), highlightActiveLine(), history(), drawSelection(),
+                        indentOnInput(), bracketMatching(), autocompletion(),
+                        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+                        CM_LANG[lang.toLowerCase()] ?? [],
+                        oneDark,
+                    ],
+                }),
+                parent: host,
+            });
+        }
+
+        document.querySelectorAll('.scb-wrap').forEach(initStudentBlock);
+
+        // ── Run (free mode) ──
+        window.scbRun = async function (id) {
+            const el      = document.getElementById(`scb-${id}`);
+            const view    = SCB_VIEWS[id];
+            const btn     = document.querySelector(`.scb-btn-run[data-block="${id}"]`);
+            if (!view || !el) return;
+
+            const code    = view.state.doc.toString();
+            const lang    = el.dataset.lang;
+            const version = el.dataset.version;
+            const stdin   = document.getElementById(`scb-stdin-${id}`)?.value ?? '';
+
+            btn.disabled = true;
+            const origHTML = btn.innerHTML;
+            btn.textContent = '…';
+
+            const outputWrap = document.getElementById(`scb-output-wrap-${id}`);
+            const terminal   = document.getElementById(`scb-terminal-${id}`);
+            const badge      = document.getElementById(`scb-badge-${id}`);
+
+            outputWrap.style.display = '';
+            terminal.innerHTML = '<span class="scb-out-system">Running…</span>';
+            badge.style.display = 'none';
+
+            try {
+                const res  = await fetch('/api/code/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ language: lang, version, code, stdin }),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    terminal.innerHTML = `<span class="scb-out-stderr">✗ ${data.error}</span>`;
+                    return;
+                }
+
+                let html = '';
+                if (data.compile?.stderr) html += `<span class="scb-out-compile">[Compile Error]\n${data.compile.stderr}</span>`;
+                if (data.stdout)          html += data.stdout;
+                if (data.stderr)          html += `<span class="scb-out-stderr">${data.stderr}</span>`;
+                if (!html)                html  = '<span class="scb-out-system">(no output)</span>';
+                terminal.innerHTML = html;
+
+                const code2 = data.exit_code;
+                badge.className = `scb-badge ${code2 === 0 ? 'ok' : 'fail'}`;
+                badge.textContent = code2 === 0 ? 'Exit 0 ✓' : `Exit ${code2}`;
+                badge.style.display = 'inline-flex';
+
+            } catch (e) {
+                terminal.innerHTML = `<span class="scb-out-stderr">✗ ${e.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+            }
+        };
+
+        // ── Submit (judge mode) ──
+        window.scbSubmit = async function (id) {
+            const el      = document.getElementById(`scb-${id}`);
+            const view    = SCB_VIEWS[id];
+            const btn     = document.querySelector(`.scb-btn-run[data-block="${id}"]`);
+            if (!view || !el) return;
+
+            const code    = view.state.doc.toString();
+            const lang    = el.dataset.lang;
+            const version = el.dataset.version;
+            // test_cases are embedded in block data — fetch from server
+            // We'll POST to judge with the serialised test cases from data attribute
+            const testCases = JSON.parse(el.dataset.testCases || '[]');
+
+            btn.disabled = true;
+            const origHTML = btn.innerHTML;
+            btn.textContent = '…';
+
+            const judgeWrap = document.getElementById(`scb-judge-${id}`);
+            judgeWrap.style.display = '';
+            judgeWrap.innerHTML = '<span style="color:#8b949e;font-size:12px;">Judging…</span>';
+
+            try {
+                const res  = await fetch('/api/code/judge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ language: lang, version, code, test_cases: testCases }),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    judgeWrap.innerHTML = `<span style="color:#f87171;">✗ ${data.error}</span>`;
+                    return;
+                }
+
+                const summaryClass = data.all_passed ? 'all-pass' : 'has-fail';
+                const summaryText  = data.all_passed
+                    ? `✓ All ${data.total} tests passed!`
+                    : `✗ ${data.passed}/${data.total} tests passed`;
+
+                let html = `<div class="scb-judge-summary ${summaryClass}">${summaryText}</div>`;
+                data.results.forEach((r, i) => {
+                    const cls  = r.passed ? 'pass' : 'fail';
+                    const icon = r.passed ? '✓' : '✗';
+                    html += `<div class="scb-test-result ${cls}">
+                <div class="scb-test-result-header">${icon} Test ${i + 1}</div>`;
+                    if (!r.passed) {
+                        html += `<div class="scb-test-diff">Expected: <span>${r.expected}</span></div>`;
+                        html += `<div class="scb-test-diff">Got:      <span>${r.actual || r.error || '(empty)'}</span></div>`;
+                    }
+                    if (r.stderr) html += `<div class="scb-test-diff" style="color:#fbbf24;">Stderr: <span>${r.stderr}</span></div>`;
+                    html += `</div>`;
+                });
+
+                judgeWrap.innerHTML = html;
+
+            } catch (e) {
+                judgeWrap.innerHTML = `<span style="color:#f87171;">✗ ${e.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+            }
+        };
+
+        // ── Reset to teacher's starter code ──
+        window.scbReset = function (id) {
+            const view = SCB_VIEWS[id];
+            if (!view) return;
+            const starter = SCB_INITIAL[id] ?? '';
+            view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: starter } });
+        };
     </script>
 @endonce

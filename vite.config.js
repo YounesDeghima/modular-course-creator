@@ -15,6 +15,14 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
+    build: {
+        rollupOptions: {
+            input: {
+                app: 'resources/js/app.js',
+                'code-mirror': 'resources/js/code-mirror-bundle.js',
+            },
+        },
+    },
 });
 
 

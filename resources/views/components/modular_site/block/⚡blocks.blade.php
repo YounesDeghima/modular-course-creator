@@ -120,6 +120,10 @@ new class extends Component {
                     'step' => $blockData['step'] ?? 0.1,
                 ]);
             }
+            if ($blockData['type'] === 'code') {
+                // content already contains JSON string from hidden input — no transform needed
+                $content = $blockData['content'] ?? '{}';
+            }
 
             block::where('id', $blockData['id'])->update([
                 'content' => $content,
@@ -394,21 +398,75 @@ new class extends Component {
                             @break
 
                         @case('code')
-                            <div class="be-code-wrap">
-                                <div class="be-code-header">
-                                    <span class="be-code-dots"><span></span><span></span><span></span></span>
-                                    <span class="be-code-lang">Code</span>
+                            @php
+                                $codeData = json_decode($block['content'] ?? '{}', true);
+                                $isJson   = is_array($codeData);
+                                $cbLang   = $isJson ? ($codeData['language'] ?? '') : '';
+                                $cbCode   = $isJson ? ($codeData['code']     ?? '') : ($block['content'] ?? '');
+                                $cbId     = $block['id'];
+                            @endphp
+
+                            {{-- Hidden input — Livewire reads this on saveAll() --}}
+                            <input type="hidden"
+                                   id="cb-hidden-{{ $cbId }}"
+                                   name="blocks[{{ $cbId }}][content]"
+                                   wire:model="blocks.{{ $loop->index }}.content">
+
+                            <div class="cb-wrap" id="cb-{{ $cbId }}" data-block-id="{{ $cbId }}">
+
+                                {{-- Toolbar --}}
+                                <div class="cb-toolbar">
+                                    <div class="cb-toolbar-left">
+                                        <span class="cb-dot" style="background:#ff5f57"></span>
+                                        <span class="cb-dot" style="background:#febc2e"></span>
+                                        <span class="cb-dot" style="background:#28c840"></span>
+                                        <select class="cb-select cb-lang-sel" data-block="{{ $cbId }}" title="Language">
+                                            <option value="">Loading…</option>
+                                        </select>
+                                        <select class="cb-select cb-ver-sel" data-block="{{ $cbId }}" title="Version"></select>
+                                    </div>
+                                    <div class="cb-toolbar-right">
+                                        <button type="button" class="cb-run-btn" data-block="{{ $cbId }}"
+                                                onclick="cbRun('{{ $cbId }}')">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2.5">
+                                                <polygon points="5 3 19 12 5 21 5 3"/>
+                                            </svg>
+                                            Run
+                                        </button>
+                                    </div>
                                 </div>
-                                <textarea
-                                    class="be-input be-input-code"
-                                    name="blocks[{{ $block['id'] }}][content]"
-                                    placeholder="// Paste your code here..."
-                                    wire:model="blocks.{{ $loop->index }}.content"
-                                    oninput="autoResize(this)"
-                                    rows="4"
-                                ></textarea>
+
+                                {{-- CodeMirror host — data attributes carry initial values to JS --}}
+                                <div class="cb-cm-host"
+                                     id="cb-cm-{{ $cbId }}"
+                                     data-initial-code="{{ htmlspecialchars($cbCode) }}"
+                                     data-initial-lang="{{ $cbLang }}">
+                                </div>
+
+                                {{-- stdin --}}
+                                <div class="cb-stdin-wrap">
+                                    <div class="cb-stdin-label">stdin (optional)</div>
+                                    <textarea class="cb-stdin-area" id="cb-stdin-{{ $cbId }}"
+                                              placeholder="Input for your program…"></textarea>
+                                </div>
+
+                                {{-- Output --}}
+                                <div class="cb-output-wrap" id="cb-output-{{ $cbId }}" style="display:none;">
+                                    <div class="cb-output-header">
+                                        <span class="cb-section-label">Output</span>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <span id="cb-badge-{{ $cbId }}" class="cb-exit-badge" style="display:none;"></span>
+                                            <button type="button" class="cb-btn-tiny"
+                                                    onclick="cbClearOutput('{{ $cbId }}')">Clear</button>
+                                        </div>
+                                    </div>
+                                    <div class="cb-output" id="cb-output-content-{{ $cbId }}"></div>
+                                </div>
+
                             </div>
                             @break
+
 
                         @case('exercise')
                             <div class="be-exercise-wrap">
@@ -849,8 +907,159 @@ new class extends Component {
         };
         setTimeout(() => tryScroll(), 80);
     });
-</script>
+
+    </script>
+
+
+
+
 <style>
+    .cb-wrap {
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #0d1117;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Toolbar ── */
+    .cb-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .cb-toolbar-left,
+    .cb-toolbar-right { display: flex; align-items: center; gap: 6px; }
+
+    .cb-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    .cb-select {
+        font-size: 11px;
+        padding: 3px 6px;
+        border: 1px solid #30363d;
+        border-radius: 5px;
+        background: #0d1117;
+        color: #8b949e;
+        font-family: inherit;
+        cursor: pointer;
+        outline: none;
+    }
+    .cb-select:focus { border-color: #4f46e5; color: #e2e8f0; }
+
+    .cb-run-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: #10b981;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background .15s;
+    }
+    .cb-run-btn:hover    { background: #059669; }
+    .cb-run-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── CodeMirror host ── */
+    .cb-cm-host {
+        min-height: 120px;
+        max-height: 420px;
+        overflow: auto;
+    }
+    .cb-cm-host .cm-editor  { background: #0d1117; }
+    .cb-cm-host .cm-scroller { overflow: auto; }
+
+    /* ── stdin ── */
+    .cb-stdin-wrap  { border-top: 1px solid #30363d; }
+    .cb-stdin-label {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: #4a5568;
+        padding: 5px 10px 0;
+    }
+    .cb-stdin-area {
+        display: block;
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #e2e8f0;
+        font-size: 11px;
+        font-family: 'JetBrains Mono','Fira Code',monospace;
+        padding: 6px 10px 8px;
+        resize: vertical;
+        min-height: 36px;
+        max-height: 120px;
+        box-sizing: border-box;
+    }
+    .cb-stdin-area::placeholder { color: #4a5568; }
+
+    /* ── Output ── */
+    .cb-output-wrap { border-top: 1px solid #30363d; display: flex; flex-direction: column; }
+    .cb-output-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 10px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+    }
+    .cb-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: #4a5568;
+    }
+    .cb-output {
+        padding: 10px 12px;
+        font-family: 'JetBrains Mono','Fira Code',monospace;
+        font-size: 11px;
+        line-height: 1.65;
+        background: #0d1117;
+        color: #e2e8f0;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .cb-out-stderr  { color: #f87171; display: block; }
+    .cb-out-compile { color: #fbbf24; display: block; }
+    .cb-out-system  { color: #60a5fa; font-style: italic; display: block; }
+
+    .cb-exit-badge {
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 20px;
+    }
+    .cb-exit-badge.ok   { background: #064e3b; color: #6ee7b7; }
+    .cb-exit-badge.fail { background: #450a0a; color: #fca5a5; }
+
+    .cb-btn-tiny {
+        font-size: 9px;
+        padding: 2px 7px;
+        border: 1px solid #30363d;
+        border-radius: 4px;
+        background: none;
+        color: #8b949e;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .cb-btn-tiny:hover { background: #161b22; color: #e2e8f0; }
+
     /* ════════════════════════════════════
        BLOCKS EDITOR
     ════════════════════════════════════ */
@@ -1086,4 +1295,226 @@ new class extends Component {
     .be-save-btn:hover { background:var(--accent-hover); }
     .be-save-btn:disabled { opacity:.6;cursor:not-allowed; }
     .be-spin { animation:be-spin .7s linear infinite; }
-</style>
+
+        /* ══ Code block wrapper ══ */
+        .cb-wrap {
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0d1117;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Toolbar ── */
+        .cb-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cb-toolbar-left, .cb-toolbar-right { display: flex; align-items: center; gap: 6px; }
+        .cb-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .cb-select {
+            font-size: 11px;
+            padding: 3px 6px;
+            border: 1px solid #30363d;
+            border-radius: 5px;
+            background: #0d1117;
+            color: #8b949e;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+        }
+        .cb-select:focus { border-color: #4f46e5; color: #e2e8f0; }
+        .cb-run-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: #10b981;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .cb-run-btn:hover { background: #059669; }
+        .cb-run-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ── Problem ── */
+        .cb-problem-wrap {
+            padding: 8px 10px;
+            background: #0d1117;
+            border-bottom: 1px solid #30363d;
+        }
+        .cb-problem-input {
+            width: 100%;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-family: inherit;
+            padding: 7px 10px;
+            resize: vertical;
+            outline: none;
+            min-height: 60px;
+            line-height: 1.55;
+        }
+        .cb-problem-input::placeholder { color: #4a5568; }
+        .cb-problem-input:focus { border-color: #4f46e5; }
+
+        /* ── CodeMirror host ── */
+        .cb-cm-host {
+            min-height: 120px;
+            max-height: 400px;
+            overflow: auto;
+        }
+        .cb-cm-host .cm-editor { background: #0d1117; }
+        .cb-cm-host .cm-scroller { overflow: auto; }
+
+        /* ── Section label ── */
+        .cb-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #4a5568;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Test cases ── */
+        .cb-tests-wrap {
+            padding: 8px 10px;
+            background: #0d1117;
+            border-top: 1px solid #30363d;
+        }
+        .cb-tests-list { display: flex; flex-direction: column; gap: 8px; }
+        .cb-test-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        .cb-test-col { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .cb-field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #4a5568; }
+        .cb-test-input, .cb-test-expected {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 11px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            padding: 5px 7px;
+            resize: vertical;
+            outline: none;
+            min-height: 40px;
+        }
+        .cb-test-input:focus, .cb-test-expected:focus { border-color: #4f46e5; }
+        .cb-test-del {
+            background: none;
+            border: none;
+            color: #4a5568;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px;
+            flex-shrink: 0;
+            align-self: center;
+        }
+        .cb-test-del:hover { color: #f87171; }
+        .cb-btn-tiny {
+            font-size: 9px;
+            padding: 2px 7px;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background: none;
+            color: #8b949e;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .cb-btn-tiny:hover { background: #161b22; color: #e2e8f0; }
+
+        /* ── Output ── */
+        .cb-output-wrap {
+            border-top: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+        }
+        .cb-output-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .cb-output {
+            padding: 10px 12px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+            font-size: 11px;
+            line-height: 1.65;
+            background: #0d1117;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .cb-out-stderr  { color: #f87171; }
+        .cb-out-compile { color: #fbbf24; }
+        .cb-out-system  { color: #60a5fa; font-style: italic; }
+        .cb-exit-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+        }
+        .cb-exit-badge.ok   { background: #064e3b; color: #6ee7b7; }
+        .cb-exit-badge.fail { background: #450a0a; color: #fca5a5; }
+
+        /* ── Judge results ── */
+        .cb-judge-results { padding: 8px 10px; background: #0d1117; display: flex; flex-direction: column; gap: 6px; }
+        .cb-judge-summary {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+        .cb-judge-summary.all-pass { background: #064e3b; color: #6ee7b7; }
+        .cb-judge-summary.has-fail { background: #450a0a; color: #fca5a5; }
+        .cb-test-result {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 7px 9px;
+            border-radius: 6px;
+            border: 1px solid;
+            font-size: 11px;
+            font-family: 'JetBrains Mono','Fira Code',monospace;
+        }
+        .cb-test-result.pass { border-color: #064e3b; background: #0a1f18; }
+        .cb-test-result.fail { border-color: #450a0a; background: #1a0808; }
+        .cb-test-result-header { font-weight: 700; font-size: 10px; }
+        .cb-test-result.pass .cb-test-result-header { color: #6ee7b7; }
+        .cb-test-result.fail .cb-test-result-header { color: #fca5a5; }
+        .cb-test-diff { color: #8b949e; margin-top: 2px; }
+        .cb-test-diff span { color: #e2e8f0; }
+    </style>
+
+

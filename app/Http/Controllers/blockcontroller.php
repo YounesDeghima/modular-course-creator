@@ -142,12 +142,29 @@ class blockcontroller extends Controller
                     $content = json_encode([
                         'type' => $data['separator_type'] ?? 'divider',
                     ]);
-                }else {
-                    // For photo/video: content field already holds the storage path
-                    // (uploaded eagerly via uploadMedia endpoint)
-                    // For text types: content field holds the text
+                } elseif ($type === 'code') {
+
+                    $raw     = trim($data['content'] ?? '');
+                    $decoded = json_decode($raw, true);
+
+                    if (is_array($decoded) && isset($decoded['code'])) {
+                        $content = $raw; // proper JSON, store as-is
+                    } else {
+                        // legacy — wrap it
+                        $content = json_encode([
+                            'mode'       => 'free',
+                            'language'   => '',
+                            'version'    => '',
+                            'code'       => $raw,
+                            'problem'    => '',
+                            'test_cases' => [],
+                        ]);
+                    }
+
+                } else {
                     $content = trim($data['content'] ?? '');
                 }
+
 
                 // Delete empty text blocks
                 if ($content === '' && !in_array($type, ['photo', 'video', 'exercise'])) {
@@ -241,6 +258,28 @@ class blockcontroller extends Controller
             $validated['content'] = json_encode([
                 'type' => $request->input('separator_type', 'divider'),
             ]);
+        } elseif ($request->type === 'code') {
+
+            // New JSON schema — if frontend sends JSON content, store as-is.
+            // If it sends old plain text, wrap it.
+            $raw = $request->input('content', '');
+            $decoded = json_decode($raw, true);
+
+            if (is_array($decoded) && isset($decoded['code'])) {
+                // Already proper JSON from the upgraded block editor
+                $validated['content'] = $raw;
+            } else {
+                // Legacy plain code — migrate to new schema
+                $validated['content'] = json_encode([
+                    'mode'       => 'free',
+                    'language'   => 'python',
+                    'version'    => '',
+                    'code'       => $raw,
+                    'problem'    => '',
+                    'test_cases' => [],
+                ]);
+            }
+
         } else {
             // Covers: header, description, note, exercise, code, math, ext, markdown
             $validated['content'] = $request->input('content', '');
