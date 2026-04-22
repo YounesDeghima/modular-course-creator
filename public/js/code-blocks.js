@@ -77,16 +77,31 @@ window._cbReady = false;
             var view    = CB_VIEWS[id];
             var langSel = document.querySelector('.cb-lang-sel[data-block="' + id + '"]');
             var verSel  = document.querySelector('.cb-ver-sel[data-block="' + id + '"]');
-            var hidden  = document.getElementById('cb-hidden-' + id);
-            if (!view || !hidden) return;
+            if (!view) return;
 
-            var payload = {
+            var payload = JSON.stringify({
+                mode:     'free',
                 language: langSel ? langSel.value : '',
                 version:  verSel  ? verSel.value  : '',
                 code:     view.state.doc.toString(),
-            };
-            hidden.value = JSON.stringify(payload);
-            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            // Push directly into Livewire component property
+            var wrap = document.getElementById('cb-' + id);
+            if (wrap && window.Livewire) {
+                var el = wrap.closest('[wire\\:id]');
+                if (el) {
+                    var component = Livewire.find(el.getAttribute('wire:id'));
+                    if (component) {
+                        // Find block index by id
+                        var blocks = component.get('blocks');
+                        var idx = blocks ? blocks.findIndex(function(b){ return String(b.id) === String(id); }) : -1;
+                        if (idx !== -1) {
+                            component.set('blocks.' + idx + '.content', payload);
+                        }
+                    }
+                }
+            }
         }
 
         function createEditor(id) {
@@ -99,10 +114,13 @@ window._cbReady = false;
             }
 
             var raw = host.dataset.initialCode || '';
-            var tmp = document.createElement('textarea');
-            tmp.innerHTML = raw;
-            var code = tmp.value || '# write your code here\n';
-            CB_INITIAL[id] = code;
+            var code;
+            try {
+                code = JSON.parse(raw);
+            } catch(e) {
+                code = raw;
+            }
+            if (!code || typeof code !== 'string') code = '# write your code here\n';
 
             var langSel = document.querySelector('.cb-lang-sel[data-block="' + id + '"]');
             var lang    = langSel ? langSel.value : 'python';
@@ -255,12 +273,20 @@ window._cbReady = false;
                 };
             })
             .finally(function () {
-                initAll();
                 window._cbReady = true;
                 window._cbQueue.forEach(function (item) {
                     if (item[0] === 'run') window.cbRun(item[1]);
                 });
                 window._cbQueue = [];
+
+                // Init after Livewire is ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initAll);
+                } else {
+                    initAll();
+                }
+                // Also catch Livewire's first render
+                document.addEventListener('livewire:init', initAll);
             });
 
         // ── Re-init after Livewire re-renders ──

@@ -409,8 +409,7 @@ new class extends Component {
                             {{-- Hidden input — Livewire reads this on saveAll() --}}
                             <input type="hidden"
                                    id="cb-hidden-{{ $cbId }}"
-                                   name="blocks[{{ $cbId }}][content]"
-                                   wire:model="blocks.{{ $loop->index }}.content">
+                                   name="blocks[{{ $cbId }}][content]">
 
                             <div class="cb-wrap" id="cb-{{ $cbId }}" data-block-id="{{ $cbId }}">
 
@@ -440,7 +439,7 @@ new class extends Component {
                                 {{-- CodeMirror host — data attributes carry initial values to JS --}}
                                 <div class="cb-cm-host"
                                      id="cb-cm-{{ $cbId }}"
-                                     data-initial-code="{{ htmlspecialchars($cbCode) }}"
+                                     data-initial-code="{{ e($cbCode) }}"
                                      data-initial-lang="{{ $cbLang }}">
                                 </div>
 

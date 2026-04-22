@@ -268,7 +268,7 @@
 
                             <div class="scb-wrap" id="scb-{{ $cbId }}" data-block-id="{{ $cbId }}"
                                  data-lang="{{ $cbLang }}" data-version="{{ $cbVer }}"
-                                 data-mode="{{ $cbMode }}" data-code="{{ htmlspecialchars($cbCode) }}">
+                                 data-mode="{{ $cbMode }}" data-code="{{ e(json_encode($cbCode)) }}">
 
                                 {{-- Problem statement (judge mode) --}}
                                 @if($cbMode === 'judge' && $cbProblem)
@@ -947,7 +947,7 @@
         function initStudentBlock(el) {
             const id      = el.dataset.blockId;
             const lang    = el.dataset.lang || 'python';
-            const code    = el.dataset.code || '';
+            const code = JSON.parse(el.dataset.code || '""');
             const host    = document.getElementById(`scb-cm-${id}`);
             if (!host || SCB_VIEWS[id]) return;
 

@@ -20,7 +20,7 @@
 
 
 </head>
-<script src="{{ asset('js/code-blocks.js') }}"></script>
+
 
 <body>
 <header>
@@ -153,6 +153,6 @@
 </script>
 
 
-
+<script src="{{ asset('js/code-blocks.js') }}"></script>
 </body>
 </html>
