@@ -867,11 +867,15 @@ new class extends Component {
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 9px 18px;
+        padding: 10px 18px;
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
-        background: var(--bg);
         flex-wrap: wrap;
+        background: var(--bg);
+        position: sticky;
+        top: -11px;
+        z-index: 5;
+
     }
     .be-bc-dim    { font-size: 12px; color: var(--text-muted); }
     .be-bc-sep    { font-size: 12px; color: var(--text-faint); }
@@ -1075,7 +1079,7 @@ new class extends Component {
         display:flex;align-items:center;justify-content:space-between;
         padding:10px 18px;border-top:1px solid var(--border);
         background:var(--bg);flex-shrink:0;gap:10px;
-        position:sticky;bottom:0;z-index:5;
+        position:sticky;bottom:-11px;z-index:5;
     }
     .be-save-btn {
         display:flex;align-items:center;gap:6px;
