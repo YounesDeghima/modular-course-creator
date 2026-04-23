@@ -477,15 +477,7 @@
         @endif
     </div>
 
-    <form id="progress-form" method="POST"
-          action="{{ route('user.lesson.progress.store', ['lesson'=>$lesson]) }}"
-          style="display:none;">
-        @csrf
-        <input type="hidden" name="lesson_id" value="{{ $lesson->id }}">
-        <input type="hidden" name="progress" id="progress-input"
-               value="{{ $lesson_progress ? $lesson_progress->progress : 0 }}">
-        <button type="submit">Send</button>
-    </form>
+    <livewire:preview.progress-form :lesson="$lesson" :lesson_progress="$lesson_progress"/>
 @endsection
 
 @section('js')
