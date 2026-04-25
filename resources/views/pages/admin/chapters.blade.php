@@ -271,14 +271,21 @@
         });
 
         // Initial render for existing function blocks
-        document.addEventListener('DOMContentLoaded', function () {
-            // Wait for styles to load
-            setTimeout(() => {
-                document.querySelectorAll('.function-editor').forEach(editor => {
-                    renderFunctionPreview(editor.dataset.blockId);
-                });
-            }, 100);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(renderAllFunctionBlocks, 150);
         });
+
+        function renderAllFunctionBlocks() {
+            document.querySelectorAll('.function-editor[data-block-id]').forEach(editor => {
+                renderFunctionPreview(editor.dataset.blockId);
+            });
+        }
+
+        if (window.Livewire) {
+            Livewire.hook('commit', ({ succeed }) => {
+                succeed(() => setTimeout(renderAllFunctionBlocks, 100));
+            });
+        }
     </script>
 
 
@@ -440,6 +447,21 @@
                 statusEl.textContent = '❌ Network error: ' + e.message;
             }
         }
+        window.addEventListener('blocksReloaded', () => {
+            setTimeout(() => {
+                // Re-render math previews
+                document.querySelectorAll('[id^="math-preview-"]').forEach(p => {
+                    const ta = p.previousElementSibling;
+                    if (ta && ta.value) renderMathPreview(ta, p.id);
+                });
+                // Re-render function editors
+                document.querySelectorAll('.function-editor').forEach(ed => {
+                    renderFunctionPreview(ed.dataset.blockId);
+                });
+                // Resize textareas
+                autoResizeAll();
+            }, 100);
+        });
     </script>
 
 @endsection

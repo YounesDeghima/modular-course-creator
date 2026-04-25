@@ -393,7 +393,10 @@
                                                         label: 'Values',
                                                         data: {!! json_encode($graphData['data'] ?? []) !!},
                                                         borderColor: '#4f46e5',
-                                                        backgroundColor: '{{ $graphData['type'] == 'pie' ? json_encode(['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']) : 'rgba(79, 70, 229, 0.1)' }}',
+                                                        backgroundColor: {!! $graphData['type'] === 'pie'
+                                                                        ? json_encode(['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f43f5e'])
+
+                                                                        : json_encode('rgba(79,70,229,0.1)') !!},
                                                         tension: 0.4
                                                     }]
                                                 },
@@ -551,23 +554,24 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            // THIS IS THE TRIGGER YOU ARE MISSING
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError: false
-            });
-
-            // Your existing KaTeX logic for function blocks
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true  },
+                        { left: '$',  right: '$',  display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true  },
+                    ],
+                    throwOnError: false,
+                });
+            }
+            // Render KaTeX inline labels for function blocks
             document.querySelectorAll('.katex-eq').forEach(el => {
                 const eq = el.getAttribute('data-eq');
-                if (eq) {
-                    katex.render(eq, el, {throwOnError: false});
+                if (eq && typeof katex !== 'undefined') {
+                    try { katex.render(eq, el, { throwOnError: false }); }
+                    catch(e) { el.textContent = eq; }
                 }
             });
         });
@@ -576,23 +580,24 @@
 
 
 @once
+    <script src="{{ asset('vendors/chart.js') }}"></script>
     <script src="{{ asset('vendors/marked.min.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
               '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
     <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            },
-            startup: {typeset: false},
-        };
+        // window.MathJax = {
+        //     tex: {
+        //         inlineMath: [['$', '$'], ['\\(', '\\)']],
+        //         displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        //         processEscapes: true,
+        //     },
+        //     options: {
+        //         skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        //     },
+        //     startup: {typeset: false},
+        // };
     </script>
     <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
@@ -739,19 +744,19 @@
             });
 
             // Single MathJax pass after all blocks are rendered
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise(
-                    Array.from(document.querySelectorAll('.block-markdown-view'))
-                ).catch(console.warn);
-            }
+            // if (window.MathJax && MathJax.typesetPromise) {
+            //     MathJax.typesetPromise(
+            //         Array.from(document.querySelectorAll('.block-markdown-view'))
+            //     ).catch(console.warn);
+            // }
         }
 
         // Run after DOM + MathJax are both ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllMarkdownBlocks, 100));
-        } else {
-            setTimeout(renderAllMarkdownBlocks, 100);
-        }
+        // if (document.readyState === 'loading') {
+        //     document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllMarkdownBlocks, 100));
+        // } else {
+        //     setTimeout(renderAllMarkdownBlocks, 100);
+        // }
 
         // Re-run when Livewire swaps content
         document.addEventListener('livewire:navigated', () => setTimeout(renderAllMarkdownBlocks, 150));

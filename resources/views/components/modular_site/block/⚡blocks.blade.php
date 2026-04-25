@@ -53,7 +53,9 @@ new class extends Component {
 
     public function updateLesson($id, $chapterId)
     {
-        $this->blocks = block::where('lesson_id', $id)
+        $this->lesson  = lesson::findorfail($id);
+        $this->chapter = $this->lesson->chapter;
+        $this->blocks  = block::where('lesson_id', $id)
             ->orderBy('block_number')
             ->with('solutions')
             ->get()
@@ -66,9 +68,8 @@ new class extends Component {
                 return $arr;
             })
             ->toArray();
-
-        $this->lesson  = lesson::findorfail($id);
-        $this->chapter = $this->lesson->chapter;
+        // Dispatch so JS re-renders math/charts
+        $this->dispatch('blocksReloaded');
     }
 
     public function updatedBlocks($value, $key)
@@ -178,15 +179,17 @@ new class extends Component {
         $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
         if ($swapWith < 0 || $swapWith >= count($this->blocks)) return;
 
-        // Swap in array
         [$this->blocks[$index], $this->blocks[$swapWith]] =
             [$this->blocks[$swapWith], $this->blocks[$index]];
 
-        // Persist new order
+        // Re-index so array keys are 0,1,2... (required for Livewire)
+        $this->blocks = array_values($this->blocks);
+
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
             block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
         }
+        unset($b);
     }
 
     public function updateBlockType(int $index, string $newType)
@@ -213,6 +216,8 @@ new class extends Component {
             }
         }
     }
+
+
 
     public function updatedVideos($value, $key)
     {
@@ -314,7 +319,7 @@ new class extends Component {
             <div class="be-block type-{{ $block['type'] }}"
                  data-id="{{ $block['id'] }}"
                  data-block-id="{{ $block['id'] }}"
-                 wire:key="block-{{ $block['id'] }}">
+                 wire:key="block-pos-{{ $loop->index }}-{{ $block['id'] }}">
 
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.id">
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.block_number">
@@ -487,14 +492,12 @@ new class extends Component {
                         @case('math')
                             <textarea
                                 class="be-input be-input-mono"
-                                name="blocks[{{ $block['id'] }}][content]"
                                 placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
                                 wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content"
                                 rows="2"
+                                oninput="renderMathPreview(this, 'math-preview-{{ $block['id'] }}')"
                             ></textarea>
-                            @if(!empty($block['content']))
-                                <div class="be-math-preview">$${{ $block['content'] }}$$</div>
-                            @endif
+                            <div id="math-preview-{{ $block['id'] }}" class="be-math-preview"></div>
                             @break
 
                         @case('graph')
@@ -849,6 +852,45 @@ new class extends Component {
         };
         setTimeout(() => tryScroll(), 80);
     });
+    // Add to chapters_blade.php
+    function renderMathPreview(textarea, previewId) {
+    const preview = document.getElementById(previewId);
+    if (!preview) return;
+    const latex = textarea.value.trim();
+    if (!latex) { preview.innerHTML = ''; return; }
+    try {
+        preview.innerHTML = katex.renderToString(latex, {
+            displayMode: true,
+            throwOnError: false,
+        });
+    } catch(e) {
+        preview.textContent = latex;
+    }
+    }
+
+    // On load, render all existing math blocks
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+            const blockId = preview.id.replace('math-preview-', '');
+            const textarea = preview.previousElementSibling;
+            if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+        });
+    });
+
+    // Re-render after Livewire updates
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+                    const textarea = preview.previousElementSibling;
+                    if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+                });
+            });
+        });
+    }
+
+
+
 </script>
 <style>
     /* ════════════════════════════════════
