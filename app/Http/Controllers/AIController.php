@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPdfJob;
 use App\Models\AiJob;
+use App\Models\AiJobSnapshot;
 use App\Models\block;
 use App\Models\chapter;
 use App\Models\course;
@@ -26,20 +27,65 @@ class AIController extends Controller
         ]);
     }
 
-    // ── Test Ollama ───────────────────────────────────────────────────────────
-    public function test(Request $request)
+    // ── Detect available Ollama models ────────────────────────────────────────
+    public function models()
     {
         try {
+            $response = Http::timeout(5)->get('http://localhost:11434/api/tags');
+            if ($response->failed()) {
+                return response()->json(['ok' => false, 'models' => [], 'error' => 'Ollama not reachable.']);
+            }
+            $models = collect($response->json('models') ?? [])
+                ->pluck('name')
+                ->values()
+                ->all();
+            return response()->json(['ok' => true, 'models' => $models]);
+        } catch (\Exception $e) {
+            return response()->json(['ok' => false, 'models' => [], 'error' => $e->getMessage()]);
+        }
+    }
+
+    // ── Test Ollama (uses detected or specified model) ────────────────────────
+    public function test(Request $request)
+    {
+        $model = $request->input('model', 'phi4');
+        try {
             $response = Http::timeout(30)->post('http://localhost:11434/api/generate', [
-                'model'  => 'phi4',
-                'prompt' => 'Reply with exactly: {"status":"ok","message":"Ollama phi4 is running"}',
+                'model'  => $model,
+                'prompt' => 'Reply with exactly: {"status":"ok","message":"' . $model . ' is running"}',
                 'stream' => false,
                 'format' => 'json',
             ]);
             if ($response->failed()) {
-                return response()->json(['error' => 'Ollama did not respond. Is it running on port 11434?'], 502);
+                return response()->json(['error' => "Ollama [{$model}] did not respond. Is it running on port 11434?"], 502);
             }
-            return response()->json(['ok' => true, 'message' => 'Ollama (phi4) is reachable!', 'raw' => $response->json()]);
+            return response()->json(['ok' => true, 'message' => "Ollama [{$model}] is reachable!", 'raw' => $response->json()]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ── Chat with Ollama (test tab) ───────────────────────────────────────────
+    public function chat(Request $request)
+    {
+        $request->validate([
+            'model'    => 'required|string',
+            'messages' => 'required|array',
+        ]);
+
+        try {
+            $response = Http::timeout(120)->post('http://localhost:11434/api/chat', [
+                'model'    => $request->model,
+                'messages' => $request->messages,  // [{role: user|assistant, content: "..."}]
+                'stream'   => false,
+            ]);
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'Ollama error: ' . $response->status()], 502);
+            }
+
+            $content = $response->json('message.content') ?? '';
+            return response()->json(['ok' => true, 'content' => $content]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -91,6 +137,7 @@ class AIController extends Controller
             'course_branch' => 'nullable|in:mi,st,none',
             'max_attempts'  => 'nullable|integer|min:1|max:10',
             'priority'      => 'nullable|integer|min:1|max:10',
+            'model'         => 'nullable|string|max:100',
         ]);
 
         $file     = $request->file('pdf_file');
@@ -106,6 +153,7 @@ class AIController extends Controller
             'file_size'         => $fileSize,
             'year'              => $request->course_year,
             'branch'            => $request->course_branch ?? 'none',
+            'model'             => $request->model ?? 'phi4',
             'max_attempts'      => $request->max_attempts ?? 3,
             'priority'          => $request->priority ?? 5,
             'attempt'           => 0,
@@ -119,50 +167,197 @@ class AIController extends Controller
         return response()->json(['job_id' => $aiJob->id, 'status' => 'queued', 'message' => 'PDF queued.']);
     }
 
-    // ── Recut: re-run only Ollama using markdown saved in logs ────────────────
-    // Call: POST /ai/jobs/{id}/recut
-    public function recut($id)
+    // ── Retry from scratch (full MinerU + Ollama) ─────────────────────────────
+    public function retry($id)
     {
         $aiJob = AiJob::findOrFail($id);
 
-        // Extract raw markdown from logs
-        $markdown = $this->extractMarkdownFromLogs($aiJob);
-
-        if ($markdown === null) {
-            return response()->json([
-                'error' => 'No saved markdown found in job logs. '
-                    . 'The markdown is stored between __RAW_MARKDOWN_START__ and __RAW_MARKDOWN_END__ log entries. '
-                    . 'Re-run the full job to regenerate it.',
-            ], 422);
+        if ($aiJob->status !== 'failed') {
+            return response()->json(['error' => 'Only failed jobs can be retried.'], 422);
         }
-
-        // Reset job for re-processing (keep attempt count, add to existing logs)
-        $existingLogs = $aiJob->logs ?? [];
-        $existingLogs[] = [
-            'ts'      => now()->format('H:i:s'),
-            'level'   => 'info',
-            'message' => '--- RECUT triggered by ' . (Auth::user()?->name ?? 'admin') . ' ---',
-        ];
 
         $aiJob->update([
             'status'        => 'queued',
             'error_message' => null,
-            'result_json'   => null,
-            'finished_at'   => null,
-            'logs'          => $existingLogs,
+            'logs'          => array_merge($aiJob->logs ?? [], [[
+                'ts' => now()->format('H:i:s'), 'level' => 'info',
+                'message' => 'Full retry by ' . (Auth::user()?->name ?? 'admin') . '.',
+            ]]),
         ]);
 
-        // Dispatch with the saved markdown — skips MinerU entirely
-        ProcessPdfJob::dispatch($aiJob->id, $markdown);
+        ProcessPdfJob::dispatch($aiJob->id);
+
+        return response()->json(['ok' => true, 'message' => 'Full retry queued (new MinerU + Ollama).']);
+    }
+
+    // ── Retry MinerU only on a snapshot (re-extract PDF, new md snapshot) ─────
+    public function retryMd(Request $request, $id)
+    {
+        $aiJob = AiJob::findOrFail($id);
+
+        $aiJob->log('Retry MinerU triggered by ' . (Auth::user()?->name ?? 'admin') . '.', 'info');
+        $aiJob->update(['status' => 'queued', 'error_message' => null]);
+
+        // Dispatch full job — it will create a new snapshot with the next md_index
+        ProcessPdfJob::dispatch($aiJob->id);
+
+        return response()->json(['ok' => true, 'message' => 'MinerU re-extract queued. New snapshot will appear.']);
+    }
+
+    // ── Retry Ollama only on a specific snapshot ──────────────────────────────
+    public function recutSnapshot(Request $request, $jobId, $snapshotId)
+    {
+        $aiJob    = AiJob::findOrFail($jobId);
+        $snapshot = AiJobSnapshot::where('ai_job_id', $jobId)->where('id', $snapshotId)->firstOrFail();
+
+        $model = $request->input('model', $aiJob->model ?? 'phi4');
+
+        if (empty($snapshot->markdown)) {
+            return response()->json(['error' => 'Snapshot has no markdown. Re-run MinerU first.'], 422);
+        }
+
+        $aiJob->log("Recut snapshot #{$snapshot->md_index} with [{$model}] by " . (Auth::user()?->name ?? 'admin') . '.', 'info');
+        $aiJob->update(['status' => 'queued', 'error_message' => null]);
+
+        ProcessPdfJob::dispatch($aiJob->id, $snapshot->id, $model);
+
+        return response()->json(['ok' => true, 'message' => "Recut queued on snapshot #{$snapshot->md_index} with [{$model}]."]);
+    }
+
+    // ── List snapshots for a job ──────────────────────────────────────────────
+    public function snapshots($id)
+    {
+        $aiJob     = AiJob::findOrFail($id);
+        $snapshots = AiJobSnapshot::where('ai_job_id', $id)->orderBy('md_index')->get();
 
         return response()->json([
-            'ok'              => true,
-            'message'         => 'Recut queued. Ollama will re-process the saved markdown.',
-            'markdown_length' => mb_strlen($markdown),
+            'job_id'    => $id,
+            'snapshots' => $snapshots->map(fn($s) => $this->snapshotSummary($s))->all(),
         ]);
     }
 
-    // ── List all jobs (paginated + filterable) ────────────────────────────────
+    // ── Save a specific result as course ──────────────────────────────────────
+    public function store(Request $request)
+    {
+        $request->validate([
+            'job_id'      => 'required|exists:ai_jobs,id',
+            'snapshot_id' => 'nullable|exists:ai_job_snapshots,id',
+            'result_index'=> 'nullable|integer|min:1',
+        ]);
+
+        $aiJob = AiJob::findOrFail($request->job_id);
+
+        // Determine which result JSON to use
+        $resultJson = null;
+
+        if ($request->snapshot_id && $request->result_index) {
+            $snapshot = AiJobSnapshot::findOrFail($request->snapshot_id);
+            $results  = $snapshot->results ?? [];
+            $entry    = collect($results)->firstWhere('index', $request->result_index);
+            if ($entry && $entry['status'] === 'done') {
+                $resultJson = $entry['result_json'];
+            }
+        }
+
+        // Fallback to job's result_json
+        if (!$resultJson) {
+            if ($aiJob->status !== 'done' && $aiJob->status !== 'saved') {
+                return response()->json(['error' => 'No successful result available.'], 422);
+            }
+            $resultJson = $aiJob->result_json;
+        }
+
+        $data = json_decode($resultJson, true);
+        if (!$data) return response()->json(['error' => 'Result JSON is invalid.'], 422);
+
+        try {
+            \DB::beginTransaction();
+
+            // Helper: safely truncate strings to fit DB columns
+            $t = fn($s, $max = 255) => mb_substr((string)($s ?? ''), 0, $max);
+
+            $courseRecord = course::create([
+                'title'       => $t($data['title'] ?? 'Untitled Course'),
+                'year'        => $data['year']   ?? $aiJob->year,
+                'branch'      => $data['branch'] ?? $aiJob->branch,
+                'description' => $t($data['description'] ?? '', 1000),
+                'status'      => 'draft',
+            ]);
+
+            foreach (($data['chapters'] ?? []) as $chIdx => $chData) {
+                $chapterRecord = chapter::create([
+                    'course_id'      => $courseRecord->id,
+                    'title'          => $t($chData['title'] ?? 'Chapter ' . ($chIdx + 1)),
+                    'description'    => $t($chData['description'] ?? '', 1000),
+                    'chapter_number' => $chData['chapter_number'] ?? ($chIdx + 1),
+                    'status'         => 'draft',
+                ]);
+
+                foreach (($chData['lessons'] ?? []) as $lIdx => $lData) {
+                    $lessonRecord = lesson::create([
+                        'chapter_id'    => $chapterRecord->id,
+                        'title'         => $t($lData['title'] ?? 'Lesson ' . ($lIdx + 1)),
+                        'description'   => $t($lData['description'] ?? '', 1000),
+                        'lesson_number' => $lData['lesson_number'] ?? ($lIdx + 1),
+                        'content'       => '',
+                        'status'        => 'draft',
+                    ]);
+
+                    foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
+                        $type = $bData['type'] ?? 'markdown';
+                        $raw  = $bData['content'] ?? '';
+
+                        // Always a plain string
+                        if (is_array($raw) || is_object($raw)) {
+                            $content = json_encode($raw, JSON_UNESCAPED_UNICODE);
+                        } else {
+                            $content = (string) $raw;
+                        }
+
+                        // Structured types: must be valid JSON
+                        if (in_array($type, ['list', 'table', 'separator', 'graph', 'function'])) {
+                            json_decode($content);
+                            if (json_last_error() !== JSON_ERROR_NONE) {
+                                $content = json_encode(['raw' => $content], JSON_UNESCAPED_UNICODE);
+                            }
+                        }
+
+                        $blk = block::create([
+                            'lesson_id'    => $lessonRecord->id,
+                            'type'         => $type,
+                            'content'      => $content,
+                            'block_number' => $bData['block_number'] ?? ($bIdx + 1),
+                        ]);
+
+                        if ($type === 'exercise') {
+                            $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+                        }
+                    }
+                }
+            }
+
+            $aiJob->update(['status' => 'saved']);
+            $aiJob->log('Saved as course ID ' . $courseRecord->id . '.', 'ok');
+
+            \DB::commit();
+            return response()->json(['success' => true, 'course_id' => $courseRecord->id, 'message' => 'Course saved as draft.']);
+
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            \Log::error('AI store failed: ' . $e->getMessage(), [
+                'job_id' => $aiJob->id,
+                'file'   => $e->getFile(),
+                'line'   => $e->getLine(),
+            ]);
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file'  => basename($e->getFile()),
+                'line'  => $e->getLine(),
+            ], 500);
+        }
+    }
+
+    // ── List all jobs (paginated) ─────────────────────────────────────────────
     public function jobsList(Request $request)
     {
         $query = AiJob::query()->orderByDesc('created_at');
@@ -179,16 +374,6 @@ class AIController extends Controller
         });
 
         return response()->json($jobs);
-    }
-
-    // ── Active jobs (for courses page widget) ─────────────────────────────────
-    public function activeJobs()
-    {
-        return response()->json(
-            AiJob::whereNotIn('status', ['saved'])
-                ->orderBy('created_at', 'desc')
-                ->get(['id', 'status', 'original_filename', 'attempt', 'max_attempts', 'created_at', 'updated_at'])
-        );
     }
 
     // ── Single job detail ─────────────────────────────────────────────────────
@@ -213,81 +398,52 @@ class AIController extends Controller
     {
         $aiJob = AiJob::findOrFail($id);
 
-        // Filter out the raw markdown blob from the logs sent to the UI
-        // (it would flood the panel — the recut endpoint retrieves it directly)
         $filteredLogs = array_values(array_filter($aiJob->logs ?? [], function ($entry) {
-            $msg = $entry['message'] ?? '';
-            if ($entry['level'] === 'raw') return false;
-            if ($msg === '__RAW_MARKDOWN_START__') return false;
-            if ($msg === '__RAW_MARKDOWN_END__') return false;
+            $level = $entry['level'] ?? '';
+            $msg   = $entry['message'] ?? '';
+            if ($level === 'raw') return false;
+            if ($msg === '__RAW_MARKDOWN_START__' || $msg === '__RAW_MARKDOWN_END__') return false;
             return true;
         }));
 
-        // Tell the UI whether recut is available
-        $hasMarkdown = $this->extractMarkdownFromLogs($aiJob) !== null;
-
         return response()->json([
-            'id'              => $aiJob->id,
-            'status'          => $aiJob->status,
-            'logs'            => $filteredLogs,
-            'error'           => $aiJob->error_message,
-            'progress'        => $aiJob->progressPercent(),
-            'can_recut'       => $hasMarkdown,
+            'id'       => $aiJob->id,
+            'status'   => $aiJob->status,
+            'logs'     => $filteredLogs,
+            'error'    => $aiJob->error_message,
+            'progress' => $aiJob->progressPercent(),
         ]);
     }
 
-    // ── Retry a failed job ────────────────────────────────────────────────────
-    public function retry($id)
-    {
-        $aiJob = AiJob::findOrFail($id);
-
-        if ($aiJob->status !== 'failed') {
-            return response()->json(['error' => 'Only failed jobs can be retried.'], 422);
-        }
-
-        $aiJob->update([
-            'status'        => 'queued',
-            'error_message' => null,
-            'logs'          => array_merge($aiJob->logs ?? [], [[
-                'ts' => now()->format('H:i:s'), 'level' => 'info',
-                'message' => 'Manually re-queued by ' . (Auth::user()?->name ?? 'admin') . '.',
-            ]]),
-        ]);
-
-        ProcessPdfJob::dispatch($aiJob->id);
-
-        return response()->json(['ok' => true, 'message' => 'Job re-queued.']);
-    }
-
-    // ── Cancel a job ─────────────────────────────────────────────────────────
+    // ── Cancel ────────────────────────────────────────────────────────────────
     public function cancel($id)
     {
         $aiJob = AiJob::findOrFail($id);
-
         if (!in_array($aiJob->status, ['queued', 'failed'])) {
             return response()->json(['error' => 'Only queued or failed jobs can be cancelled.'], 422);
         }
-
         $aiJob->log('Cancelled by ' . (Auth::user()?->name ?? 'admin') . '.', 'warn');
         $aiJob->update(['status' => 'cancelled', 'finished_at' => now()]);
-
         return response()->json(['ok' => true]);
     }
 
-    // ── Delete a job ──────────────────────────────────────────────────────────
+    // ── Delete ────────────────────────────────────────────────────────────────
     public function deleteJob($id)
     {
         $aiJob = AiJob::findOrFail($id);
-
         if ($aiJob->pdf_path && Storage::disk('local')->exists($aiJob->pdf_path)) {
             Storage::disk('local')->delete($aiJob->pdf_path);
         }
-
-        $aiJob->delete();
+        // Delete image dirs
+        $imagesDir = "ai_images/{$id}";
+        if (Storage::disk('public')->exists($imagesDir)) {
+            Storage::disk('public')->deleteDirectory($imagesDir);
+        }
+        $aiJob->delete(); // cascades to snapshots
         return response()->json(['ok' => true]);
     }
 
-    // ── Update job meta (note, max_attempts, priority) ────────────────────────
+    // ── Update job meta ───────────────────────────────────────────────────────
     public function updateJob(Request $request, $id)
     {
         $aiJob     = AiJob::findOrFail($id);
@@ -297,11 +453,10 @@ class AIController extends Controller
             'priority'     => 'nullable|integer|min:1|max:10',
             'year'         => 'nullable|in:1,2,3',
             'branch'       => 'nullable|in:mi,st,none',
+            'model'        => 'nullable|string|max:100',
         ]);
-
         $aiJob->update(array_filter($validated, fn($v) => $v !== null));
-        $aiJob->log('Job meta updated by ' . (Auth::user()?->name ?? 'admin') . '.', 'info');
-
+        $aiJob->log('Meta updated by ' . (Auth::user()?->name ?? 'admin') . '.', 'info');
         return response()->json(['ok' => true, 'job' => $this->jobSummary($aiJob)]);
     }
 
@@ -339,77 +494,19 @@ class AIController extends Controller
         return response()->json(['ok' => true, 'results' => $results]);
     }
 
-    // ── Save result to DB ─────────────────────────────────────────────────────
-    public function store(Request $request)
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    public function stats()
     {
-        $request->validate(['job_id' => 'required|exists:ai_jobs,id']);
-        $aiJob = AiJob::findOrFail($request->job_id);
-
-        if ($aiJob->status !== 'done') {
-            return response()->json(['error' => 'Job is not finished yet.'], 422);
-        }
-
-        $data = json_decode($aiJob->result_json, true);
-        if (!$data) return response()->json(['error' => 'Result JSON is invalid.'], 422);
-
-        $courseRecord = course::create([
-            'title'       => $data['title']      ?? 'Untitled Course',
-            'year'        => $data['year']        ?? $aiJob->year,
-            'branch'      => $data['branch']      ?? $aiJob->branch,
-            'description' => $data['description'] ?? '',
-            'status'      => 'draft',
+        return response()->json([
+            'total'        => AiJob::count(),
+            'queued'       => AiJob::where('status', 'queued')->count(),
+            'processing'   => AiJob::where('status', 'processing')->count(),
+            'done'         => AiJob::where('status', 'done')->count(),
+            'saved'        => AiJob::where('status', 'saved')->count(),
+            'failed'       => AiJob::where('status', 'failed')->count(),
+            'cancelled'    => AiJob::where('status', 'cancelled')->count(),
+            'avg_duration' => AiJob::whereNotNull('duration_seconds')->avg('duration_seconds'),
         ]);
-
-        foreach (($data['chapters'] ?? []) as $chIdx => $chData) {
-            $chapterRecord = chapter::create([
-                'course_id'      => $courseRecord->id,
-                'title'          => $chData['title']          ?? 'Chapter ' . ($chIdx + 1),
-                'description'    => $chData['description']    ?? '',
-                'chapter_number' => $chData['chapter_number'] ?? ($chIdx + 1),
-                'status'         => 'draft',
-            ]);
-
-            foreach (($chData['lessons'] ?? []) as $lIdx => $lData) {
-                $lessonRecord = lesson::create([
-                    'chapter_id'    => $chapterRecord->id,
-                    'title'         => $lData['title']         ?? 'Lesson ' . ($lIdx + 1),
-                    'description'   => $lData['description']   ?? '',
-                    'lesson_number' => $lData['lesson_number'] ?? ($lIdx + 1),
-                    'content'       => '',
-                    'status'        => 'draft',
-                ]);
-
-                foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
-                    $type    = $bData['type']    ?? 'markdown';
-                    $content = is_string($bData['content']) ? $bData['content'] : '';
-
-                    // Normalise list/table/separator content: must be JSON string
-                    if (in_array($type, ['list', 'table', 'separator', 'graph', 'function'])) {
-                        if (!is_string($content) || json_decode($content) === null) {
-                            // Try to encode if already array
-                            $raw = $bData['content'];
-                            $content = is_array($raw) ? json_encode($raw, JSON_UNESCAPED_UNICODE) : json_encode(['raw' => $content]);
-                        }
-                    }
-
-                    $blk = block::create([
-                        'lesson_id'    => $lessonRecord->id,
-                        'type'         => $type,
-                        'content'      => $content,
-                        'block_number' => $bData['block_number'] ?? ($bIdx + 1),
-                    ]);
-
-                    if ($type === 'exercise') {
-                        $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
-                    }
-                }
-            }
-        }
-
-        $aiJob->update(['status' => 'saved']);
-        $aiJob->log('Saved as course ID ' . $courseRecord->id . ' by ' . (Auth::user()?->name ?? 'admin') . '.', 'ok');
-
-        return response()->json(['success' => true, 'course_id' => $courseRecord->id, 'message' => 'Course saved as draft.']);
     }
 
     // ── Convert block ─────────────────────────────────────────────────────────
@@ -429,58 +526,6 @@ class AIController extends Controller
         return response()->json(['success' => true, 'block' => $blk->fresh()]);
     }
 
-    // ── Stats endpoint ────────────────────────────────────────────────────────
-    public function stats()
-    {
-        return response()->json([
-            'total'           => AiJob::count(),
-            'queued'          => AiJob::where('status', 'queued')->count(),
-            'processing'      => AiJob::where('status', 'processing')->count(),
-            'done'            => AiJob::where('status', 'done')->count(),
-            'saved'           => AiJob::where('status', 'saved')->count(),
-            'failed'          => AiJob::where('status', 'failed')->count(),
-            'cancelled'       => AiJob::where('status', 'cancelled')->count(),
-            'avg_duration'    => AiJob::whereNotNull('duration_seconds')->avg('duration_seconds'),
-        ]);
-    }
-
-    // ── Helper: extract raw markdown from job logs ────────────────────────────
-    private function extractMarkdownFromLogs(AiJob $aiJob): ?string
-    {
-        $logs = $aiJob->logs ?? [];
-        $capturing = false;
-        $lines     = [];
-
-        foreach ($logs as $entry) {
-            $msg   = $entry['message'] ?? '';
-            $level = $entry['level']   ?? '';
-
-            if ($msg === '__RAW_MARKDOWN_START__') {
-                $capturing = true;
-                $lines     = [];
-                continue;
-            }
-
-            if ($msg === '__RAW_MARKDOWN_END__') {
-                // Found a complete block — keep it (last one wins in case of retries)
-                if (!empty($lines)) {
-                    $capturing = false;
-                }
-                continue;
-            }
-
-            if ($capturing && $level === 'raw') {
-                $lines[] = $msg;
-            }
-        }
-
-        if (empty($lines)) {
-            return null;
-        }
-
-        return implode('', $lines);
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
     private function jobSummary(AiJob $job, bool $includeLogs = false): array
     {
@@ -493,6 +538,7 @@ class AIController extends Controller
             'pdf_path'          => $job->pdf_path,
             'year'              => $job->year,
             'branch'            => $job->branch,
+            'model'             => $job->model ?? 'phi4',
             'attempt'           => $job->attempt,
             'max_attempts'      => $job->max_attempts,
             'priority'          => $job->priority,
@@ -503,12 +549,12 @@ class AIController extends Controller
             'progress'          => $job->progressPercent(),
             'can_retry'         => $job->canRetry(),
             'can_cancel'        => $job->canCancel(),
-            'can_recut'         => $this->extractMarkdownFromLogs($job) !== null,
             'started_at'        => $job->started_at?->toDateTimeString(),
             'finished_at'       => $job->finished_at?->toDateTimeString(),
             'duration_seconds'  => $job->duration_seconds,
             'created_at'        => $job->created_at?->toDateTimeString(),
             'updated_at'        => $job->updated_at?->toDateTimeString(),
+            'snapshot_count'    => AiJobSnapshot::where('ai_job_id', $job->id)->count(),
         ];
 
         if ($includeLogs) {
@@ -516,6 +562,32 @@ class AIController extends Controller
         }
 
         return $data;
+    }
+
+    private function snapshotSummary(AiJobSnapshot $s): array
+    {
+        return [
+            'id'              => $s->id,
+            'md_index'        => $s->md_index,
+            'md_status'       => $s->md_status,
+            'md_error'        => $s->md_error,
+            'md_created_at'   => $s->md_created_at?->toDateTimeString(),
+            'markdown_length' => mb_strlen($s->markdown ?? ''),
+            'image_count'     => count($s->image_urls ?? []),
+            'image_urls'      => $s->image_urls ?? [],
+            'results'         => array_map(function ($r) {
+                // Don't send full result_json in list view — too heavy
+                return [
+                    'index'            => $r['index'],
+                    'model'            => $r['model'],
+                    'status'           => $r['status'],
+                    'error'            => $r['error'] ?? null,
+                    'created_at'       => $r['created_at'],
+                    'duration_seconds' => $r['duration_seconds'] ?? null,
+                    'has_result'       => !empty($r['result_json']),
+                ];
+            }, $s->results ?? []),
+        ];
     }
 
     private function convertContent(string $raw, string $targetType): string

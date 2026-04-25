@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\AiJob;
+use App\Models\AiJobSnapshot;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,13 +20,16 @@ class ProcessPdfJob implements ShouldQueue
     public int $timeout = 0;
     public int $tries   = 1;
 
-    // When set, skip MinerU and use this markdown directly (for recut)
-    public ?string $forcedMarkdown = null;
-
-    public function __construct(public int $aiJobId, ?string $forcedMarkdown = null)
-    {
-        $this->forcedMarkdown = $forcedMarkdown;
-    }
+    /**
+     * @param int         $aiJobId
+     * @param int|null    $recutSnapshotId  If set → skip MinerU, recut Ollama on this snapshot
+     * @param string|null $recutModel       Model to use for recut (overrides job model)
+     */
+    public function __construct(
+        public int     $aiJobId,
+        public ?int    $recutSnapshotId = null,
+        public ?string $recutModel      = null,
+    ) {}
 
     public function handle(): void
     {
@@ -35,56 +39,79 @@ class ProcessPdfJob implements ShouldQueue
             return;
         }
 
+        $model   = $this->recutModel ?? $aiJob->model ?? 'phi4';
         $attempt = ($aiJob->attempt ?? 0) + 1;
+
         $aiJob->update([
             'status'     => 'processing',
             'attempt'    => $attempt,
             'started_at' => now(),
-            'logs'       => [],
         ]);
 
-        $aiJob->log("═══ Attempt {$attempt}/{$aiJob->max_attempts} ═══", 'info');
-        $aiJob->log('Job picked up by worker.', 'info');
+        $aiJob->log("═══ Attempt {$attempt}/{$aiJob->max_attempts} | model={$model} ═══", 'info');
 
         $startTime = microtime(true);
 
         try {
-            // ── STEP 1: MinerU (skip if recut with existing markdown) ─────────
-            if ($this->forcedMarkdown !== null) {
-                $markdown = $this->forcedMarkdown;
-                $chars    = mb_strlen($markdown);
-                $aiJob->log("STEP 1 — SKIPPED (recut mode). Using provided markdown ({$chars} chars).", 'info');
-            } else {
-                $aiJob->log('STEP 1 — Starting MinerU PDF extraction.', 'info');
-                $markdown = $this->extractWithMinerU($aiJob);
-                $chars    = mb_strlen($markdown);
-                $aiJob->log("STEP 1 — Done. Extracted {$chars} chars of Markdown.", 'ok');
+            // ─────────────────────────────────────────────────────────────────
+            // RECUT MODE: skip MinerU, use existing snapshot
+            // ─────────────────────────────────────────────────────────────────
+            if ($this->recutSnapshotId !== null) {
+                $snapshot = AiJobSnapshot::findOrFail($this->recutSnapshotId);
+                $aiJob->log("RECUT mode → snapshot #{$snapshot->md_index} (id={$snapshot->id})", 'info');
+                $this->runOllamaOnSnapshot($aiJob, $snapshot, $model, $startTime);
+                return;
             }
 
-            // ── Always store raw markdown in logs for recut ───────────────────
-            $aiJob->log('__RAW_MARKDOWN_START__', 'info');
-            $aiJob->log($markdown, 'raw');
-            $aiJob->log('__RAW_MARKDOWN_END__', 'info');
+            // ─────────────────────────────────────────────────────────────────
+            // FULL MODE: MinerU → Ollama
+            // ─────────────────────────────────────────────────────────────────
 
-            // ── STEP 2: Ollama with retry loop ────────────────────────────────
-            $aiJob->log('STEP 2 — Sending to Ollama phi4 for structuring…', 'info');
-            $structured = $this->structureWithOllamaWithRetries($aiJob, $markdown);
+            // Next md_index for this job
+            $mdIndex = AiJobSnapshot::where('ai_job_id', $aiJob->id)->count() + 1;
 
-            $chCount = count($structured['chapters'] ?? []);
-            $lCount  = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $structured['chapters'] ?? []));
-            $bCount  = array_sum(array_map(fn($c) => array_sum(array_map(fn($l) => count($l['blocks'] ?? []), $c['lessons'] ?? [])), $structured['chapters'] ?? []));
-            $aiJob->log("STEP 2 — Done. Chapters:{$chCount} Lessons:{$lCount} Blocks:{$bCount}.", 'ok');
+            // Persistent output dir in public storage so images are servable
+            $imagesRelPath = "ai_images/{$aiJob->id}/{$mdIndex}";
+            $imagesAbsPath = Storage::disk('public')->path($imagesRelPath);
 
-            // ── STEP 3: Save ──────────────────────────────────────────────────
-            $aiJob->log('STEP 3 — Persisting result JSON…', 'info');
-            $duration = (int)(microtime(true) - $startTime);
-            $aiJob->update([
-                'status'           => 'done',
-                'result_json'      => json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-                'finished_at'      => now(),
-                'duration_seconds' => $duration,
+            $aiJob->log("STEP 1 — Starting MinerU PDF extraction (md #{$mdIndex}).", 'info');
+
+            // Create snapshot record early (md_status=processing)
+            $snapshot = AiJobSnapshot::create([
+                'ai_job_id'    => $aiJob->id,
+                'md_index'     => $mdIndex,
+                'markdown'     => null,
+                'images_path'  => $imagesRelPath,
+                'image_urls'   => [],
+                'md_status'    => 'processing',
+                'md_error'     => null,
+                'md_created_at'=> now(),
+                'results'      => [],
             ]);
-            $aiJob->log("STEP 3 — Complete in {$duration}s. Ready to save as course.", 'ok');
+
+            try {
+                ['markdown' => $markdown, 'imageUrls' => $imageUrls]
+                    = $this->extractWithMinerU($aiJob, $imagesAbsPath);
+
+                $snapshot->update([
+                    'markdown'   => $markdown,
+                    'image_urls' => $imageUrls,
+                    'md_status'  => 'done',
+                ]);
+
+                $chars = mb_strlen($markdown);
+                $aiJob->log("STEP 1 — Done. Extracted {$chars} chars + " . count($imageUrls) . " images.", 'ok');
+
+            } catch (\Throwable $e) {
+                $snapshot->update([
+                    'md_status' => 'failed',
+                    'md_error'  => $e->getMessage(),
+                ]);
+                throw $e; // bubble up → job fails
+            }
+
+            // ── STEP 2: Ollama ────────────────────────────────────────────────
+            $this->runOllamaOnSnapshot($aiJob, $snapshot, $model, $startTime);
 
         } catch (\Throwable $e) {
             $duration = (int)(microtime(true) - $startTime);
@@ -105,71 +132,121 @@ class ProcessPdfJob implements ShouldQueue
                 $aiJob->log("Will auto-retry in {$delay}s (attempt {$attempt}/{$aiJob->max_attempts}).", 'warn');
                 self::dispatch($aiJob->id)->delay(now()->addSeconds($delay));
             } else {
-                $aiJob->log("Max attempts ({$aiJob->max_attempts}) reached. No more retries.", 'error');
-                $aiJob->log("TIP: Use the 'Recut' button to retry only the Ollama step using the saved markdown.", 'warn');
+                $aiJob->log("Max attempts ({$aiJob->max_attempts}) reached.", 'error');
+                $aiJob->log("Use 'Retry MD' or 'Retry Cut' buttons per snapshot.", 'warn');
             }
         }
     }
 
-    // ── Ollama with inner retry loop (3 tries before bubbling up) ─────────────
-    private function structureWithOllamaWithRetries(AiJob $aiJob, string $markdown): array
-    {
-        $maxOllamaRetries = 3;
-        $lastError        = '';
+    // ── Run Ollama on a snapshot (with inner retry loop) ──────────────────────
+    private function runOllamaOnSnapshot(
+        AiJob           $aiJob,
+        AiJobSnapshot   $snapshot,
+        string          $model,
+        float           $startTime
+    ): void {
+        $markdown = $snapshot->markdown ?? '';
 
-        for ($try = 1; $try <= $maxOllamaRetries; $try++) {
+        $aiJob->log("STEP 2 — Sending snapshot #{$snapshot->md_index} to Ollama [{$model}]…", 'info');
+
+        $ollamaStart = microtime(true);
+        $maxRetries  = 3;
+        $lastError   = '';
+        $resultJson  = null;
+
+        for ($try = 1; $try <= $maxRetries; $try++) {
             try {
-                $aiJob->log("STEP 2 — Ollama attempt {$try}/{$maxOllamaRetries}…", 'info');
-                $result = $this->structureWithOllama($aiJob, $markdown);
+                $aiJob->log("STEP 2 — Ollama attempt {$try}/{$maxRetries}…", 'info');
+                $structured = $this->structureWithOllama($aiJob, $snapshot, $model);
 
-                // Validate non-empty chapters
-                if (empty($result['chapters'])) {
-                    throw new \RuntimeException('Ollama returned empty chapters array.');
+                if (empty($structured['chapters'])) {
+                    throw new \RuntimeException('Ollama returned empty chapters.');
                 }
-
-                // Validate at least one lesson with at least one block
                 $totalBlocks = array_sum(array_map(
                     fn($c) => array_sum(array_map(fn($l) => count($l['blocks'] ?? []), $c['lessons'] ?? [])),
-                    $result['chapters']
+                    $structured['chapters']
                 ));
                 if ($totalBlocks === 0) {
-                    throw new \RuntimeException('Ollama produced chapters/lessons but zero blocks.');
+                    throw new \RuntimeException('Ollama produced zero blocks.');
                 }
 
-                return $result;
+                $resultJson = json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+                $ch = count($structured['chapters'] ?? []);
+                $ls = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $structured['chapters'] ?? []));
+                $aiJob->log("STEP 2 — OK. Chapters:{$ch} Lessons:{$ls} Blocks:{$totalBlocks}.", 'ok');
+
+                break; // success
 
             } catch (\Throwable $e) {
                 $lastError = $e->getMessage();
-                $aiJob->log("STEP 2 — Ollama attempt {$try} failed: {$lastError}", 'warn');
-                if ($try < $maxOllamaRetries) {
+                $aiJob->log("STEP 2 — attempt {$try} failed: {$lastError}", 'warn');
+                if ($try < $maxRetries) {
                     $aiJob->log("STEP 2 — Retrying in 5s…", 'warn');
                     sleep(5);
                 }
             }
         }
 
-        // All Ollama retries exhausted → use fallback
-        $aiJob->log("STEP 2 — All Ollama retries exhausted. Using fallback structure.", 'error');
-        $aiJob->log("STEP 2 — Last error: {$lastError}", 'error');
-        return $this->fallbackStructure($aiJob, $markdown);
+        $ollamaDuration = (int)(microtime(true) - $ollamaStart);
+
+        if ($resultJson === null) {
+            // ── ALL RETRIES FAILED — record failure, do NOT fake success ──────
+            $aiJob->log("STEP 2 — All Ollama retries exhausted. Last error: {$lastError}", 'error');
+            $aiJob->log("Use 'Retry Cut' on snapshot #{$snapshot->md_index} to try again.", 'warn');
+
+            $snapshot->addResult($model, 'failed', null, $lastError, $ollamaDuration);
+
+            $aiJob->update([
+                'status'           => 'failed',
+                'error_message'    => "Ollama failed on snapshot #{$snapshot->md_index}: {$lastError}",
+                'finished_at'      => now(),
+                'duration_seconds' => (int)(microtime(true) - $startTime),
+            ]);
+            return;
+        }
+
+        // ── SUCCESS ───────────────────────────────────────────────────────────
+        $snapshot->addResult($model, 'done', $resultJson, null, $ollamaDuration);
+
+        $totalDuration = (int)(microtime(true) - $startTime);
+        $aiJob->log("STEP 3 — Persisting result. Total time: {$totalDuration}s.", 'ok');
+
+        $aiJob->update([
+            'status'           => 'done',
+            'result_json'      => $resultJson,   // latest successful result
+            'finished_at'      => now(),
+            'duration_seconds' => $totalDuration,
+            'error_message'    => null,
+        ]);
     }
 
-    // ── Ollama structuring ────────────────────────────────────────────────────
-    private function structureWithOllama(AiJob $aiJob, string $markdown): array
+    // ── Ollama structuring (single attempt) ───────────────────────────────────
+    private function structureWithOllama(AiJob $aiJob, AiJobSnapshot $snapshot, string $model): array
     {
-        $maxChars  = 60000;
+        $markdown = $snapshot->markdown ?? '';
+        $maxChars = 60000;
         $truncated = mb_strlen($markdown) > $maxChars
             ? mb_substr($markdown, 0, $maxChars) . "\n\n[...truncated...]"
             : $markdown;
 
         $origLen = mb_strlen($markdown);
         $sentLen = mb_strlen($truncated);
-        $aiJob->log("Markdown {$origLen} chars → sending {$sentLen} chars to Ollama.", 'info');
+        $aiJob->log("Markdown {$origLen} chars → sending {$sentLen} chars to [{$model}].", 'info');
+
+        // Inject image references into the markdown context for Ollama
+        $imageUrls = $snapshot->image_urls ?? [];
+        $imageNote = '';
+        if (!empty($imageUrls)) {
+            $imageNote = "\n\nAVAILABLE IMAGES (use these URLs in photo blocks):\n";
+            foreach ($imageUrls as $i => $url) {
+                $imageNote .= "  Image " . ($i + 1) . ": {$url}\n";
+            }
+        }
 
         $year   = $aiJob->year;
         $branch = $aiJob->branch;
 
-        // ── ENHANCED PROMPT ────────────────────────────────────────────────────
         $prompt = <<<PROMPT
 You are a strict course content parser. Convert the Markdown document below into a JSON course structure.
 
@@ -194,26 +271,19 @@ Scan the content sequentially and emit one block per detected segment:
 | Plain paragraph text          | "description"| paragraph text verbatim                           |
 | `> ` blockquote / note        | "note"       | text inside the blockquote                        |
 | `$$...$$` or `\[...\]` LaTeX  | "math"       | LaTeX expression verbatim (keep delimiters)       |
-| Inline `$...$` heavy math     | "math"       | LaTeX expression verbatim                         |
-| ` ```...``` ` fenced code     | "code"       | code verbatim (keep language tag)                 |
-| `- ` / `* ` / `1.` list       | "list"       | JSON: {"style":"bullet","items":["a","b",...]}     |
-| Markdown table `|---|`        | "table"      | JSON: [["col1","col2"],["val1","val2"],...]         |
-| `![](images/...)` image tag   | "photo"      | the image path string only, e.g. "images/abc.jpg" |
-| Horizontal rule `---` / `***` | "separator"  | JSON: {"type":"divider"}                           |
-| Theorem / definition box      | "note"       | full text verbatim                                 |
-| Algorithm / pseudocode block  | "code"       | full block verbatim                                |
-| Any remaining prose           | "description"| text verbatim                                      |
+| Fenced code block             | "code"       | code verbatim (no fences)                         |
+| Image reference ![...](...) or image URL from AVAILABLE IMAGES list | "photo" | the image URL |
+| Bullet / numbered list        | "list"       | {"style":"bullet","items":["item1","item2"]}      |
+| Table                         | "table"      | [["H1","H2"],["r1c1","r1c2"]]  (JSON array)       |
+| `---` horizontal rule         | "separator"  | {"type":"divider"}                                |
 
-IMPORTANT RULES:
-1. Every `![](path)` line MUST become a {"type":"photo","content":"path"} block. Never skip images.
-2. Every LaTeX block (`$$...$$`) MUST become a {"type":"math","content":"..."} block.
-3. Never merge multiple different types into one block.
-4. Never skip or summarise any content. Copy verbatim.
-5. block_number starts at 1 per lesson and increments by 1.
-6. "header" blocks must NOT contain the # characters — strip them.
+CRITICAL: When you see an image reference in the markdown (e.g. ![fig](path)) OR an entry from
+the AVAILABLE IMAGES list below, always emit a "photo" block with the full image URL as content.
+Do NOT skip images.
+{$imageNote}
 
 ═══════════════════════════════════════════════════════════════
-OUTPUT FORMAT — return ONLY valid JSON, no markdown fences, no explanation
+OUTPUT FORMAT (pure JSON, no markdown fences)
 ═══════════════════════════════════════════════════════════════
 {
   "title": "<first # heading or filename>",
@@ -234,11 +304,11 @@ OUTPUT FORMAT — return ONLY valid JSON, no markdown fences, no explanation
           "lesson_number": 1,
           "status": "draft",
           "blocks": [
-            {"type": "header",      "content": "Introduction",          "block_number": 1},
-            {"type": "description", "content": "Some paragraph...",     "block_number": 2},
-            {"type": "math",        "content": "$$f(x) = 0$$",          "block_number": 3},
-            {"type": "photo",       "content": "images/fig1.jpg",        "block_number": 4},
-            {"type": "list",        "content": "{\"style\":\"bullet\",\"items\":[\"item1\",\"item2\"]}", "block_number": 5}
+            {"type": "header",      "content": "Introduction",                                      "block_number": 1},
+            {"type": "description", "content": "Some paragraph...",                                 "block_number": 2},
+            {"type": "math",        "content": "$$ f(x) = 0$$",                                     "block_number": 3},
+            {"type": "photo",       "content": "https://example.com/storage/ai_images/1/1/fig.png","block_number": 4},
+            {"type": "list",        "content": "{\"style\":\"bullet\",\"items\":[\"item1\"]}",      "block_number": 5}
           ]
         }
       ]
@@ -251,12 +321,12 @@ $truncated
 --- END OF DOCUMENT ---
 PROMPT;
 
-        $aiJob->log('POST → http://localhost:11434/api/generate (phi4, stream=false)…', 'info');
+        $aiJob->log("POST → http://localhost:11434/api/generate ({$model}, stream=false)…", 'info');
 
         $response = Http::timeout(0)
             ->withOptions(['connect_timeout' => 10])
             ->post('http://localhost:11434/api/generate', [
-                'model'   => 'phi4',
+                'model'   => $model,
                 'prompt'  => $prompt,
                 'stream'  => false,
                 'format'  => 'json',
@@ -268,10 +338,9 @@ PROMPT;
             ]);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Ollama HTTP error: ' . $response->status());
+            throw new \RuntimeException("Ollama HTTP error: " . $response->status());
         }
 
-        $aiJob->log('Ollama responded HTTP 200. Parsing JSON…', 'info');
         $jsonString = $response->json('response') ?? '';
 
         if (empty($jsonString)) {
@@ -302,45 +371,15 @@ PROMPT;
         return $decoded;
     }
 
-    // ── Fallback: one markdown block per lesson ───────────────────────────────
-    private function fallbackStructure(AiJob $aiJob, string $markdown): array
-    {
-        $title = 'Untitled Course';
-        if (preg_match('/^#\s+(.+)$/m', $markdown, $m)) {
-            $title = trim($m[1]);
-        }
-        $aiJob->log("Fallback: title=\"{$title}\"", 'warn');
-
-        return [
-            'title'       => $title,
-            'year'        => $aiJob->year,
-            'branch'      => $aiJob->branch,
-            'description' => 'Auto-extracted from PDF.',
-            'status'      => 'draft',
-            'chapters'    => [[
-                'title'          => $title,
-                'description'    => '',
-                'chapter_number' => 1,
-                'status'         => 'draft',
-                'lessons'        => [[
-                    'title'         => $title,
-                    'description'   => '',
-                    'lesson_number' => 1,
-                    'status'        => 'draft',
-                    'blocks'        => [['type' => 'markdown', 'content' => $markdown, 'block_number' => 1]],
-                ]],
-            ]],
-        ];
-    }
-
     // ── MinerU extraction ─────────────────────────────────────────────────────
-    private function extractWithMinerU(AiJob $aiJob): string
+    private function extractWithMinerU(AiJob $aiJob, string $imagesAbsPath): array
     {
         $pdfAbsPath = Storage::disk('local')->path($aiJob->pdf_path);
         $scriptPath = base_path('scripts/mineru_extract.py');
 
         $aiJob->log("PDF: {$pdfAbsPath}", 'info');
         $aiJob->log("Script: {$scriptPath}", 'info');
+        $aiJob->log("Images dir: {$imagesAbsPath}", 'info');
 
         if (!file_exists($scriptPath)) {
             throw new \RuntimeException("mineru_extract.py not found at {$scriptPath}.");
@@ -350,7 +389,10 @@ PROMPT;
         $aiJob->log("Python: {$python}", 'info');
         $aiJob->log('Launching MinerU subprocess…', 'info');
 
-        $process = new Process([$python, $scriptPath, $pdfAbsPath], null, self::pythonEnv(), null, 0);
+        $process = new Process(
+            [$python, $scriptPath, $pdfAbsPath, $imagesAbsPath],
+            null, self::pythonEnv(), null, 0
+        );
         $process->run();
 
         $exitCode = $process->getExitCode();
@@ -382,7 +424,25 @@ PROMPT;
             throw new \RuntimeException('MinerU returned empty Markdown. PDF may be image-only.');
         }
 
-        return $markdown;
+        // Build public URLs for images
+        $imagePaths = $output['images'] ?? [];
+        $imageUrls  = [];
+        foreach ($imagePaths as $absPath) {
+            // Make path relative to storage/app/public for URL generation
+            $relToPublic = ltrim(str_replace(
+                Storage::disk('public')->path(''),
+                '',
+                $absPath
+            ), DIRECTORY_SEPARATOR . '/');
+            $imageUrls[] = Storage::disk('public')->url($relToPublic);
+        }
+
+        $aiJob->log("MinerU found " . count($imageUrls) . " images.", 'info');
+
+        return [
+            'markdown'  => $markdown,
+            'imageUrls' => $imageUrls,
+        ];
     }
 
     private function resolvePython(): string
