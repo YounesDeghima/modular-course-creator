@@ -9,15 +9,22 @@ class LatexBuilder
 
         $content = collect($blocks)
             ->map(fn($b) => $transformer->transform($b))
+            ->filter()         // drop empty strings from unsupported blocks
             ->implode("\n\n");
 
         return "
 \\documentclass{article}
 \\usepackage{amsmath}
 \\usepackage{graphicx}
-\\usepackage[utf8]{inputenc}
+\\usepackage{fontspec}
+\\usepackage{listings}
+\\usepackage{tcolorbox}
+\\usepackage{url}
+\\usepackage{booktabs}
 
 \\title{{$lesson->title}}
+\\author{}
+\\date{}
 
 \\begin{document}
 
