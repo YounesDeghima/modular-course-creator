@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AiJob extends Model
 {
@@ -15,6 +16,7 @@ class AiJob extends Model
         'file_size',
         'year',
         'branch',
+        'model',            // e.g. phi4, llama3, mistral — per-job model selection
         'result_json',
         'error_message',
         'logs',
@@ -34,6 +36,12 @@ class AiJob extends Model
         'started_at'  => 'datetime',
         'finished_at' => 'datetime',
     ];
+
+    // ── Relations ─────────────────────────────────────────────────────────────
+    public function snapshots(): HasMany
+    {
+        return $this->hasMany(AiJobSnapshot::class, 'ai_job_id')->orderBy('md_index');
+    }
 
     // ── Log helper ────────────────────────────────────────────────────────────
     public function log(string $message, string $level = 'info'): void
@@ -61,8 +69,8 @@ class AiJob extends Model
     public function fileSizeHuman(): string
     {
         $bytes = $this->file_size ?? 0;
-        if ($bytes < 1024)        return $bytes . ' B';
-        if ($bytes < 1048576)     return round($bytes / 1024, 1) . ' KB';
+        if ($bytes < 1024)    return $bytes . ' B';
+        if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
         return round($bytes / 1048576, 1) . ' MB';
     }
 
@@ -83,8 +91,8 @@ class AiJob extends Model
     {
         $logs = $this->logs ?? [];
         foreach (array_reverse($logs) as $entry) {
-            if (str_contains($entry['message'], 'STEP 2')) return 60;
-            if (str_contains($entry['message'], 'STEP 1')) return 30;
+            if (str_contains($entry['message'] ?? '', 'STEP 2')) return 60;
+            if (str_contains($entry['message'] ?? '', 'STEP 1')) return 30;
         }
         return 10;
     }

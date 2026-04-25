@@ -230,6 +230,10 @@
 
 @section('main')
 
+    <div class="pdf-download-button">
+        <a type="button" style="height: 40px;width: 120px;padding: 10px;position: absolute;bottom: 20px;right: 20px;display: flex;text-align: center" href="{{route('user.lessons.pdf',['id'=>$lesson->id])}}">download as pdf</a>
+    </div>
+
     <div class="lesson-wrapper">
 
         {{-- Prev nav button --}}
