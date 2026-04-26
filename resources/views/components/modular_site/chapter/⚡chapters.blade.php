@@ -20,11 +20,11 @@ new class extends Component {
 
     public function mount($course, $chapters, $chapter, $lesson)
     {
-        $this->course         = $course;
-        $this->chapters       = $chapters;
+        $this->course = $course;
+        $this->chapters = $chapters;
         $this->currentChapter = $chapter;
-        $this->currentLesson  = $lesson;
-        $this->allPublished   = $this->chapters->where('status', '=', 'draft')->count() === 0;
+        $this->currentLesson = $lesson;
+        $this->allPublished = $this->chapters->where('status', '=', 'draft')->count() === 0;
     }
 
     public function refreshChapters()
@@ -65,7 +65,7 @@ new class extends Component {
 
     public function togglestatus($id)
     {
-        $chapter   = chapter::findOrFail($id);
+        $chapter = chapter::findOrFail($id);
         $newStatus = $chapter->status === 'published' ? 'draft' : 'published';
         $chapter->update(['status' => $newStatus]);
         $this->chapters = $this->chapters->map(function ($item) use ($id, $newStatus) {
@@ -78,13 +78,13 @@ new class extends Component {
     public function masterToggle()
     {
         $isAllPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
-        $chapterIds     = $this->chapters->pluck('id');
-        $newStatus      = $isAllPublished ? 'draft' : 'published';
+        $chapterIds = $this->chapters->pluck('id');
+        $newStatus = $isAllPublished ? 'draft' : 'published';
 
         lesson::whereIn('chapter_id', $chapterIds)->update(['status' => $newStatus]);
         chapter::whereIn('id', $chapterIds)->update(['status' => $newStatus]);
 
-        $this->chapters     = chapter::where('course_id', $this->course->id)->orderBy('chapter_number')->get();
+        $this->chapters = chapter::where('course_id', $this->course->id)->orderBy('chapter_number')->get();
         $this->allPublished = $this->chapters->where('status', '!=', 'published')->count() === 0;
 
         $this->dispatch('masterToggle');
@@ -105,26 +105,33 @@ new class extends Component {
             @placeholder
             <div>
                 <div class="panel-toolbar">
-                    <div style="width: 60px; height: 12px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
-                    <div style="width: 80px; height: 24px; background: var(--border); border-radius: 6px; animation: pulse 2s infinite;"></div>
+                    <div
+                        style="width: 60px; height: 12px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
+                    <div
+                        style="width: 80px; height: 24px; background: var(--border); border-radius: 6px; animation: pulse 2s infinite;"></div>
                 </div>
 
                 @foreach(range(1, 5) as $i)
-                    <div class="chapter-header" style="border-bottom: 1px solid var(--border-mid); pointer-events: none;">
+                    <div class="chapter-header"
+                         style="border-bottom: 1px solid var(--border-mid); pointer-events: none;">
                         <div class="header-left">
-                            <div style="width: 10px; height: 10px; background: var(--border); border-radius: 2px;"></div>
-                            <div style="width: 25px; height: 18px; background: var(--border); border-radius: 4px;"></div>
-                            <div style="width: 120px; height: 14px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
+                            <div
+                                style="width: 10px; height: 10px; background: var(--border); border-radius: 2px;"></div>
+                            <div
+                                style="width: 25px; height: 18px; background: var(--border); border-radius: 4px;"></div>
+                            <div
+                                style="width: 120px; height: 14px; background: var(--border); border-radius: 4px; animation: pulse 2s infinite;"></div>
                         </div>
                         <div class="header-right">
-                            <div style="width: 60px; height: 18px; background: var(--border); border-radius: 20px;"></div>
+                            <div
+                                style="width: 60px; height: 18px; background: var(--border); border-radius: 20px;"></div>
                         </div>
                     </div>
                 @endforeach
             </div>
 
             @endplaceholder
-        <span class="panel-label">
+            <span class="panel-label">
             {{ $chapters->count() }} {{ Str::plural('chapter', $chapters->count()) }}
         </span>
             <button
@@ -133,10 +140,17 @@ new class extends Component {
                 title="{{ $allPublished ? 'Unpublish all' : 'Publish all' }}"
             >
                 @if($allPublished)
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5">
+                        <path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/>
+                    </svg>
                     Draft all
                 @else
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5">
+                        <path
+                            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
                     Publish all
                 @endif
             </button>
@@ -171,7 +185,8 @@ new class extends Component {
                             wire:click.stop="togglestatus({{ $chapter->id }})"
                         >{{ $chapter->status === 'published' ? '✓' : '○' }} {{ ucfirst($chapter->status) }}</button>
                         <button class="icon-btn" @click.stop="open_update_modal = true" title="Edit chapter">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
@@ -181,20 +196,23 @@ new class extends Component {
 
                 {{-- Lessons --}}
                 <div x-show="open" x-transition:enter="transition-open" style="display:none;">
-                    <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson" wire:key="lessons-{{ $chapter->id }}"/>
+                    <livewire:modular_site.lesson.lessons :chapter="$chapter" :currentLesson="$currentLesson"
+                                                          wire:key="lessons-{{ $chapter->id }}"/>
                 </div>
 
-                <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter" wire:key="chupdate-{{ $chapter->id }}"/>
+                <livewire:modular_site.chapter.chapterupdate :course="$course" :chapter="$chapter"
+                                                             wire:key="chupdate-{{ $chapter->id }}"/>
             </div>
         @empty
             <div class="panel-empty">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:8px;">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     style="opacity:.3;margin-bottom:8px;">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18M9 21V9"/>
                 </svg>
                 <p>No chapters yet.</p>
             </div>
         @endforelse
-
 
 
     </div>
@@ -297,7 +315,9 @@ new class extends Component {
         transition: background .12s;
     }
 
-    .chapter-header:hover { background: var(--bg-hover); }
+    .chapter-header:hover {
+        background: var(--bg-hover);
+    }
 
     .header-left {
         display: flex;
@@ -364,12 +384,29 @@ new class extends Component {
         white-space: nowrap;
     }
 
-    .status-pill.published { background: #d1fae5; color: #065f46; }
-    .status-pill.draft     { background: #f3f4f6; color: #6b7280; }
-    .status-pill:hover     { filter: brightness(.93); }
+    .status-pill.published {
+        background: #d1fae5;
+        color: #065f46;
+    }
 
-    [data-theme="dark"] .status-pill.published { background: #064e3b; color: #6ee7b7; }
-    [data-theme="dark"] .status-pill.draft     { background: #2a2a2a; color: #9ca3af; }
+    .status-pill.draft {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    .status-pill:hover {
+        filter: brightness(.93);
+    }
+
+    [data-theme="dark"] .status-pill.published {
+        background: #064e3b;
+        color: #6ee7b7;
+    }
+
+    [data-theme="dark"] .status-pill.draft {
+        background: #2a2a2a;
+        color: #9ca3af;
+    }
 
     /* ── Icon button ── */
     .icon-btn {
@@ -386,7 +423,10 @@ new class extends Component {
         transition: background .13s, color .13s;
     }
 
-    .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+    .icon-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text);
+    }
 
     /* ── Open transition ── */
     .transition-open {
