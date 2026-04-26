@@ -51,7 +51,7 @@ new class extends Component {
         $this->dispatch('scrollToNewBlock', blockId: $blockId);
     }
 
-    public function updateLesson($id, $chapterId)
+    public function updateLesson($id, $chapterId): void
     {
         $this->blocks = block::where('lesson_id', $id)
             ->orderBy('block_number')
@@ -67,8 +67,10 @@ new class extends Component {
             })
             ->toArray();
 
-        $this->lesson  = lesson::findorfail($id);
+        $this->lesson  = lesson::findOrFail($id);
+        $this->lesson->refresh();
         $this->chapter = $this->lesson->chapter;
+        $this->chapter->refresh();
     }
 
     public function updatedBlocks($value, $key)
@@ -101,10 +103,21 @@ new class extends Component {
 
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
-                    'type' => $blockData['graph_type'] ?? 'line',
-                    'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
-                    'data' => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
+                    'type'   => $blockData['graph_type']   ?? 'line',
+                    'labels' => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_labels'] ?? '')))),
+                    'data'   => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_data']   ?? '')))),
                 ]);
+            }
+            if ($blockData['type'] === 'list') {
+                $items = array_values(array_filter(array_map('trim', explode("
+", $blockData['list_items'] ?? ''))));
+                $content = json_encode([
+                    'style' => $blockData['list_style'] ?? 'bullet',
+                    'items' => $items,
+                ]);
+            }
+            if ($blockData['type'] === 'separator') {
+                $content = json_encode(['type' => $blockData['separator_type'] ?? 'divider']);
             }
             if ($blockData['type'] === 'table') {
                 $content = $blockData['table_json'] ?? $blockData['content'];
@@ -141,66 +154,83 @@ new class extends Component {
         $this->dispatch('notify', message: 'Saved!');
     }
 
-    private function hydrateBlockFields(&$block)
+    private function hydrateBlockFields(&$block): void
     {
-        if (in_array($block['type'], ['function', 'graph'])) {
+        if ($block['type'] === 'function') {
             $data = json_decode($block['content'], true) ?? [];
             $block['func_expression'] = $data['function'] ?? 'sin(x)';
-            $block['x_min'] = $data['x_min'] ?? -10;
-            $block['x_max'] = $data['x_max'] ?? 10;
-            $block['y_min'] = $data['y_min'] ?? -5;
-            $block['y_max'] = $data['y_max'] ?? 5;
-            $block['color'] = $data['color'] ?? '#4f46e5';
-            $block['step'] = $data['step'] ?? 0.1;
+            $block['x_min']  = $data['x_min']  ?? -10;
+            $block['x_max']  = $data['x_max']  ??  10;
+            $block['y_min']  = $data['y_min']  ??  -5;
+            $block['y_max']  = $data['y_max']  ??   5;
+            $block['color']  = $data['color']  ?? '#4f46e5';
+            $block['step']   = $data['step']   ??  0.1;
         }
         if ($block['type'] === 'graph') {
             $data = json_decode($block['content'], true) ?? [];
-            $block['graph_type'] = $data['type'] ?? 'line';
+            $block['graph_type']   = $data['type']   ?? 'line';
             $block['graph_labels'] = implode(',', $data['labels'] ?? []);
-            $block['graph_data'] = implode(',', $data['data'] ?? []);
+            $block['graph_data']   = implode(',', $data['data']   ?? []);
+        }
+        if ($block['type'] === 'list') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['list_style'] = $data['style'] ?? 'bullet';
+            $block['list_items'] = implode("
+", $data['items'] ?? []);
+        }
+        if ($block['type'] === 'separator') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['separator_type'] = $data['type'] ?? 'divider';
         }
     }
 
-    public function deleteBlock(int $index)
+    public function deleteBlock(int $blockId): void
     {
-        $blockData = $this->blocks[$index] ?? null;
-        if (!$blockData) return;
-        Block::destroy($blockData['id']);
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+        block::destroy($blockId);
         array_splice($this->blocks, $index, 1);
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block deleted.');
     }
 
-    public function moveBlock(int $index, string $direction)
+    public function moveBlock(int $blockId, string $direction): void
     {
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+
         $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
         if ($swapWith < 0 || $swapWith >= count($this->blocks)) return;
 
-        // Swap in array
         [$this->blocks[$index], $this->blocks[$swapWith]] =
             [$this->blocks[$swapWith], $this->blocks[$index]];
 
-        // Persist new order
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block moved.');
     }
 
-    public function updateBlockType(int $index, string $newType)
+    public function updateBlockType(int $blockId, string $newType): void
     {
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
         $this->blocks[$index]['type'] = $newType;
         if ($newType === 'table' && !is_array(json_decode($this->blocks[$index]['content'] ?? '', true))) {
             $this->blocks[$index]['content'] = json_encode([['Header 1', 'Header 2'], ['', '']]);
-            Block::where('id', $this->blocks[$index]['id'])->update([
-                'type' => $newType,
+            block::where('id', $blockId)->update([
+                'type'    => $newType,
                 'content' => $this->blocks[$index]['content'],
             ]);
             return;
         }
-        Block::where('id', $this->blocks[$index]['id'])->update(['type' => $newType]);
+        block::where('id', $blockId)->update(['type' => $newType]);
     }
 
     public function updatedPhotos($value, $key)
@@ -489,7 +519,8 @@ new class extends Component {
                                 class="be-input be-input-mono"
                                 name="blocks[{{ $block['id'] }}][content]"
                                 placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
-                                wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content"
+                                wire:model.lazy="blocks.{{ $loop->index }}.content"
+                                oninput="triggerMathPreview(this)"
                                 rows="2"
                             ></textarea>
                             @if(!empty($block['content']))
@@ -515,11 +546,11 @@ new class extends Component {
                                 </div>
                                 <div class="be-field">
                                     <label class="be-field-label">Labels (comma separated)</label>
-                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_labels" name="blocks[{{ $block['id'] }}][chart_data]" placeholder="Jan, Feb, Mar"></textarea>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_labels" name="blocks[{{ $block['id'] }}][graph_labels]" placeholder="Jan, Feb, Mar"></textarea>
                                 </div>
                                 <div class="be-field">
                                     <label class="be-field-label">Values (comma separated)</label>
-                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_data" placeholder="10, 20, 15"></textarea>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_data" name="blocks[{{ $block['id'] }}][graph_values]" placeholder="10, 20, 15"></textarea>
                                 </div>
                                 <input type="hidden" name="blocks[{{ $block['id'] }}][content]" wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content">
                             </div>
@@ -659,6 +690,67 @@ new class extends Component {
                                    value="{{ $block['content'] }}">
                             @break
 
+                        @case('list')
+                            @php
+                                $listData = json_decode($block['content'], true) ?? ['style'=>'bullet','items'=>['Item 1','Item 2']];
+                                $listStyle = $block['list_style'] ?? ($listData['style'] ?? 'bullet');
+                                $listItems = $block['list_items'] ?? implode("
+", $listData['items'] ?? []);
+                            @endphp
+                            <div class="be-field-stack">
+                                <div class="be-field">
+                                    <label class="be-field-label">Style</label>
+                                    <select class="be-select"
+                                            wire:model="blocks.{{ $loop->index }}.list_style"
+                                            name="blocks[{{ $block['id'] }}][list_style]">
+                                        <option value="bullet"    @selected($listStyle === 'bullet')>Bullet</option>
+                                        <option value="numbered"  @selected($listStyle === 'numbered')>Numbered</option>
+                                        <option value="checklist" @selected($listStyle === 'checklist')>Checklist</option>
+                                    </select>
+                                </div>
+                                <div class="be-field">
+                                    <label class="be-field-label">Items (one per line)</label>
+                                    <textarea
+                                        class="be-input be-input-body"
+                                        wire:model="blocks.{{ $loop->index }}.list_items"
+                                        name="blocks[{{ $block['id'] }}][list_items]"
+                                        oninput="autoResize(this)"
+                                        rows="4"
+                                        placeholder="Item 1&#10;Item 2&#10;Item 3">{{ $listItems }}</textarea>
+                                </div>
+                            </div>
+                            @break
+
+                        @case('separator')
+                            @php
+                                $sepData = json_decode($block['content'], true) ?? ['type'=>'divider'];
+                                $sepType = $block['separator_type'] ?? ($sepData['type'] ?? 'divider');
+                            @endphp
+                            <div class="be-field">
+                                <label class="be-field-label">Separator Style</label>
+                                <select class="be-select"
+                                        wire:model="blocks.{{ $loop->index }}.separator_type"
+                                        name="blocks[{{ $block['id'] }}][separator_type]">
+                                    <option value="divider"       @selected($sepType === 'divider')>Line Divider</option>
+                                    <option value="section_break" @selected($sepType === 'section_break')>Section Break (§)</option>
+                                    <option value="page_break"    @selected($sepType === 'page_break')>Page Break</option>
+                                </select>
+                                <div style="margin-top:10px;">
+                                    @if($sepType === 'section_break')
+                                        <div style="display:flex;align-items:center;gap:1rem;">
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                            <span style="color:var(--text-faint);font-size:0.75rem;">§</span>
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                        </div>
+                                    @elseif($sepType === 'page_break')
+                                        <div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:11px;border-radius:6px;">PAGE BREAK</div>
+                                    @else
+                                        <hr style="border:none;border-top:1px solid var(--border);">
+                                    @endif
+                                </div>
+                            </div>
+                            @break
+
                         @case('ext')
                             <div class="be-ext-warn">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -686,7 +778,7 @@ new class extends Component {
                 {{-- Controls --}}
                 <div class="be-block-controls">
                     <select class="be-type-select"
-                            wire:change="updateBlockType({{ $loop->index }}, $event.target.value)"
+                            wire:change="updateBlockType({{ $block['id'] }}, $event.target.value)"
                             name="blocks[{{ $block['id'] }}][type]"
                             title="Change type">
                         <option value="markdown"    {{ $block['type']=='markdown'    ? 'selected':'' }}>MD</option>
@@ -704,14 +796,14 @@ new class extends Component {
                         <option value="ext"         {{ $block['type']=='ext'         ? 'selected':'' }}>HTML</option>
                     </select>
                     <div class="be-ctrl-divider"></div>
-                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $loop->index }}, 'up')" title="Move up">
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'up')" title="Move up">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
                     </button>
-                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $loop->index }}, 'down')" title="Move down">
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'down')" title="Move down">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="be-ctrl-divider"></div>
-                    <button type="button" class="be-ctrl-btn be-ctrl-delete" wire:click="deleteBlock({{ $loop->index }})" wire:confirm="Delete this block?" title="Delete">
+                    <button type="button" class="be-ctrl-btn be-ctrl-delete" wire:click="deleteBlock({{ $block['id'] }})" wire:confirm="Delete this block?" title="Delete">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
                 </div>
@@ -762,7 +854,7 @@ new class extends Component {
 
     {{-- ── Save bar ── --}}
     <div class="be-save-bar">
-       {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
+        {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
 
         <button
             type="button"
@@ -805,22 +897,106 @@ new class extends Component {
     // Run on first load and after every Livewire re-render
     document.addEventListener('DOMContentLoaded', autoResizeAll);
     document.addEventListener('livewire:navigated', autoResizeAll);
-    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
+    document.addEventListener('livewire:load',      () => setTimeout(autoResizeAll, 50));
+    document.addEventListener('livewire:update',    () => setTimeout(autoResizeAll, 50));
     if (window.Livewire) {
         Livewire.hook('commit', ({ component, succeed }) => {
             succeed(() => setTimeout(autoResizeAll, 80));
         });
     }
 
-    // ── Toolbar "Save All" button wires into blocks Livewire component ──
+    // ── Toolbar "Save All" button ──
     window.addEventListener('toolbar-save', () => {
-        // Find the blocks Livewire component and call saveAll on it
-        const blocksEl = document.querySelector('[wire\\:id]');
-        if (blocksEl && window.Livewire) {
-            // Dispatch to all components — saveAll only exists on blocks component
-            Livewire.dispatch('triggerSaveAll');
-        }
+        if (window.Livewire) Livewire.dispatch('triggerSaveAll');
     });
+
+    // ── Math preview trigger (inline, before Livewire round-trip) ──
+    window.triggerMathPreview = function(textarea) {
+        const wrap = textarea.closest('.be-block-body');
+        if (!wrap) return;
+        const preview = wrap.querySelector('.be-math-preview');
+        if (!preview) return;
+        preview.textContent = '$$' + textarea.value + '$$';
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([preview]).catch(console.warn);
+        }
+    };
+
+    // ── Markdown block editor functions (defined here to avoid race condition) ──
+    window.mbeSetTab = function(blockId, tab) {
+        const editPane    = document.getElementById('mbe-edit-' + blockId);
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        const tabs = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tab === 'edit') {
+            editPane.style.display = '';
+            previewPane.style.display = 'none';
+            tabs[0] && tabs[0].classList.add('active');
+        } else {
+            editPane.style.display = 'none';
+            previewPane.style.display = '';
+            tabs[1] && tabs[1].classList.add('active');
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeUpdatePreview = function(blockId) {
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (previewPane && previewPane.style.display !== 'none') {
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeRenderPreview = function(blockId) {
+        const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (!textarea || !previewPane) return;
+        const md = textarea.value || '';
+        previewPane.innerHTML = (typeof marked !== 'undefined')
+            ? marked.parse(md)
+            : md.replace(/\n/g, '<br>');
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([previewPane]).catch(console.warn);
+        }
+    };
+
+    // ── Livewire commit hook: re-render math, canvases, resize textareas ──
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                setTimeout(() => {
+                    // Resize textareas
+                    document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
+                    // Math previews (MathJax)
+                    document.querySelectorAll('.be-math-preview').forEach(el => {
+                        if (window.MathJax && MathJax.typesetPromise) {
+                            MathJax.typesetPromise([el]).catch(console.warn);
+                        }
+                    });
+                    // Function canvases
+                    document.querySelectorAll('.function-editor').forEach(editor => {
+                        if (typeof ImplicitPlotter !== 'undefined') {
+                            const bid = editor.dataset.blockId;
+                            const canvas = document.getElementById('func-canvas-' + bid);
+                            if (canvas) {
+                                const opts = {
+                                    equation:   editor.querySelector('input[name*="func_expression"]')?.value ?? 'y=sin(x)',
+                                    xMin:       parseFloat(editor.querySelector('input[name*="x_min"]')?.value)  || -10,
+                                    xMax:       parseFloat(editor.querySelector('input[name*="x_max"]')?.value)  ||  10,
+                                    yMin:       parseFloat(editor.querySelector('input[name*="y_min"]')?.value)  ||  -6,
+                                    yMax:       parseFloat(editor.querySelector('input[name*="y_max"]')?.value)  ||   6,
+                                    color:      editor.querySelector('input[name*="color"]')?.value              || '#4f46e5',
+                                    resolution: parseFloat(editor.querySelector('input[name*="step"]')?.value)   || 0.05,
+                                };
+                                if (!canvas.style.height) canvas.style.height = '240px';
+                                ImplicitPlotter.render(canvas, opts);
+                            }
+                        }
+                    });
+                }, 80);
+            });
+        });
+    }
 
     // ── Scroll to newly created block ──
     window.addEventListener('scrollToNewBlock', (e) => {
@@ -867,11 +1043,15 @@ new class extends Component {
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 9px 18px;
+        padding: 10px 18px;
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
-        background: var(--bg);
         flex-wrap: wrap;
+        background: var(--bg);
+        position: sticky;
+        top: -11px;
+        z-index: 5;
+
     }
     .be-bc-dim    { font-size: 12px; color: var(--text-muted); }
     .be-bc-sep    { font-size: 12px; color: var(--text-faint); }
@@ -1075,7 +1255,7 @@ new class extends Component {
         display:flex;align-items:center;justify-content:space-between;
         padding:10px 18px;border-top:1px solid var(--border);
         background:var(--bg);flex-shrink:0;gap:10px;
-        position:sticky;bottom:0;z-index:5;
+        position:sticky;bottom:-11px;z-index:5;
     }
     .be-save-btn {
         display:flex;align-items:center;gap:6px;

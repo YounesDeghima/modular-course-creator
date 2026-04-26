@@ -378,10 +378,32 @@
 
     // Initial render after fonts/styles loaded
     document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-    document.querySelectorAll('.function-editor').forEach(e => renderEditor(e));
-}, 120);
-});
+        setTimeout(() => {
+            document.querySelectorAll('.function-editor').forEach(e => renderEditor(e));
+        }, 120);
+    });
+
+    // Re-render after Livewire updates (block move, type change, save, etc.)
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                setTimeout(() => {
+                    document.querySelectorAll('.function-editor').forEach(e => renderEditor(e));
+                }, 100);
+            });
+        });
+    } else {
+        // Fallback: hook after Livewire is ready
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('commit', ({ succeed }) => {
+                succeed(() => {
+                    setTimeout(() => {
+                        document.querySelectorAll('.function-editor').forEach(e => renderEditor(e));
+                    }, 100);
+                });
+            });
+        });
+    }
 
     // Re-render on any input inside a function-editor
     document.addEventListener('input', debounce(function(ev) {

@@ -124,13 +124,19 @@ class blockcontroller extends Controller
                         'step'     => floatval($data['step'] ?? 0.1),
                     ]);
                 } elseif ($type === 'graph') {
-                    $lines  = explode("\n", $data['chart_data'] ?? '');
-                    $labels = isset($lines[0]) ? array_map('trim', explode(',', $lines[0])) : [];
-                    $values = isset($lines[1]) ? array_map('trim', explode(',', $lines[1])) : [];
+                    // Support both old "chart_data" (two-line format) and new split fields
+                    if (isset($data['graph_labels'])) {
+                        $labels = array_map('trim', explode(',', $data['graph_labels'] ?? ''));
+                        $values = array_map('trim', explode(',', $data['graph_values'] ?? ''));
+                    } else {
+                        $lines  = explode("\n", $data['chart_data'] ?? '');
+                        $labels = isset($lines[0]) ? array_map('trim', explode(',', $lines[0])) : [];
+                        $values = isset($lines[1]) ? array_map('trim', explode(',', $lines[1])) : [];
+                    }
                     $content = json_encode([
                         'type'   => $data['chart_type'] ?? 'line',
-                        'labels' => $labels,
-                        'data'   => $values,
+                        'labels' => array_values(array_filter($labels, fn($v) => $v !== '')),
+                        'data'   => array_values(array_filter($values, fn($v) => $v !== '')),
                     ]);
                 } elseif ($type === 'list') {
                     $items = array_filter(array_map('trim', explode("\n", $data['list_items'] ?? '')));

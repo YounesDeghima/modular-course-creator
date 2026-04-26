@@ -23,13 +23,9 @@ class chaptercontroller extends Controller
             ->orderBy('chapter_number', 'asc')
             ->get();
 
-        // 2. Logic to prevent the "Undefined Variable" crash:
-        // We grab the first chapter and its first lesson so the main part has something to show.
-        $chapter = chapter::where('course_id', $course->id)
-            ->orderBy('chapter_number', 'asc')
-            ->first();
-
-        $lesson = null;
+        // 2. Grab the first chapter and first lesson for the editor pane.
+        $chapter = $chapters->first();
+        $lesson  = null;
 
         if ($chapter) {
             $lesson = $chapter->lessons()
@@ -37,35 +33,22 @@ class chaptercontroller extends Controller
                 ->first();
         }
 
-
+        // 3. Load blocks for that lesson (empty collection when no lesson yet).
         $blocks = $lesson
             ? $lesson->blocks()->orderBy('block_number', 'asc')->get()
             : collect();
 
-        $chapter = Chapter::where('course_id', $course->id)
-            ->orderBy('chapter_number', 'asc')
-            ->first();
-
+        // 4. Guard: redirect back with a helpful message instead of silently
+        //    auto-creating content, which was causing phantom chapters/lessons.
         if (!$chapter) {
-            $chapter = Chapter::create([
-                'course_id' => $course->id,
-                'title' => 'Enter chapter title here',
-                'chapter_number' => 1
-            ]);
-        }
-        if (!$lesson) {
-            $lesson = Lesson::create([
-                'chapter_id' => $chapter->id,
-                'title' => 'Enter lesson title here',
-                'content' => '',
-                'lesson_number' => 1,
-            ]);
+            return redirect()->route('admin.courses.index')
+                ->with('info', 'This course has no chapters yet. Create one from the editor.');
         }
 
-        // 4. Other data you need
+        // 5. Other data needed by the view
         $chapter_count = $chapters->count();
-        $id = $admin->id;
-        $name = $admin->name;
+        $id    = $admin->id;
+        $name  = $admin->name;
         $email = $admin->email;
 
 

@@ -6,6 +6,22 @@
 
 
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+    <script defer src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script defer src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"
+            onload="document.addEventListener('DOMContentLoaded', function() {
+                if (typeof renderMathInElement === 'function') {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            {left:'$$',right:'$$',display:true},
+                            {left:'$',right:'$',display:false},
+                            {left:'\\(',right:'\\)',display:false},
+                            {left:'\\[',right:'\\]',display:true}
+                        ],
+                        throwOnError: false
+                    });
+                }
+            })">
+    </script>
     <style>
         /* ── Photo & Video blocks ── */
         .block-media {
@@ -20,6 +36,7 @@
             padding: 0.75rem;
             border: 1px solid var(--border, #e5e7eb);
         }
+
         .block-media img {
             max-width: 100%;
             height: auto;
@@ -28,7 +45,11 @@
             cursor: zoom-in;
             transition: transform 0.2s;
         }
-        .block-media img:hover { transform: scale(1.01); }
+
+        .block-media img:hover {
+            transform: scale(1.01);
+        }
+
         .block-media video {
             max-width: 100%;
             width: 100%;
@@ -36,6 +57,7 @@
             display: block;
             background: #000;
         }
+
         .block-media-caption {
             font-size: 0.78rem;
             color: var(--text-faint, #9ca3af);
@@ -62,6 +84,7 @@
             border: 1px solid var(--border, #e5e7eb);
             border-radius: 10px;
         }
+
         .block-graph canvas {
             max-width: 100%;
             height: 280px !important;
@@ -75,6 +98,7 @@
             border: 1px solid var(--border, #e5e7eb);
             border-radius: 10px;
         }
+
         .block-function canvas {
             width: 100% !important;
             height: auto;
@@ -87,22 +111,26 @@
             margin: 1.5rem 0;
             overflow-x: auto;
         }
+
         .block-table table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
         }
+
         .block-table th,
         .block-table td {
             padding: 0.6rem 0.9rem;
             border: 1px solid var(--border, #e5e7eb);
             text-align: left;
         }
+
         .block-table tr:first-child th,
         .block-table tr:first-child td {
             background: var(--bg-subtle, #f3f4f6);
             font-weight: 600;
         }
+
         .block-table tr:nth-child(even) td {
             background: var(--bg-alt, #fafafa);
         }
@@ -111,6 +139,7 @@
         .block-ext {
             margin: 1.5rem 0;
         }
+
         .block-ext iframe,
         .block-ext embed,
         .block-ext object {
@@ -217,7 +246,6 @@
 
 @section('main')
 
-
     <div class="lesson-wrapper">
 
         {{-- Prev nav button --}}
@@ -227,7 +255,8 @@
             </div>
         @elseif($prevchapter)
             <div class="nav-button">
-                <a href="{{ route('admin.preview.lessons',['course'=>$course,'chapter'=>$prevchapter]) }}" title="Previous chapter">«</a>
+                <a href="{{ route('admin.preview.lessons',['course'=>$course,'chapter'=>$prevchapter]) }}"
+                   title="Previous chapter">«</a>
             </div>
         @else
             <div class="nav-button" style="visibility:hidden;"><a>‹</a></div>
@@ -287,7 +316,8 @@
                                         <ul style="margin: 0; padding-left: 0.5rem; list-style: none; color: var(--text);">
                                             @foreach($listData['items'] as $item)
                                                 <li style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; background: var(--bg); flex-shrink: 0;">☐</span>
+                                                    <span
+                                                        style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; background: var(--bg); flex-shrink: 0;">☐</span>
                                                     <span>{{ $item }}</span>
                                                 </li>
                                             @endforeach
@@ -306,14 +336,19 @@
                         @case('separator')
                             @php $sepData = json_decode($block->content, true); @endphp
                             @if(($sepData['type'] ?? 'divider') === 'page_break')
-                                <div class="block-separator page-break" style="margin: 2rem 0; border: 2px dashed var(--border); padding: 1rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; border-radius: 8px; background: var(--bg-subtle); page-break-after: always;">
+                                <div class="block-separator page-break"
+                                     style="margin: 2rem 0; border: 2px dashed var(--border); padding: 1rem; text-align: center; color: var(--text-faint); font-size: 0.85rem; border-radius: 8px; background: var(--bg-subtle); page-break-after: always;">
                                     <span style="letter-spacing: 0.2em; text-transform: uppercase;">Page Break</span>
                                 </div>
                             @elseif(($sepData['type'] ?? '') === 'section_break')
-                                <div class="block-separator section-break" style="margin: 3rem 0; display: flex; align-items: center; gap: 1rem;">
-                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
-                                    <span style="color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;">§</span>
-                                    <div style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                <div class="block-separator section-break"
+                                     style="margin: 3rem 0; display: flex; align-items: center; gap: 1rem;">
+                                    <div
+                                        style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
+                                    <span
+                                        style="color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;">§</span>
+                                    <div
+                                        style="flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
                                 </div>
                             @else
                                 <div class="block-separator divider" style="margin: 2rem 0;">
@@ -325,7 +360,8 @@
                         @case('photo')
                             @if($block->content)
                                 <div style="margin: 20px 0;">
-                                    <img src="{{ asset('storage/' . $block->content) }}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                    <img src="{{ asset('storage/' . $block->content) }}"
+                                         style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
                                 </div>
                             @endif
                             @break
@@ -333,7 +369,8 @@
                         @case('video')
                             @if($block->content)
                                 <div style="margin: 20px 0;">
-                                    <video controls style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                    <video controls
+                                           style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);">
                                         <source src="{{ asset('storage/' . $block->content) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
@@ -342,8 +379,10 @@
                             @break
 
                         @case('math')
-                            <div style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
-                                <div style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
+                            <div
+                                style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
+                                <div
+                                    style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
                                     $${{ $block->content }}$$
                                 </div>
 
@@ -351,36 +390,38 @@
                             @break
 
                         @case('graph')
-                            @php $graphData = json_decode($block->content, true); @endphp
+                            @php
+                                $graphData = json_decode($block->content, true);
+                                if ($graphData) {
+                                    $isPie = ($graphData['type'] ?? 'line') === 'pie';
+                                    $chartConfig = [
+                                        'type' => $graphData['type'] ?? 'line',
+                                        'data' => [
+                                            'labels'   => $graphData['labels'] ?? [],
+                                            'datasets' => [[
+                                                'label'           => 'Values',
+                                                'data'            => $graphData['data'] ?? [],
+                                                'borderColor'     => '#4f46e5',
+                                                'backgroundColor' => $isPie
+                                                    ? ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6']
+                                                    : 'rgba(79,70,229,0.1)',
+                                                'tension' => 0.4,
+                                            ]],
+                                        ],
+                                        'options' => [
+                                            'responsive'          => true,
+                                            'maintainAspectRatio' => true,
+                                            'plugins' => ['legend' => ['display' => $isPie]],
+                                        ],
+                                    ];
+                                }
+                            @endphp
                             @if($graphData)
-                                <div style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-                                    <canvas id="chart-{{ $block->id }}" width="400" height="200" style="max-width:100%;"></canvas>
+                                <div style="margin:20px 0;padding:20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+                                    <canvas id="chart-{{ $block->id }}"
+                                            data-chart-config="{{ htmlspecialchars(json_encode($chartConfig), ENT_QUOTES, 'UTF-8') }}"
+                                            width="400" height="200" style="max-width:100%;"></canvas>
                                 </div>
-                                <script>
-                                    (function() {
-                                        var ctx = document.getElementById('chart-{{ $block->id }}');
-                                        if(ctx && typeof Chart !== 'undefined') {
-                                            new Chart(ctx, {
-                                                type: '{{ $graphData['type'] ?? 'line' }}',
-                                                data: {
-                                                    labels: {!! json_encode($graphData['labels'] ?? []) !!},
-                                                    datasets: [{
-                                                        label: 'Values',
-                                                        data: {!! json_encode($graphData['data'] ?? []) !!},
-                                                        borderColor: '#4f46e5',
-                                                        backgroundColor: '{{ $graphData['type'] == 'pie' ? json_encode(['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']) : 'rgba(79, 70, 229, 0.1)' }}',
-                                                        tension: 0.4
-                                                    }]
-                                                },
-                                                options: {
-                                                    responsive: true,
-                                                    maintainAspectRatio: true,
-                                                    plugins: { legend: { display: {{ ($graphData['type'] ?? 'line') == 'pie' ? 'true' : 'false' }} } }
-                                                }
-                                            });
-                                        }
-                                    })();
-                                </script>
                             @endif
                             @break
 
@@ -406,10 +447,10 @@
                                     </canvas>
                                 </div>
                                 <script>
-                                    (function(){
+                                    (function () {
                                         const funcData = {!! json_encode($funcData) !!};
                                         window._funcBlocks = window._funcBlocks || [];
-                                        window._funcBlocks.push({ id: '{{ $block->id }}', data: funcData });
+                                        window._funcBlocks.push({id: '{{ $block->id }}', data: funcData});
                                     })();
                                 </script>
                             @endif
@@ -419,7 +460,8 @@
                             @php $tableData = json_decode($block->content, true); @endphp
                             @if($tableData && count($tableData) > 0)
                                 <div style="margin: 20px 0; overflow-x: auto;">
-                                    <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); font-size: 14px;">
+                                    <table
+                                        style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); font-size: 14px;">
                                         @foreach($tableData as $rowIndex => $row)
                                             <tr style="{{ $rowIndex === 0 ? 'background: var(--bg-subtle); font-weight: 600;' : 'background: var(--bg);' }}">
                                                 @foreach($row as $cell)
@@ -433,7 +475,8 @@
                             @break
 
                         @case('ext')
-                            <div style="margin: 20px 0; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto;">
+                            <div
+                                style="margin: 20px 0; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto;">
                                 {!! $block->content !!}
                             </div>
                             @break
@@ -450,30 +493,37 @@
         @endif
     </div>
 
-    <form id="progress-form" method="POST"
-          action="{{ route('user.lesson.progress.store', ['lesson'=>$lesson]) }}"
-          style="display:none;">
-        @csrf
-        <input type="hidden" name="lesson_id" value="{{ $lesson->id }}">
-        <input type="hidden" name="progress" id="progress-input"
-               value="{{ $lesson_progress ? $lesson_progress->progress : 0 }}">
-        <button type="submit">Send</button>
-    </form>
+    <livewire:preview.progress-form :lesson="$lesson" :lesson_progress="$lesson_progress"/>
 @endsection
 
 @section('js')
-
-
-
-
 
     <script src="{{ asset('js/function.js') }}"></script>
 
 
     <script>
+        // ── Fix #8: Chart.js init via data attributes (survives Livewire DOM swaps) ──
+        function initAllCharts() {
+            document.querySelectorAll('canvas[data-chart-config]').forEach(canvas => {
+                if (canvas._chartInstance) {
+                    canvas._chartInstance.destroy();
+                    canvas._chartInstance = null;
+                }
+                try {
+                    const config = JSON.parse(canvas.dataset.chartConfig);
+                    canvas._chartInstance = new Chart(canvas, config);
+                } catch(e) { console.warn('Chart init error:', e); }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initAllCharts);
+        document.addEventListener('livewire:navigated', initAllCharts);
+        document.addEventListener('livewire:load', initAllCharts);
+    </script>
+
+    <script>
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {
-            const blockId   = btn.dataset.blockid;
+            const blockId = btn.dataset.blockid;
             const solutions = document.querySelectorAll(`.solution-${blockId}`);
             solutions.forEach(s => s.style.display = 'none');
 
@@ -526,7 +576,7 @@
 
         // ── Restore scroll position ──
         document.addEventListener('DOMContentLoaded', () => {
-            const key   = `lessonScroll_{{ $lesson->id }}`;
+            const key = `lessonScroll_{{ $lesson->id }}`;
             const saved = localStorage.getItem(key);
             if (saved && main) main.scrollTop = parseInt(saved);
             if (main) {
@@ -536,26 +586,37 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", function() {
-            // THIS IS THE TRIGGER YOU ARE MISSING
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError : false
-            });
-
-            // Your existing KaTeX logic for function blocks
-            document.querySelectorAll('.katex-eq').forEach(el => {
-                const eq = el.getAttribute('data-eq');
-                if (eq) {
-                    katex.render(eq, el, { throwOnError: false });
-                }
-            });
+        // ── Fix #16: reset progress bar and counters on Livewire lesson navigation ──
+        document.addEventListener('livewire:navigated', () => {
+            maxProgress = 0;
+            sent = document.querySelector('.completed_checkbox')?.checked ?? false;
+            const bar = document.getElementById('scroll-progress');
+            if (bar) bar.style.width = '0%';
         });
+
+        function runKatex() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$',  right: '$',  display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+            if (typeof katex !== 'undefined') {
+                document.querySelectorAll('.katex-eq').forEach(el => {
+                    const eq = el.getAttribute('data-eq');
+                    if (eq) katex.render(eq, el, {throwOnError: false});
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', runKatex);
+        document.addEventListener('livewire:navigated', runKatex);
+        document.addEventListener('livewire:load', runKatex);
     </script>
 @endsection
 
@@ -569,14 +630,14 @@
     <script>
         window.MathJax = {
             tex: {
-                inlineMath:  [['$','$'], ['\\(','\\)']],
-                displayMath: [['$$','$$'], ['\\[','\\]']],
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
                 processEscapes: true,
             },
             options: {
-                skipHtmlTags: ['script','noscript','style','textarea','pre'],
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
             },
-            startup: { typeset: false },
+            startup: {typeset: false},
         };
     </script>
     <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
@@ -593,11 +654,36 @@
             max-width: 100%;
             overflow-wrap: break-word;
         }
-        .block-markdown-view h1 { font-size: 1.5em; font-weight: 700; margin: .6em 0 .3em; border-bottom: 1px solid var(--border); padding-bottom: .2em; }
-        .block-markdown-view h2 { font-size: 1.25em; font-weight: 600; margin: .55em 0 .25em; }
-        .block-markdown-view h3 { font-size: 1.1em; font-weight: 600; margin: .45em 0 .2em; }
-        .block-markdown-view p  { margin: .5em 0; }
-        .block-markdown-view a  { color: var(--accent); text-decoration: underline; }
+
+        .block-markdown-view h1 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: .6em 0 .3em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: .2em;
+        }
+
+        .block-markdown-view h2 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin: .55em 0 .25em;
+        }
+
+        .block-markdown-view h3 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: .45em 0 .2em;
+        }
+
+        .block-markdown-view p {
+            margin: .5em 0;
+        }
+
+        .block-markdown-view a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
         .block-markdown-view code {
             font-family: 'JetBrains Mono', monospace;
             background: var(--bg-subtle);
@@ -606,6 +692,7 @@
             padding: 1px 5px;
             font-size: .88em;
         }
+
         .block-markdown-view pre {
             background: #1e1e2e;
             border-radius: 8px;
@@ -613,6 +700,7 @@
             overflow-x: auto;
             margin: .6em 0;
         }
+
         .block-markdown-view pre code {
             background: none;
             border: none;
@@ -620,6 +708,7 @@
             font-size: .88em;
             padding: 0;
         }
+
         .block-markdown-view blockquote {
             border-left: 3px solid var(--accent);
             margin: .6em 0;
@@ -629,6 +718,7 @@
             color: var(--text-muted);
             font-style: italic;
         }
+
         .block-markdown-view table {
             border-collapse: collapse;
             width: 100%;
@@ -637,20 +727,47 @@
             overflow-x: auto;
             display: block;
         }
+
         .block-markdown-view th,
         .block-markdown-view td {
             border: 1px solid var(--border);
             padding: 7px 12px;
             text-align: left;
         }
-        .block-markdown-view th { background: var(--bg-subtle); font-weight: 600; }
-        .block-markdown-view tr:nth-child(even) td { background: var(--bg-subtle); }
-        .block-markdown-view ul, .block-markdown-view ol { padding-left: 1.6em; margin: .4em 0; }
-        .block-markdown-view li { margin: .25em 0; }
-        .block-markdown-view hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
-        .block-markdown-view img { max-width: 100%; border-radius: 6px; }
+
+        .block-markdown-view th {
+            background: var(--bg-subtle);
+            font-weight: 600;
+        }
+
+        .block-markdown-view tr:nth-child(even) td {
+            background: var(--bg-subtle);
+        }
+
+        .block-markdown-view ul, .block-markdown-view ol {
+            padding-left: 1.6em;
+            margin: .4em 0;
+        }
+
+        .block-markdown-view li {
+            margin: .25em 0;
+        }
+
+        .block-markdown-view hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1em 0;
+        }
+
+        .block-markdown-view img {
+            max-width: 100%;
+            border-radius: 6px;
+        }
+
         /* MathJax display math centering */
-        .block-markdown-view .MathJax_Display { overflow-x: auto; }
+        .block-markdown-view .MathJax_Display {
+            overflow-x: auto;
+        }
     </style>
 
     <script>
@@ -684,6 +801,6 @@
 
         // Re-run when Livewire swaps content
         document.addEventListener('livewire:navigated', () => setTimeout(renderAllMarkdownBlocks, 150));
-        document.addEventListener('livewire:morph',     () => setTimeout(renderAllMarkdownBlocks, 150));
+        document.addEventListener('livewire:morph', () => setTimeout(renderAllMarkdownBlocks, 150));
     </script>
 @endonce

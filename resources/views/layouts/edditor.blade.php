@@ -8,11 +8,7 @@
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
 
-    <script src="{{ asset('vendors/chart.js') }}"></script>
-
-    <!-- For math (optional - if you want rendered math instead of raw LaTeX) -->
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
-    <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 
