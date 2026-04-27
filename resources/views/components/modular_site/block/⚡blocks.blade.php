@@ -39,9 +39,15 @@ new class extends Component {
     public function addBlock($id)
     {
         if (!$id) return;
-        $block = block::findOrFail($id);
+        $block = block::with('solutions')->findOrFail($id);
         if ($block) {
-            $this->blocks[] = $block->toArray();
+            $arr = $block->toArray();
+            if ($block->type === 'exercise') {
+                $arr['solutions'] = $block->solutions->map(fn($s) => $s->toArray())->toArray();
+            }
+            // BUG FIX #2: hydrate fields so function/graph/list/separator show correct inputs
+            $this->hydrateBlockFields($arr);
+            $this->blocks[] = $arr;
             $this->dispatch('scrollToNewBlock', blockId: $id);
         }
     }
@@ -51,7 +57,7 @@ new class extends Component {
         $this->dispatch('scrollToNewBlock', blockId: $blockId);
     }
 
-    public function updateLesson($id, $chapterId)
+    public function updateLesson($id, $chapterId): void
     {
         $this->blocks = block::where('lesson_id', $id)
             ->orderBy('block_number')
@@ -67,8 +73,10 @@ new class extends Component {
             })
             ->toArray();
 
-        $this->lesson  = lesson::findorfail($id);
+        $this->lesson  = lesson::findOrFail($id);
+        $this->lesson->refresh();
         $this->chapter = $this->lesson->chapter;
+        $this->chapter->refresh();
     }
 
     public function updatedBlocks($value, $key)
@@ -101,10 +109,21 @@ new class extends Component {
 
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
-                    'type' => $blockData['graph_type'] ?? 'line',
-                    'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
-                    'data' => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
+                    'type'   => $blockData['graph_type']   ?? 'line',
+                    'labels' => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_labels'] ?? '')))),
+                    'data'   => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_data']   ?? '')))),
                 ]);
+            }
+            if ($blockData['type'] === 'list') {
+                $items = array_values(array_filter(array_map('trim', explode("
+", $blockData['list_items'] ?? ''))));
+                $content = json_encode([
+                    'style' => $blockData['list_style'] ?? 'bullet',
+                    'items' => $items,
+                ]);
+            }
+            if ($blockData['type'] === 'separator') {
+                $content = json_encode(['type' => $blockData['separator_type'] ?? 'divider']);
             }
             if ($blockData['type'] === 'table') {
                 $content = $blockData['table_json'] ?? $blockData['content'];
@@ -141,66 +160,83 @@ new class extends Component {
         $this->dispatch('notify', message: 'Saved!');
     }
 
-    private function hydrateBlockFields(&$block)
+    private function hydrateBlockFields(&$block): void
     {
-        if (in_array($block['type'], ['function', 'graph'])) {
+        if ($block['type'] === 'function') {
             $data = json_decode($block['content'], true) ?? [];
             $block['func_expression'] = $data['function'] ?? 'sin(x)';
-            $block['x_min'] = $data['x_min'] ?? -10;
-            $block['x_max'] = $data['x_max'] ?? 10;
-            $block['y_min'] = $data['y_min'] ?? -5;
-            $block['y_max'] = $data['y_max'] ?? 5;
-            $block['color'] = $data['color'] ?? '#4f46e5';
-            $block['step'] = $data['step'] ?? 0.1;
+            $block['x_min']  = $data['x_min']  ?? -10;
+            $block['x_max']  = $data['x_max']  ??  10;
+            $block['y_min']  = $data['y_min']  ??  -5;
+            $block['y_max']  = $data['y_max']  ??   5;
+            $block['color']  = $data['color']  ?? '#4f46e5';
+            $block['step']   = $data['step']   ??  0.1;
         }
         if ($block['type'] === 'graph') {
             $data = json_decode($block['content'], true) ?? [];
-            $block['graph_type'] = $data['type'] ?? 'line';
+            $block['graph_type']   = $data['type']   ?? 'line';
             $block['graph_labels'] = implode(',', $data['labels'] ?? []);
-            $block['graph_data'] = implode(',', $data['data'] ?? []);
+            $block['graph_data']   = implode(',', $data['data']   ?? []);
+        }
+        if ($block['type'] === 'list') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['list_style'] = $data['style'] ?? 'bullet';
+            $block['list_items'] = implode("
+", $data['items'] ?? []);
+        }
+        if ($block['type'] === 'separator') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['separator_type'] = $data['type'] ?? 'divider';
         }
     }
 
-    public function deleteBlock(int $index)
+    public function deleteBlock(int $blockId): void
     {
-        $blockData = $this->blocks[$index] ?? null;
-        if (!$blockData) return;
-        Block::destroy($blockData['id']);
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+        block::destroy($blockId);
         array_splice($this->blocks, $index, 1);
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block deleted.');
     }
 
-    public function moveBlock(int $index, string $direction)
+    public function moveBlock(int $blockId, string $direction): void
     {
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+
         $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
         if ($swapWith < 0 || $swapWith >= count($this->blocks)) return;
 
-        // Swap in array
         [$this->blocks[$index], $this->blocks[$swapWith]] =
             [$this->blocks[$swapWith], $this->blocks[$index]];
 
-        // Persist new order
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block moved.');
     }
 
-    public function updateBlockType(int $index, string $newType)
+    public function updateBlockType(int $blockId, string $newType): void
     {
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
         $this->blocks[$index]['type'] = $newType;
         if ($newType === 'table' && !is_array(json_decode($this->blocks[$index]['content'] ?? '', true))) {
             $this->blocks[$index]['content'] = json_encode([['Header 1', 'Header 2'], ['', '']]);
-            Block::where('id', $this->blocks[$index]['id'])->update([
-                'type' => $newType,
+            block::where('id', $blockId)->update([
+                'type'    => $newType,
                 'content' => $this->blocks[$index]['content'],
             ]);
             return;
         }
-        Block::where('id', $this->blocks[$index]['id'])->update(['type' => $newType]);
+        block::where('id', $blockId)->update(['type' => $newType]);
     }
 
     public function updatedPhotos($value, $key)
@@ -335,7 +371,17 @@ new class extends Component {
                                 <div class="mbe-tabs" data-block-id="{{ $block['id'] }}">
                                     <button type="button" class="mbe-tab active" onclick="mbeSetTab({{ $block['id'] }}, 'edit')">✏️ Edit</button>
                                     <button type="button" class="mbe-tab" onclick="mbeSetTab({{ $block['id'] }}, 'preview')">👁 Preview</button>
-                                    <button type="button" class="mbe-tab mbe-tab--upgrade" onclick="openConvertPanel({{ $block['id'] }}, {{ json_encode($block['content']) }})">⚡ Upgrade block</button>
+                                    <button type="button" class="mbe-tab mbe-tab--upgrade" onclick="openConvertPanel({{ $block['id'] }}, {{ json_encode($block['content']) }})">⚡ Convert block</button>
+                                    {{-- NEW: Explode markdown into typed blocks --}}
+                                    <button
+                                        type="button"
+                                        class="mbe-tab mbe-tab--explode"
+                                        title="Parse this markdown and replace it with typed blocks (header, code, math, list…)"
+                                        onclick="explodeMarkdownBlock(
+                                            {{ $block['id'] }},
+                                            '{{ route('admin.courses.chapters.lessons.blocks.explode-markdown', [$course->id, $chapter->id, $lesson->id, $block['id']]) }}'
+                                        )"
+                                    >💥 Explode to blocks</button>
                                 </div>
                                 <div id="mbe-edit-{{ $block['id'] }}" class="mbe-pane mbe-pane--active">
                                     <textarea
@@ -356,24 +402,32 @@ new class extends Component {
                             @break
 
                         @case('header')
-                            <textarea
-                                class="be-input be-input-title"
-                                name="blocks[{{ $block['id'] }}][content]"
-                                placeholder="Enter heading..."
-                                wire:model="blocks.{{ $loop->index }}.content"
-                                oninput="autoResize(this)"
-                            ></textarea>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                <textarea
+                                    class="be-input be-input-title be-md-src"
+                                    name="blocks[{{ $block['id'] }}][content]"
+                                    placeholder="Enter heading... (markdown supported)"
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                ></textarea>
+                                <div class="be-md-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                            </div>
                             @break
 
                         @case('description')
-                            <textarea
-                                class="be-input be-input-body"
-                                name="blocks[{{ $block['id'] }}][content]"
-                                placeholder="Write your content here..."
-                                wire:model="blocks.{{ $loop->index }}.content"
-                                oninput="autoResize(this)"
-                                rows="3"
-                            ></textarea>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                <textarea
+                                    class="be-input be-input-body be-md-src"
+                                    name="blocks[{{ $block['id'] }}][content]"
+                                    placeholder="Write your content here... (markdown supported)"
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                    rows="3"
+                                ></textarea>
+                                <div class="be-md-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                            </div>
                             @break
 
                         @case('note')
@@ -382,14 +436,18 @@ new class extends Component {
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                                     Note
                                 </div>
-                                <textarea
-                                    class="be-input be-input-body"
-                                    name="blocks[{{ $block['id'] }}][content]"
-                                    placeholder="Add a note..."
-                                    wire:model="blocks.{{ $loop->index }}.content"
-                                    oninput="autoResize(this)"
-                                    rows="2"
-                                ></textarea>
+                                <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                    <textarea
+                                        class="be-input be-input-body be-md-src"
+                                        name="blocks[{{ $block['id'] }}][content]"
+                                        placeholder="Add a note... (markdown supported)"
+                                        wire:model="blocks.{{ $loop->index }}.content"
+                                        oninput="autoResize(this);beMdLive(this)"
+                                        rows="2"
+                                    ></textarea>
+                                    <div class="be-md-preview" style="display:none"></div>
+                                    <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                                </div>
                             </div>
                             @break
 
@@ -400,7 +458,7 @@ new class extends Component {
                                     <span class="be-code-lang">Code</span>
                                 </div>
                                 <textarea
-                                    class="be-input be-input-code"
+                                    class="be-input be-input-code be-input-dark"
                                     name="blocks[{{ $block['id'] }}][content]"
                                     placeholder="// Paste your code here..."
                                     wire:model="blocks.{{ $loop->index }}.content"
@@ -416,14 +474,18 @@ new class extends Component {
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
                                     Question
                                 </div>
-                                <textarea
-                                    class="be-input be-input-body"
-                                    name="blocks[{{ $block['id'] }}][content]"
-                                    placeholder="Enter the question..."
-                                    wire:model="blocks.{{ $loop->index }}.content"
-                                    oninput="autoResize(this)"
-                                    rows="2"
-                                ></textarea>
+                                <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                    <textarea
+                                        class="be-input be-input-body be-md-src"
+                                        name="blocks[{{ $block['id'] }}][content]"
+                                        placeholder="Enter the question... (markdown supported)"
+                                        wire:model="blocks.{{ $loop->index }}.content"
+                                        oninput="autoResize(this);beMdLive(this)"
+                                        rows="2"
+                                    ></textarea>
+                                    <div class="be-md-preview" style="display:none"></div>
+                                    <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                                </div>
                                 @foreach($block['solutions'] ?? [] as $sIndex => $solution)
                                     <div class="be-solution-wrap">
                                         <div class="be-solution-label">Solution {{ $sIndex + 1 }}</div>
@@ -489,11 +551,12 @@ new class extends Component {
                                 class="be-input be-input-mono"
                                 name="blocks[{{ $block['id'] }}][content]"
                                 placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
-                                wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content"
+                                wire:model="blocks.{{ $loop->index }}.content"
+                                oninput="triggerMathPreview(this)"
                                 rows="2"
                             ></textarea>
                             @if(!empty($block['content']))
-                                <div class="be-math-preview">$${{ $block['content'] }}$$</div>
+                                <div class="be-math-preview" data-math-src="{{ e($block['content']) }}"></div>
                             @endif
                             @break
 
@@ -515,11 +578,11 @@ new class extends Component {
                                 </div>
                                 <div class="be-field">
                                     <label class="be-field-label">Labels (comma separated)</label>
-                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_labels" name="blocks[{{ $block['id'] }}][chart_data]" placeholder="Jan, Feb, Mar"></textarea>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_labels" name="blocks[{{ $block['id'] }}][graph_labels]" placeholder="Jan, Feb, Mar"></textarea>
                                 </div>
                                 <div class="be-field">
                                     <label class="be-field-label">Values (comma separated)</label>
-                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_data" placeholder="10, 20, 15"></textarea>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_data" name="blocks[{{ $block['id'] }}][graph_values]" placeholder="10, 20, 15"></textarea>
                                 </div>
                                 <input type="hidden" name="blocks[{{ $block['id'] }}][content]" wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content">
                             </div>
@@ -659,18 +722,83 @@ new class extends Component {
                                    value="{{ $block['content'] }}">
                             @break
 
+                        @case('list')
+                            @php
+                                $listData = json_decode($block['content'], true) ?? ['style'=>'bullet','items'=>['Item 1','Item 2']];
+                                $listStyle = $block['list_style'] ?? ($listData['style'] ?? 'bullet');
+                                $listItems = $block['list_items'] ?? implode("
+", $listData['items'] ?? []);
+                            @endphp
+                            <div class="be-field-stack">
+                                <div class="be-field">
+                                    <label class="be-field-label">Style</label>
+                                    <select class="be-select"
+                                            wire:model="blocks.{{ $loop->index }}.list_style"
+                                            name="blocks[{{ $block['id'] }}][list_style]">
+                                        <option value="bullet"    @selected($listStyle === 'bullet')>Bullet</option>
+                                        <option value="numbered"  @selected($listStyle === 'numbered')>Numbered</option>
+                                        <option value="checklist" @selected($listStyle === 'checklist')>Checklist</option>
+                                    </select>
+                                </div>
+                                <div class="be-field">
+                                    <label class="be-field-label">Items (one per line)</label>
+                                    <textarea
+                                        class="be-input be-input-body"
+                                        wire:model="blocks.{{ $loop->index }}.list_items"
+                                        name="blocks[{{ $block['id'] }}][list_items]"
+                                        oninput="autoResize(this)"
+                                        rows="4"
+                                        placeholder="Item 1&#10;Item 2&#10;Item 3">{{ $listItems }}</textarea>
+                                </div>
+                            </div>
+                            @break
+
+                        @case('separator')
+                            @php
+                                $sepData = json_decode($block['content'], true) ?? ['type'=>'divider'];
+                                $sepType = $block['separator_type'] ?? ($sepData['type'] ?? 'divider');
+                            @endphp
+                            <div class="be-field">
+                                <label class="be-field-label">Separator Style</label>
+                                <select class="be-select"
+                                        wire:model.live="blocks.{{ $loop->index }}.separator_type"
+                                        name="blocks[{{ $block['id'] }}][separator_type]">
+                                    <option value="divider"       @selected($sepType === 'divider')>Line Divider</option>
+                                    <option value="section_break" @selected($sepType === 'section_break')>Section Break (§)</option>
+                                    <option value="page_break"    @selected($sepType === 'page_break')>Page Break</option>
+                                </select>
+                                <div style="margin-top:10px;">
+                                    @if($sepType === 'section_break')
+                                        <div style="display:flex;align-items:center;gap:1rem;">
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                            <span style="color:var(--text-faint);font-size:0.75rem;">§</span>
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                        </div>
+                                    @elseif($sepType === 'page_break')
+                                        <div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:11px;border-radius:6px;">PAGE BREAK</div>
+                                    @else
+                                        <hr style="border:none;border-top:1px solid var(--border);">
+                                    @endif
+                                </div>
+                            </div>
+                            @break
+
                         @case('ext')
                             <div class="be-ext-warn">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                 Raw HTML — use with caution
                             </div>
-                            <textarea
-                                class="be-input be-input-code be-input-dark"
-                                placeholder="Paste HTML, iframe embed, or script code here..."
-                                wire:model="blocks.{{ $loop->index }}.content"
-                                oninput="autoResize(this)"
-                                rows="4"
-                            ></textarea>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}" data-mode="html">
+                                <textarea
+                                    class="be-input be-input-code be-input-dark be-md-src"
+                                    placeholder="Paste HTML, iframe embed, or script code here..."
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                    rows="4"
+                                ></textarea>
+                                <div class="be-md-preview be-html-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle HTML preview">👁 HTML</button>
+                            </div>
                             @break
 
                         @default
@@ -686,7 +814,7 @@ new class extends Component {
                 {{-- Controls --}}
                 <div class="be-block-controls">
                     <select class="be-type-select"
-                            wire:change="updateBlockType({{ $loop->index }}, $event.target.value)"
+                            wire:change="updateBlockType({{ $block['id'] }}, $event.target.value)"
                             name="blocks[{{ $block['id'] }}][type]"
                             title="Change type">
                         <option value="markdown"    {{ $block['type']=='markdown'    ? 'selected':'' }}>MD</option>
@@ -704,14 +832,14 @@ new class extends Component {
                         <option value="ext"         {{ $block['type']=='ext'         ? 'selected':'' }}>HTML</option>
                     </select>
                     <div class="be-ctrl-divider"></div>
-                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $loop->index }}, 'up')" title="Move up">
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'up')" title="Move up">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
                     </button>
-                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $loop->index }}, 'down')" title="Move down">
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'down')" title="Move down">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="be-ctrl-divider"></div>
-                    <button type="button" class="be-ctrl-btn be-ctrl-delete" wire:click="deleteBlock({{ $loop->index }})" wire:confirm="Delete this block?" title="Delete">
+                    <button type="button" class="be-ctrl-btn be-ctrl-delete" wire:click="deleteBlock({{ $block['id'] }})" wire:confirm="Delete this block?" title="Delete">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
                 </div>
@@ -762,7 +890,7 @@ new class extends Component {
 
     {{-- ── Save bar ── --}}
     <div class="be-save-bar">
-       {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
+        {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
 
         <button
             type="button"
@@ -799,28 +927,126 @@ new class extends Component {
     }
 
     function autoResizeAll() {
-        document.querySelectorAll('.blocks-list textarea').forEach(autoResize);
+        document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
     }
 
     // Run on first load and after every Livewire re-render
     document.addEventListener('DOMContentLoaded', autoResizeAll);
     document.addEventListener('livewire:navigated', autoResizeAll);
-    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
+    document.addEventListener('livewire:load',      () => setTimeout(autoResizeAll, 50));
+    document.addEventListener('livewire:update',    () => setTimeout(autoResizeAll, 50));
     if (window.Livewire) {
         Livewire.hook('commit', ({ component, succeed }) => {
             succeed(() => setTimeout(autoResizeAll, 80));
         });
     }
 
-    // ── Toolbar "Save All" button wires into blocks Livewire component ──
+    // ── Toolbar "Save All" button ──
     window.addEventListener('toolbar-save', () => {
-        // Find the blocks Livewire component and call saveAll on it
-        const blocksEl = document.querySelector('[wire\\:id]');
-        if (blocksEl && window.Livewire) {
-            // Dispatch to all components — saveAll only exists on blocks component
-            Livewire.dispatch('triggerSaveAll');
-        }
+        if (window.Livewire) Livewire.dispatch('triggerSaveAll');
     });
+
+    // ── Math preview trigger (inline, before Livewire round-trip) ──
+    window.triggerMathPreview = function(textarea) {
+        const wrap = textarea.closest('.be-block-body');
+        if (!wrap) return;
+        const preview = wrap.querySelector('.be-math-preview');
+        if (!preview) return;
+        const raw = textarea.value || '';
+        try {
+            katex.render(raw, preview, { displayMode: true, throwOnError: false });
+        } catch(e) {
+            preview.textContent = raw;
+        }
+    };
+
+    // ── Markdown block editor functions (defined here to avoid race condition) ──
+    window.mbeSetTab = function(blockId, tab) {
+        const editPane    = document.getElementById('mbe-edit-' + blockId);
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        const tabs = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tab === 'edit') {
+            editPane.style.display = '';
+            previewPane.style.display = 'none';
+            tabs[0] && tabs[0].classList.add('active');
+        } else {
+            editPane.style.display = 'none';
+            previewPane.style.display = '';
+            tabs[1] && tabs[1].classList.add('active');
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeUpdatePreview = function(blockId) {
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (previewPane && previewPane.style.display !== 'none') {
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeRenderPreview = function(blockId) {
+        const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (!textarea || !previewPane) return;
+        const md = textarea.value || '';
+        previewPane.innerHTML = (typeof marked !== 'undefined')
+            ? marked.parse(md)
+            : md.replace(/\n/g, '<br>');
+        if (window.renderMathInElement) {
+            renderMathInElement(previewPane, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$',  right: '$',  display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true},
+                ],
+                throwOnError: false,
+            });
+        }
+    };
+
+    // ── Livewire commit hook: re-render math, canvases, resize textareas ──
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                setTimeout(() => {
+                    // Resize textareas
+                    document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
+                    // Math previews (KaTeX)
+                    document.querySelectorAll('.be-math-preview').forEach(el => {
+                        const src = el.dataset.mathSrc || el.textContent.replace(/^\$\$|\$\$$/g, '').trim();
+                        if (src && window.katex) {
+                            try {
+                                katex.render(src, el, { displayMode: true, throwOnError: false });
+                                el.dataset.mathSrc = src;
+                            } catch(e) {}
+                        }
+                    });
+                    // Function canvases
+                    document.querySelectorAll('.function-editor').forEach(editor => {
+                        if (typeof ImplicitPlotter !== 'undefined') {
+                            const bid = editor.dataset.blockId;
+                            const canvas = document.getElementById('func-canvas-' + bid);
+                            if (canvas) {
+                                const opts = {
+                                    equation:   editor.querySelector('input[name*="func_expression"]')?.value ?? 'y=sin(x)',
+                                    xMin:       parseFloat(editor.querySelector('input[name*="x_min"]')?.value)  || -10,
+                                    xMax:       parseFloat(editor.querySelector('input[name*="x_max"]')?.value)  ||  10,
+                                    yMin:       parseFloat(editor.querySelector('input[name*="y_min"]')?.value)  ||  -6,
+                                    yMax:       parseFloat(editor.querySelector('input[name*="y_max"]')?.value)  ||   6,
+                                    color:      editor.querySelector('input[name*="color"]')?.value              || '#4f46e5',
+                                    resolution: parseFloat(editor.querySelector('input[name*="step"]')?.value)   || 0.05,
+                                };
+                                if (!canvas.style.height) canvas.style.height = '240px';
+                                ImplicitPlotter.render(canvas, opts);
+                            }
+                        }
+                    });
+                }, 80);
+            });
+        });
+    }
 
     // ── Scroll to newly created block ──
     window.addEventListener('scrollToNewBlock', (e) => {
@@ -830,8 +1056,8 @@ new class extends Component {
         // Wait for Livewire to finish re-rendering, then scroll
         const tryScroll = (attempts = 0) => {
             // Try both data-block-id attr and the block-row cards by order
-            const el = document.querySelector(`[data-block-id="${blockId}"]`)
-                || document.querySelector(`.block-row[data-id="${blockId}"]`);
+            const el = document.querySelector('[data-block-id="' + blockId + '"]')
+                || document.querySelector('.block-row[data-id="' + blockId + '"]');
 
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -849,8 +1075,134 @@ new class extends Component {
         };
         setTimeout(() => tryScroll(), 80);
     });
+
+    // ── BUG FIX #9 (toolbar outline scroll): fixed in _lesson-toolbar_blade.php ──
+
+    // ── Markdown preview toggle for individual blocks ──────────────────────
+    window.beMdToggle = function(btn) {
+        var wrap    = btn.closest('.be-md-wrap');
+        var src     = wrap.querySelector('.be-md-src');
+        var preview = wrap.querySelector('.be-md-preview');
+        var isHtml  = wrap.dataset.mode === 'html';
+        var showing = preview.style.display !== 'none';
+
+        if (showing) {
+            preview.style.display = 'none';
+            src.style.display = '';
+            btn.classList.remove('active');
+        } else {
+            src.style.display = 'none';
+            preview.style.display = '';
+            btn.classList.add('active');
+            if (isHtml) {
+                preview.innerHTML = src.value;
+            } else {
+                preview.innerHTML = (typeof marked !== 'undefined')
+                    ? marked.parse(src.value || '')
+                    : (src.value || '').replace(/\n/g, '<br>');
+                if (window.renderMathInElement) {
+                    renderMathInElement(preview, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$',  right: '$',  display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true},
+                        ],
+                        throwOnError: false,
+                    });
+                }
+            }
+        }
+    };
+
+    window.beMdLive = function(textarea) {
+        var wrap    = textarea.closest('.be-md-wrap');
+        if (!wrap) return;
+        var preview = wrap.querySelector('.be-md-preview');
+        if (!preview || preview.style.display === 'none') return;
+        var isHtml  = wrap.dataset.mode === 'html';
+        if (isHtml) {
+            preview.innerHTML = textarea.value;
+        } else {
+            preview.innerHTML = (typeof marked !== 'undefined')
+                ? marked.parse(textarea.value || '')
+                : (textarea.value || '').replace(/\n/g, '<br>');
+            if (window.renderMathInElement) {
+                renderMathInElement(preview, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$',  right: '$',  display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                    ],
+                    throwOnError: false,
+                });
+            }
+        }
+    };
+
 </script>
 <style>
+
+
+    /* ── Markdown preview toggle (shared by header/desc/note/exercise/ext) ── */
+    .be-md-wrap { position: relative; }
+    .be-md-toggle {
+        position: absolute;
+        top: 6px; right: 6px;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 2px 7px;
+        font-size: 11px;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: background .13s, color .13s;
+        z-index: 2;
+        line-height: 1.6;
+    }
+    .be-md-toggle:hover { background: var(--bg-hover); color: var(--text); }
+    .be-md-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .be-md-preview {
+        min-height: 40px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg-subtle);
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--text);
+        overflow-x: auto;
+    }
+    .be-md-preview h1,.be-md-preview h2,.be-md-preview h3 { font-weight:700;margin:.5em 0 .25em; }
+    .be-md-preview p { margin: .4em 0; }
+    .be-md-preview code { background:var(--bg-hover);padding:2px 5px;border-radius:3px;font-size:.9em; }
+    .be-md-preview pre { background:var(--bg-hover);padding:10px;border-radius:6px;overflow-x:auto; }
+    .be-md-preview ul,.be-md-preview ol { padding-left:1.4em;margin:.4em 0; }
+    .be-md-preview blockquote { border-left:3px solid var(--accent);padding-left:10px;color:var(--text-muted);margin:.5em 0; }
+    .be-md-preview table { border-collapse:collapse;width:100%;font-size:13px; }
+    .be-md-preview th,.be-md-preview td { border:1px solid var(--border);padding:5px 8px; }
+    .be-md-preview th { background:var(--bg-hover);font-weight:600; }
+    .be-html-preview { border: 2px dashed var(--border); }
+
+    /* ── Explode button ── */
+    .mbe-tab--explode {
+        background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+        font-weight: 700;
+    }
+    .mbe-tab--explode:hover {
+        opacity: .88;
+    }
+    .mbe-tab--explode:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    /* BUG FIX #7: x-cloak must be hidden before Alpine initialises */
+    [x-cloak] { display: none !important; }
+
     /* ════════════════════════════════════
        BLOCKS EDITOR
     ════════════════════════════════════ */

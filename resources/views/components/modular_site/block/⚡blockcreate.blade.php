@@ -33,7 +33,7 @@ new class extends Component {
         $allowed = [
             'header','description','note','exercise','code',
             'photo','video','math','graph','table','ext',
-            'function','list','separator',
+            'function','list','separator','markdown',
         ];
 
         if (! in_array($type, $allowed, true)) {
