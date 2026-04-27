@@ -194,7 +194,7 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 
             });
 
-            Route::get('/lessons/{id}/pdf', [LessonPdfController::class, 'download'])->name('lessons.pdf');
+            Route::get('/lessons/{id}/pdf', [LessonPdfController::class, 'showPdf'])->name('lessons.pdf');
 
             Route:: Resource('lesson.progress', lessonprogresscontroller::class);
             Route:: Resource('chapter.progress', chapterprogresscontroller::class);
