@@ -2,6 +2,14 @@
    modular-site-courses.css
    ══════════════════════════════════════════ */
 
+/* ── Missing CSS vars (BUG FIX #16) ── */
+:root {
+    --bg-alt: #fafafa;
+}
+[data-theme="dark"] {
+    --bg-alt: #202020;
+}
+
 /* ── Sidebar sections ── */
 .admin-sb-section {
     padding: 10px 8px;
@@ -146,11 +154,14 @@
     border-radius: 2px;
 }
 
-/* ── Course cards grid ── */
+/* ── Course cards grid (BUG FIX #15: unified rule — owns grid + centering) ── */
 .blocks {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
+    padding: 0 24px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 /* ── Course card ── */

@@ -48,7 +48,6 @@ class blockcontroller extends Controller
     /**
      * Dedicated media upload endpoint.
      * Called immediately when user picks a file — returns the stored path.
-     * The bulk-save form then just saves the path as plain text (no file transfer needed).
      */
     public function uploadMedia(Request $request)
     {
@@ -66,6 +65,254 @@ class blockcontroller extends Controller
         $path = $file->store('blocks', 'public');
 
         return response()->json(['path' => $path]);
+    }
+
+    /**
+     * Explode a single markdown block into typed blocks.
+     * Called via POST from the "Explode" button in _blocks_blade.
+     */
+    public function explodeMarkdown(Request $request, $courseId, $chapterId, $lessonId, $blockId)
+    {
+        $markdownBlock = block::findOrFail($blockId);
+
+        if ($markdownBlock->lesson_id != $lessonId) {
+            return response()->json(['error' => 'Block does not belong to this lesson.'], 403);
+        }
+
+        $raw = $markdownBlock->content;
+
+        // Parse markdown into typed segments
+        $segments = $this->parseMarkdownToSegments($raw);
+
+        if (empty($segments)) {
+            return response()->json(['error' => 'Nothing to explode.'], 422);
+        }
+
+        // Shift all existing blocks after this one to make room
+        $insertAt = $markdownBlock->block_number;
+        $shiftCount = count($segments) - 1; // -1 because the original block is replaced
+
+        if ($shiftCount > 0) {
+            block::where('lesson_id', $lessonId)
+                ->where('block_number', '>', $insertAt)
+                ->orderBy('block_number', 'desc')
+                ->get()
+                ->each(fn($b) => $b->update(['block_number' => $b->block_number + $shiftCount]));
+        }
+
+        // Replace the markdown block with the first segment, then create the rest
+        $created = [];
+        foreach ($segments as $i => $segment) {
+            if ($i === 0) {
+                $markdownBlock->update([
+                    'type'         => $segment['type'],
+                    'content'      => $segment['content'],
+                    'block_number' => $insertAt,
+                ]);
+                if ($segment['type'] === 'exercise') {
+                    if ($markdownBlock->solutions()->count() === 0) {
+                        $markdownBlock->solutions()->create([
+                            'solution_number' => 1,
+                            'content'         => 'nothing here yet',
+                        ]);
+                    }
+                }
+                $created[] = $markdownBlock->fresh();
+            } else {
+                $newBlock = block::create([
+                    'lesson_id'    => $lessonId,
+                    'type'         => $segment['type'],
+                    'content'      => $segment['content'],
+                    'block_number' => $insertAt + $i,
+                ]);
+                if ($segment['type'] === 'exercise') {
+                    $newBlock->solutions()->create([
+                        'solution_number' => 1,
+                        'content'         => 'nothing here yet',
+                    ]);
+                }
+                $created[] = $newBlock;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'created' => count($created),
+            'lesson_id' => $lessonId,
+        ]);
+    }
+
+    /**
+     * Parse a markdown string into an array of ['type'=>..., 'content'=>...] segments.
+     *
+     * Rules:
+     *  # Heading    → header
+     *  ## / ###     → header (kept as-is, rendered as smaller)
+     *  ```...```    → code
+     *  $$...$$      → math (display)
+     *  $...$        → stays as description (inline math, not isolated enough)
+     *  > quote      → note
+     *  ---/***      → separator
+     *  |table|      → table (JSON)
+     *  ![img]()     → photo (URL in content)
+     *  plain lines  → description (merged into paragraphs)
+     *  - / * / 1.   → list (JSON)
+     */
+    private function parseMarkdownToSegments(string $raw): array
+    {
+        $lines = explode("\n", $raw);
+        $segments = [];
+        $i = 0;
+        $total = count($lines);
+
+        while ($i < $total) {
+            $line = $lines[$i];
+            $trimmed = rtrim($line);
+
+            // ── Fenced code block ──
+            if (preg_match('/^```/', $trimmed)) {
+                $code = '';
+                $i++;
+                while ($i < $total && !preg_match('/^```/', rtrim($lines[$i]))) {
+                    $code .= $lines[$i] . "\n";
+                    $i++;
+                }
+                $i++; // skip closing ```
+                if (trim($code) !== '') {
+                    $segments[] = ['type' => 'code', 'content' => rtrim($code)];
+                }
+                continue;
+            }
+
+            // ── Display math block $$...$$ ──
+            if (preg_match('/^\$\$/', $trimmed)) {
+                $math = '';
+                // Single-line $$...$$ 
+                if (preg_match('/^\$\$(.+)\$\$$/', $trimmed, $m)) {
+                    $segments[] = ['type' => 'math', 'content' => trim($m[1])];
+                    $i++;
+                    continue;
+                }
+                // Multi-line
+                $i++;
+                while ($i < $total && !preg_match('/^\$\$/', rtrim($lines[$i]))) {
+                    $math .= $lines[$i] . "\n";
+                    $i++;
+                }
+                $i++; // skip closing $$
+                if (trim($math) !== '') {
+                    $segments[] = ['type' => 'math', 'content' => rtrim($math)];
+                }
+                continue;
+            }
+
+            // ── Heading ──
+            if (preg_match('/^(#{1,6})\s+(.+)$/', $trimmed, $m)) {
+                $segments[] = ['type' => 'header', 'content' => trim($m[2])];
+                $i++;
+                continue;
+            }
+
+            // ── Horizontal rule (separator) ──
+            if (preg_match('/^(-{3,}|\*{3,}|_{3,})$/', $trimmed)) {
+                $segments[] = [
+                    'type'    => 'separator',
+                    'content' => json_encode(['type' => 'divider']),
+                ];
+                $i++;
+                continue;
+            }
+
+            // ── Blockquote → note ──
+            if (preg_match('/^>\s?(.*)$/', $trimmed, $m)) {
+                $noteLines = [trim($m[1])];
+                $i++;
+                while ($i < $total && preg_match('/^>\s?(.*)$/', rtrim($lines[$i]), $m2)) {
+                    $noteLines[] = trim($m2[1]);
+                    $i++;
+                }
+                $segments[] = ['type' => 'note', 'content' => implode("\n", $noteLines)];
+                continue;
+            }
+
+            // ── Image → photo ──
+            if (preg_match('/^!\[.*?\]\((.+?)\)$/', $trimmed, $m)) {
+                $segments[] = ['type' => 'photo', 'content' => trim($m[1])];
+                $i++;
+                continue;
+            }
+
+            // ── Table ──
+            if (preg_match('/^\|/', $trimmed)) {
+                $tableLines = [];
+                while ($i < $total && preg_match('/^\|/', rtrim($lines[$i]))) {
+                    $tableLines[] = rtrim($lines[$i]);
+                    $i++;
+                }
+                $tableData = $this->parseMarkdownTable($tableLines);
+                if (!empty($tableData)) {
+                    $segments[] = [
+                        'type'    => 'table',
+                        'content' => json_encode($tableData),
+                    ];
+                }
+                continue;
+            }
+
+            // ── List (bullet or numbered) ──
+            if (preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', $trimmed, $m)) {
+                $isNumbered = preg_match('/^\s*\d+\./', $trimmed);
+                $items = [trim($m[2])];
+                $i++;
+                while ($i < $total && preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', rtrim($lines[$i]), $m2)) {
+                    $items[] = trim($m2[2]);
+                    $i++;
+                }
+                $segments[] = [
+                    'type'    => 'list',
+                    'content' => json_encode([
+                        'style' => $isNumbered ? 'numbered' : 'bullet',
+                        'items' => $items,
+                    ]),
+                ];
+                continue;
+            }
+
+            // ── Empty line ── skip
+            if (trim($trimmed) === '') {
+                $i++;
+                continue;
+            }
+
+            // ── Plain paragraph — gather until blank line ──
+            $paraLines = [$trimmed];
+            $i++;
+            while ($i < $total) {
+                $next = rtrim($lines[$i]);
+                if ($next === '') break;
+                // Stop if next line starts a special block
+                if (preg_match('/^(#{1,6}\s|```|\$\$|>|!\[|-{3,}|\*{3,}|\||\s*[-*+]\s|\s*\d+\.\s)/', $next)) break;
+                $paraLines[] = $next;
+                $i++;
+            }
+            $segments[] = ['type' => 'description', 'content' => implode("\n", $paraLines)];
+        }
+
+        return $segments;
+    }
+
+    private function parseMarkdownTable(array $lines): array
+    {
+        $rows = [];
+        foreach ($lines as $line) {
+            // Skip separator rows like |---|---|
+            if (preg_match('/^\|[\s\-|:]+\|$/', $line)) continue;
+            $cells = array_map('trim', explode('|', trim($line, '|')));
+            if (!empty(array_filter($cells, fn($c) => $c !== ''))) {
+                $rows[] = $cells;
+            }
+        }
+        return $rows;
     }
 
     public function updateAll(Request $request, $courseId, $chapterId, $lessonId)
@@ -102,7 +349,7 @@ class blockcontroller extends Controller
             }
         }
 
-        // 2. BULK UPDATE — files are already uploaded, content field has the path
+        // 2. BULK UPDATE
         if ($request->has('blocks')) {
             foreach ($request->blocks as $id => $data) {
                 $block = block::find($id);
@@ -124,7 +371,6 @@ class blockcontroller extends Controller
                         'step'     => floatval($data['step'] ?? 0.1),
                     ]);
                 } elseif ($type === 'graph') {
-                    // Support both old "chart_data" (two-line format) and new split fields
                     if (isset($data['graph_labels'])) {
                         $labels = array_map('trim', explode(',', $data['graph_labels'] ?? ''));
                         $values = array_map('trim', explode(',', $data['graph_values'] ?? ''));
@@ -142,21 +388,21 @@ class blockcontroller extends Controller
                     $items = array_filter(array_map('trim', explode("\n", $data['list_items'] ?? '')));
                     $content = json_encode([
                         'style' => $data['list_style'] ?? 'bullet',
-                        'items' => $items,
+                        'items' => array_values($items),
                     ]);
                 } elseif ($type === 'separator') {
                     $content = json_encode([
                         'type' => $data['separator_type'] ?? 'divider',
                     ]);
-                }else {
-                    // For photo/video: content field already holds the storage path
-                    // (uploaded eagerly via uploadMedia endpoint)
-                    // For text types: content field holds the text
+                } else {
                     $content = trim($data['content'] ?? '');
                 }
 
-                // Delete empty text blocks
-                if ($content === '' && !in_array($type, ['photo', 'video', 'exercise'])) {
+                // BUG FIX #13: markdown blocks must not be deleted when empty —
+                // they may intentionally be blank while being edited.
+                // Also exclude 'table','function','graph','list','separator' (JSON types).
+                $jsonTypes = ['photo', 'video', 'exercise', 'markdown', 'table', 'function', 'graph', 'list', 'separator'];
+                if ($content === '' && !in_array($type, $jsonTypes)) {
                     $block->delete();
                     continue;
                 }
@@ -204,12 +450,11 @@ class blockcontroller extends Controller
         return response()->json(['success' => true]);
     }
 
+    // BUG FIX #12: validation 'in:' had literal newlines — collapsed to single line
     public function store(Request $request, Course $course, Chapter $chapter, Lesson $lesson)
     {
         $validated = $request->validate([
-            'type'         => 'required|in:header,description,note,exercise,
-                                code,photo,video,math,graph,table,ext,function,
-                                list,separator,markdown',   // ← markdown added
+            'type'         => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function,list,separator,markdown',
             'block_number' => 'required|integer',
         ]);
 
@@ -241,14 +486,13 @@ class blockcontroller extends Controller
         } elseif ($request->type === 'list') {
             $validated['content'] = json_encode([
                 'style' => $request->input('list_style', 'bullet'),
-                'items' => array_filter(array_map('trim', explode("\n", $request->input('list_items', '')))),
+                'items' => array_values(array_filter(array_map('trim', explode("\n", $request->input('list_items', ''))))),
             ]);
         } elseif ($request->type === 'separator') {
             $validated['content'] = json_encode([
                 'type' => $request->input('separator_type', 'divider'),
             ]);
         } else {
-            // Covers: header, description, note, exercise, code, math, ext, markdown
             $validated['content'] = $request->input('content', '');
         }
 
@@ -307,7 +551,6 @@ class blockcontroller extends Controller
             'type'         => 'required|in:header,description,note,exercise,code,photo,video,math,graph,table,ext,function,list,separator,markdown',
             'block_number' => 'required|integer',
             'content'      => 'nullable|string',
-
         ]);
 
         if ($block->type === 'exercise') {

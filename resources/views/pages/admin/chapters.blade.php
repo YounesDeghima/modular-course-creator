@@ -87,6 +87,8 @@
         }
 
     </style>
+
+
 @endsection
 
 @section('back-button')
@@ -107,8 +109,9 @@
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal('block-popup')">&times;</span>
                 <h3>Add New Content Block</h3>
-                <form method="POST"
-                      action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}"
+                <form id="legacy-block-form"
+                      data-action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}"
+                      onsubmit="legacyBlockFormSubmit(event)"
                       enctype="multipart/form-data">
                     @csrf
 
@@ -239,6 +242,35 @@
 
     <script src="{{ asset('js/function.js') }}"></script>
 
+
+    <script>
+        // BUG FIX #11: legacy modal notifies Livewire after block creation
+        async function legacyBlockFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const url  = form.dataset.action;
+            const data = new FormData(form);
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            data.set('_token', csrf);
+
+            try {
+                const res  = await fetch(url, { method: 'POST', body: data });
+                const json = await res.json();
+                if (res.ok && json.block) {
+                    closeModal('block-popup');
+                    // Notify the Livewire blocks component so the new block appears immediately
+                    if (window.Livewire) {
+                        Livewire.dispatch('BlockCreated', { id: json.block.id });
+                    }
+                } else {
+                    alert('Error creating block: ' + (json.message || res.status));
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            }
+        }
+    </script>
+
     <script>
         // ── Fix #4: intercept sidebar lesson-link clicks and dispatch LessonChanged ──
         // This handles the case where the sidebar Livewire component uses plain <a> tags
@@ -305,24 +337,7 @@
           '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
-    {{-- MathJax 3 — fully local config, no CDN calls --}}
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            },
-            startup: {typeset: false},
-        };
-    </script>
-    <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
-            onerror="document.head.insertAdjacentHTML('beforeend',
-          '<script src=\'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\'><\/script>')">
-    </script>
+    {{-- MathJax removed: using KaTeX only --}}
 
     <script>
         // ── Convert panel ─────────────────────────────────────────────────────────────
@@ -339,8 +354,16 @@
                 snippetEl.innerHTML = typeof marked !== 'undefined'
                     ? marked.parse(rawContent)
                     : rawContent.replace(/\n/g, '<br>');
-                if (window.MathJax && MathJax.typesetPromise) {
-                    MathJax.typesetPromise([snippetEl]).catch(console.warn);
+                if (window.renderMathInElement) {
+                    renderMathInElement(snippetEl, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$',  right: '$',  display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true},
+                        ],
+                        throwOnError: false,
+                    });
                 }
             }
 
@@ -408,5 +431,44 @@
             }
         }
     </script>
+
+    <script>
+        // ── Markdown → Typed Blocks Exploder ──────────────────────────────────────
+        window.explodeMarkdownBlock = async function(blockId, url, event) {
+            var btn = event ? event.currentTarget : document.querySelector('.mbe-tab--explode');
+            var orig = btn.textContent;
+            btn.textContent = '⏳ Exploding…';
+            btn.disabled = true;
+
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            var csrf = csrfMeta ? csrfMeta.content : '';
+
+            try {
+                var res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                    },
+                    body: JSON.stringify({ block_id: blockId }),
+                });
+                var data = await res.json();
+                if (res.ok && data.success) {
+                    // Reload page so Livewire re-fetches blocks fresh (avoids 404 on dispatch)
+                    window.location.reload();
+                } else {
+                    alert('Explode failed: ' + (data.error || 'Unknown error'));
+                    btn.textContent = orig;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Network error: ' + e.message);
+                btn.textContent = orig;
+                btn.disabled = false;
+            }
+        };
+    </script>
+
 
 @endsection

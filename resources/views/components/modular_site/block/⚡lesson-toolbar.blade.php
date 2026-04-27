@@ -320,16 +320,20 @@ new class extends Component {
         @forelse($blocks as $i => $block)
             @php
                 $jsonTypes = ['graph','table','function','list','separator'];
-                $label = in_array($block['type'], $jsonTypes)
+                $rawLabel  = in_array($block['type'], $jsonTypes)
                     ? strtoupper($block['type'])
-                    : Str::limit($block['content'] ?? '(empty)', 26);
+                    : ($block['content'] ?? '(empty)');
+                // Strip tags, collapse whitespace/newlines to a single space, then limit
+                $label = Str::limit(preg_replace('/\s+/', ' ', strip_tags($rawLabel)), 26);
             @endphp
             <div
                 style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-faint);transition:background .1s"
                 onmouseover="this.style.background='var(--bg-subtle)';this.style.color='var(--text)'"
                 onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'"
-                onclick="document.querySelectorAll('.block-row')[{{ $i }}]?.scrollIntoView({behavior:'smooth',block:'center'})"
-                x-show="outlineSearch === '' || '{{ strtolower(addslashes($label)) }}'.includes(outlineSearch.toLowerCase()) || '{{ $block['type'] }}'.includes(outlineSearch.toLowerCase())"
+                onclick="document.querySelectorAll('[data-block-id]')[{{ $i }}]?.scrollIntoView({behavior:'smooth',block:'center'})"
+                data-outline-label="{{ strtolower($label) }}"
+                data-outline-type="{{ $block['type'] }}"
+                x-show="outlineSearch === '' || $el.dataset.outlineLabel.includes(outlineSearch.toLowerCase()) || $el.dataset.outlineType.includes(outlineSearch.toLowerCase())"
             >
                 <span style="font-size:10px;flex-shrink:0;font-weight:600;color:var(--text-faint);min-width:16px">{{ $i+1 }}</span>
                 <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px">{{ $label }}</span>
@@ -361,7 +365,7 @@ new class extends Component {
                 $jsonTypes = ['graph','table','function','list','separator'];
                 $rowLabel  = in_array($block['type'], $jsonTypes)
                     ? strtoupper($block['type'])
-                    : Str::limit($block['content'] ?? '(empty)', 20);
+                    : Str::limit(preg_replace('/\s+/', ' ', strip_tags($block['content'] ?? '(empty)')), 20);
             @endphp
 
             {{-- Draggable row --}}
@@ -406,7 +410,7 @@ new class extends Component {
             @forelse($blocks as $b)
                 @php
                     $jt  = ['graph','table','function','list','separator'];
-                    $lbl = in_array($b['type'], $jt) ? strtoupper($b['type']) : Str::limit($b['content'] ?? '(empty)', 22);
+                    $lbl = in_array($b['type'], $jt) ? strtoupper($b['type']) : Str::limit(preg_replace('/\s+/', ' ', strip_tags($b['content'] ?? '(empty)')), 22);
                 @endphp
                 <label style="display:flex;align-items:center;gap:6px;padding:4px 5px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--text)"
                        onmouseover="this.style.background='var(--bg-subtle)'" onmouseout="this.style.background='transparent'">

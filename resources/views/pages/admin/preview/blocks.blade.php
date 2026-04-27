@@ -380,7 +380,7 @@
 
                         @case('math')
                             <div
-                                style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
+                                style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid var(--accent); overflow-x: auto;">
                                 <div
                                     style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
                                     $${{ $block->content }}$$
@@ -553,7 +553,7 @@
 
         // ── Scroll progress + lesson completion ──
         let maxProgress = 0;
-        let sent = document.querySelector('.completed_checkbox').checked;
+        let sent = document.querySelector('.completed_checkbox')?.checked ?? false;
         const main = document.querySelector('main');
 
         main.addEventListener('scroll', () => {

@@ -146,6 +146,10 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
                 Route::put('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/update-all', [blockcontroller::class, 'updateAll'])
                     ->name('courses.chapters.lessons.blocks.update-all');
 
+                // Markdown → typed blocks exploder
+                Route::post('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/{block}/explode-markdown', [blockcontroller::class, 'explodeMarkdown'])
+                    ->name('courses.chapters.lessons.blocks.explode-markdown');
+
                 Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
             });
 
