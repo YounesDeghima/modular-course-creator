@@ -1,15 +1,19 @@
 @echo off
-echo Initiating graceful shutdown...
 
-:: Safely shut down MySQL
+
+:: 1. Graceful Database Shutdown
 "C:\xampp\mysql\bin\mysqladmin.exe" -u root shutdown
 
-:: Apache is generally safe to taskkill, but you can do it gracefully too
+:: 2. Stop Apache
 "C:\xampp\apache\bin\httpd.exe" -k stop
 
-:: Kill the remaining Laravel/Ollama processes
-taskkill /im php.exe /f
-taskkill /im ollama.exe /f
+:: 3. Close the Laravel and Ollama Windows
+:: This kills the PHP and Ollama processes which forces their windows to close
+taskkill /f /im php.exe
+taskkill /f /im ollama.exe
 
-echo All services shut down safely.
+:: 4. Cleanup any lingering CMD windows specifically running your tasks
+taskkill /fi "windowtitle eq cmd.exe" /im cmd.exe /f
+
+
 pause
