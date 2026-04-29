@@ -187,7 +187,7 @@ class blockcontroller extends Controller
             // ── Display math block $$...$$ ──
             if (preg_match('/^\$\$/', $trimmed)) {
                 $math = '';
-                // Single-line $$...$$ 
+                // Single-line $$...$$
                 if (preg_match('/^\$\$(.+)\$\$$/', $trimmed, $m)) {
                     $segments[] = ['type' => 'math', 'content' => trim($m[1])];
                     $i++;
@@ -227,9 +227,18 @@ class blockcontroller extends Controller
             if (preg_match('/^>\s?(.*)$/', $trimmed, $m)) {
                 $noteLines = [trim($m[1])];
                 $i++;
-                while ($i < $total && preg_match('/^>\s?(.*)$/', rtrim($lines[$i]), $m2)) {
-                    $noteLines[] = trim($m2[1]);
-                    $i++;
+                while ($i < $total) {
+                    $nextRaw = rtrim($lines[$i]);
+                    if (preg_match('/^>\s?(.*)$/', $nextRaw, $m2)) {
+                        // Empty blockquote line (just ">") becomes blank line in note
+                        $noteLines[] = trim($m2[1]);
+                        $i++;
+                    } elseif ($nextRaw === '') {
+                        // Blank line — stop collecting (blockquote ended)
+                        break;
+                    } else {
+                        break;
+                    }
                 }
                 $segments[] = ['type' => 'note', 'content' => implode("\n", $noteLines)];
                 continue;

@@ -227,16 +227,36 @@ new class extends Component {
     {
         $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
         if ($index === false) return;
+
         $this->blocks[$index]['type'] = $newType;
-        if ($newType === 'table' && !is_array(json_decode($this->blocks[$index]['content'] ?? '', true))) {
+
+        // Set sensible default content for JSON-based types when switching into them
+        $currentContent = $this->blocks[$index]['content'] ?? '';
+
+        if ($newType === 'table' && !is_array(json_decode($currentContent, true))) {
             $this->blocks[$index]['content'] = json_encode([['Header 1', 'Header 2'], ['', '']]);
-            block::where('id', $blockId)->update([
-                'type'    => $newType,
-                'content' => $this->blocks[$index]['content'],
+        } elseif ($newType === 'list' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode(['style' => 'bullet', 'items' => ['Item 1', 'Item 2']]);
+        } elseif ($newType === 'separator' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode(['type' => 'divider']);
+        } elseif ($newType === 'function' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode([
+                'function' => 'sin(x)', 'x_min' => -10, 'x_max' => 10,
+                'y_min' => -5, 'y_max' => 5, 'color' => '#4f46e5', 'step' => 0.1,
             ]);
-            return;
+        } elseif ($newType === 'graph' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode([
+                'type' => 'line', 'labels' => ['Jan', 'Feb', 'Mar'], 'data' => ['10', '20', '15'],
+            ]);
         }
-        block::where('id', $blockId)->update(['type' => $newType]);
+
+        // Hydrate virtual fields so the editor inputs render correctly immediately
+        $this->hydrateBlockFields($this->blocks[$index]);
+
+        block::where('id', $blockId)->update([
+            'type'    => $newType,
+            'content' => $this->blocks[$index]['content'],
+        ]);
     }
 
     public function updatedPhotos($value, $key)
@@ -293,19 +313,21 @@ new class extends Component {
 
 @php
     $typeConfig = [
-        'markdown'    => ['label'=>'MD',       'accent'=>'#6366f1'],
-        'header'      => ['label'=>'H1',       'accent'=>'#6366f1'],
-        'description' => ['label'=>'Text',     'accent'=>'#94a3b8'],
-        'note'        => ['label'=>'Note',     'accent'=>'#f59e0b'],
-        'code'        => ['label'=>'Code',     'accent'=>'#10b981'],
-        'exercise'    => ['label'=>'Exercise', 'accent'=>'#f43f5e'],
-        'photo'       => ['label'=>'Photo',    'accent'=>'#8b5cf6'],
-        'video'       => ['label'=>'Video',    'accent'=>'#8b5cf6'],
-        'math'        => ['label'=>'Math',     'accent'=>'#e11d48'],
-        'graph'       => ['label'=>'Graph',    'accent'=>'#059669'],
-        'table'       => ['label'=>'Table',    'accent'=>'#d97706'],
-        'function'    => ['label'=>'f(x)',     'accent'=>'#4f46e5'],
-        'ext'         => ['label'=>'HTML',     'accent'=>'#6366f1'],
+        'markdown'    => ['label'=>'MD',        'accent'=>'#6366f1'],
+        'header'      => ['label'=>'H1',        'accent'=>'#6366f1'],
+        'description' => ['label'=>'Text',      'accent'=>'#94a3b8'],
+        'note'        => ['label'=>'Note',      'accent'=>'#f59e0b'],
+        'code'        => ['label'=>'Code',      'accent'=>'#10b981'],
+        'exercise'    => ['label'=>'Exercise',  'accent'=>'#f43f5e'],
+        'photo'       => ['label'=>'Photo',     'accent'=>'#8b5cf6'],
+        'video'       => ['label'=>'Video',     'accent'=>'#8b5cf6'],
+        'math'        => ['label'=>'Math',      'accent'=>'#e11d48'],
+        'graph'       => ['label'=>'Graph',     'accent'=>'#059669'],
+        'table'       => ['label'=>'Table',     'accent'=>'#d97706'],
+        'function'    => ['label'=>'f(x)',      'accent'=>'#4f46e5'],
+        'ext'         => ['label'=>'HTML',      'accent'=>'#6366f1'],
+        'list'        => ['label'=>'List',      'accent'=>'#0ea5e9'],
+        'separator'   => ['label'=>'Sep',       'accent'=>'#a3a3a3'],
     ];
 @endphp
 
@@ -350,7 +372,7 @@ new class extends Component {
             <div class="be-block type-{{ $block['type'] }}"
                  data-id="{{ $block['id'] }}"
                  data-block-id="{{ $block['id'] }}"
-                 wire:key="block-{{ $block['id'] }}">
+                 wire:key="block-{{ $block['id'] }}-{{ $block['block_number'] }}">
 
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.id">
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.block_number">
@@ -555,9 +577,7 @@ new class extends Component {
                                 oninput="triggerMathPreview(this)"
                                 rows="2"
                             ></textarea>
-                            @if(!empty($block['content']))
-                                <div class="be-math-preview" data-math-src="{{ e($block['content']) }}"></div>
-                            @endif
+                            <div class="be-math-preview" data-math-src="{{ e($block['content'] ?? '') }}"></div>
                             @break
 
                         @case('graph')
@@ -829,6 +849,8 @@ new class extends Component {
                         <option value="math"        {{ $block['type']=='math'        ? 'selected':'' }}>Math</option>
                         <option value="graph"       {{ $block['type']=='graph'       ? 'selected':'' }}>Graph</option>
                         <option value="table"       {{ $block['type']=='table'       ? 'selected':'' }}>Table</option>
+                        <option value="list"        {{ $block['type']=='list'        ? 'selected':'' }}>List</option>
+                        <option value="separator"   {{ $block['type']=='separator'   ? 'selected':'' }}>Sep</option>
                         <option value="ext"         {{ $block['type']=='ext'         ? 'selected':'' }}>HTML</option>
                     </select>
                     <div class="be-ctrl-divider"></div>
@@ -920,7 +942,7 @@ new class extends Component {
 
 
 <script>
-    /* ── Auto-resize all textareas to fit their content ── */
+    // ── Auto-resize all textareas to fit their content ──
     function autoResize(el) {
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
@@ -930,14 +952,26 @@ new class extends Component {
         document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
     }
 
+    function renderAllMathPreviews() {
+        document.querySelectorAll('.be-math-preview').forEach(el => {
+            const src = el.dataset.mathSrc || '';
+            if (src && window.katex) {
+                try {
+                    katex.render(src, el, { displayMode: true, throwOnError: false });
+                    el.dataset.mathSrc = src;
+                } catch(e) { el.textContent = src; }
+            }
+        });
+    }
+
     // Run on first load and after every Livewire re-render
-    document.addEventListener('DOMContentLoaded', autoResizeAll);
-    document.addEventListener('livewire:navigated', autoResizeAll);
-    document.addEventListener('livewire:load',      () => setTimeout(autoResizeAll, 50));
-    document.addEventListener('livewire:update',    () => setTimeout(autoResizeAll, 50));
+    document.addEventListener('DOMContentLoaded', () => { autoResizeAll(); renderAllMathPreviews(); });
+    document.addEventListener('livewire:navigated', () => { autoResizeAll(); renderAllMathPreviews(); });
+    document.addEventListener('livewire:load',      () => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 50));
+    document.addEventListener('livewire:update',    () => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 50));
     if (window.Livewire) {
         Livewire.hook('commit', ({ component, succeed }) => {
-            succeed(() => setTimeout(autoResizeAll, 80));
+            succeed(() => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 80));
         });
     }
 
@@ -1014,15 +1048,7 @@ new class extends Component {
                     // Resize textareas
                     document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
                     // Math previews (KaTeX)
-                    document.querySelectorAll('.be-math-preview').forEach(el => {
-                        const src = el.dataset.mathSrc || el.textContent.replace(/^\$\$|\$\$$/g, '').trim();
-                        if (src && window.katex) {
-                            try {
-                                katex.render(src, el, { displayMode: true, throwOnError: false });
-                                el.dataset.mathSrc = src;
-                            } catch(e) {}
-                        }
-                    });
+                    renderAllMathPreviews();
                     // Function canvases
                     document.querySelectorAll('.function-editor').forEach(editor => {
                         if (typeof ImplicitPlotter !== 'undefined') {
@@ -1344,14 +1370,28 @@ new class extends Component {
     .be-input-sm    { font-size: 12px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-subtle); }
 
     /* ── Note ── */
-    .be-note-wrap { background: #fffbeb; border: 1px solid #fde68a; border-radius: 7px; padding: 10px 12px; }
-    [data-theme="dark"] .be-note-wrap { background: #1f1a0f; border-color: #78350f; }
+    .be-note-wrap {
+        background: var(--note-bg, #fffbeb);
+        border: 1px solid var(--note-border, #fde68a);
+        border-radius: 7px;
+        padding: 10px 12px;
+    }
+    [data-theme="dark"] .be-note-wrap,
+    html[data-theme="dark"] .be-note-wrap,
+    body[data-theme="dark"] .be-note-wrap,
+    .dark .be-note-wrap {
+        background: #1f1a0f;
+        border-color: #78350f;
+    }
     .be-note-label {
         display: flex; align-items: center; gap: 5px;
         font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
         color: #92400e; margin-bottom: 6px;
     }
-    [data-theme="dark"] .be-note-label { color: #fcd34d; }
+    [data-theme="dark"] .be-note-label,
+    html[data-theme="dark"] .be-note-label,
+    body[data-theme="dark"] .be-note-label,
+    .dark .be-note-label { color: #fcd34d; }
 
     /* ── Code ── */
     .be-code-wrap { background: #0d1117; border-radius: 8px; overflow: hidden; }

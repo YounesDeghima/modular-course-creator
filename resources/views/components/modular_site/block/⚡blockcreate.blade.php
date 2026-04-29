@@ -25,6 +25,21 @@ new class extends Component {
     }
 
     /**
+     * Keep in sync when the user switches lessons in the sidebar.
+     * LessonChanged is dispatched as { id, chapterId } — we only need id.
+     */
+    public function updateLesson(int $id, $chapterId = null): void
+    {
+        $this->lesson_id = $id;
+        $this->lesson    = \App\Models\lesson::findOrFail($id);
+    }
+
+    public function getListeners(): array
+    {
+        return ['LessonChanged' => 'updateLesson'];
+    }
+
+    /**
      * Entry-point called by the toolbar window event: add-block { type }
      * Type list and content defaults mirror blockcontroller@store exactly.
      */
