@@ -11,7 +11,7 @@
     {{--    <link rel="stylesheet" href="{{asset('css/block-editor.css')}}">--}}
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
     <style>
-        .chapter-modal{
+        .chapter-modal {
             display: flex;
         }
 
@@ -36,9 +36,14 @@
         .animate-spin {
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .toolbar-save-container {
@@ -68,11 +73,22 @@
             gap: 6px;
         }
 
-        .btn-save-all:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-save-all.unsaved { background: #f59e0b; }
-        .btn-save-all.saved { background: #22c55e; }
+        .btn-save-all:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-save-all.unsaved {
+            background: #f59e0b;
+        }
+
+        .btn-save-all.saved {
+            background: #22c55e;
+        }
 
     </style>
+
+
 @endsection
 
 @section('back-button')
@@ -84,21 +100,25 @@
 
 @section('main')
 
-
     @fragment('main-content')
         <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
-        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks" lazy/>
+        <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"
+                                            lazy/>
 
         <div id="block-popup" class="modal-overlay">
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal('block-popup')">&times;</span>
                 <h3>Add New Content Block</h3>
-                <form method="POST" action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}" enctype="multipart/form-data">
+                <form id="legacy-block-form"
+                      data-action="{{route('admin.courses.chapters.lessons.blocks.store', [$course->id, $chapter->id, $lesson->id])}}"
+                      onsubmit="legacyBlockFormSubmit(event)"
+                      enctype="multipart/form-data">
                     @csrf
 
                     <div class="form-group">
                         <label>Block Type</label>
-                        <select name="type" class="modal-input" id="new-block-type" onchange="toggleNewBlockFields(this)">
+                        <select name="type" class="modal-input" id="new-block-type"
+                                onchange="toggleNewBlockFields(this)">
                             <option value="header">Header</option>
                             <option value="description">Description</option>
                             <option value="note">Note</option>
@@ -135,45 +155,56 @@
                             <option value="pie">Pie Chart</option>
                         </select>
                         <label style="margin-top:12px;">Chart Data</label>
-                        <textarea name="chart_data" class="modal-input" rows="3" placeholder="Jan, Feb, Mar&#10;10, 20, 15">Jan, Feb, Mar&#10;10, 20, 15</textarea>
-                        <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels | Line 2: Values (comma separated)</small>
+                        <textarea name="chart_data" class="modal-input" rows="3"
+                                  placeholder="Jan, Feb, Mar&#10;10, 20, 15">Jan, Feb, Mar&#10;10, 20, 15</textarea>
+                        <small style="color:var(--text-faint);font-size:11px;">Line 1: Labels | Line 2: Values (comma
+                            separated)</small>
                     </div>
 
                     {{-- Table specific fields --}}
                     <div class="form-group" id="table-content-group" style="display:none;">
                         <label>Initial Table (JSON format)</label>
                         <textarea name="table_data" class="modal-input" rows="4">[["Header 1","Header 2"],["Row 1 Col 1","Row 1 Col 2"]]</textarea>
-                        <small style="color:var(--text-faint);font-size:11px;">Format: [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
+                        <small style="color:var(--text-faint);font-size:11px;">Format:
+                            [["Header1","Header2"],["Row1Col1","Row1Col2"]]</small>
                     </div>
 
                     {{-- Function specific fields --}}
                     <div class="form-group" id="function-content-group" style="display:none;">
                         <label>Function f(x)</label>
-                        <input type="text" name="func_expression" class="modal-input" value="sin(x)" placeholder="e.g., sin(x), x^2, cos(x)*x" style="font-family:'JetBrains Mono',monospace;margin-bottom:8px;">
+                        <input type="text" name="func_expression" class="modal-input" value="sin(x)"
+                               placeholder="e.g., sin(x), x^2, cos(x)*x"
+                               style="font-family:'JetBrains Mono',monospace;margin-bottom:8px;">
                         <div style="display:flex;gap:8px;margin-bottom:8px;">
                             <div style="flex:1;">
                                 <label style="font-size:11px;color:var(--text-faint);">X Range</label>
                                 <div style="display:flex;gap:4px;">
-                                    <input type="number" name="x_min" value="-10" class="modal-input" style="flex:1;" placeholder="Min">
-                                    <input type="number" name="x_max" value="10" class="modal-input" style="flex:1;" placeholder="Max">
+                                    <input type="number" name="x_min" value="-10" class="modal-input" style="flex:1;"
+                                           placeholder="Min">
+                                    <input type="number" name="x_max" value="10" class="modal-input" style="flex:1;"
+                                           placeholder="Max">
                                 </div>
                             </div>
                             <div style="flex:1;">
                                 <label style="font-size:11px;color:var(--text-faint);">Y Range</label>
                                 <div style="display:flex;gap:4px;">
-                                    <input type="number" name="y_min" value="-5" class="modal-input" style="flex:1;" placeholder="Min">
-                                    <input type="number" name="y_max" value="5" class="modal-input" style="flex:1;" placeholder="Max">
+                                    <input type="number" name="y_min" value="-5" class="modal-input" style="flex:1;"
+                                           placeholder="Min">
+                                    <input type="number" name="y_max" value="5" class="modal-input" style="flex:1;"
+                                           placeholder="Max">
                                 </div>
                             </div>
                         </div>
                         <label style="font-size:11px;color:var(--text-faint);">Line Color</label>
-                        <input type="color" name="func_color" value="#4f46e5" class="modal-input" style="height:40px;padding:4px;">
+                        <input type="color" name="func_color" value="#4f46e5" class="modal-input"
+                               style="height:40px;padding:4px;">
                         <small style="color:var(--text-faint);font-size:11px;">JavaScript math syntax supported</small>
                     </div>
 
                     <div class="form-group">
                         <label>Block Number</label>
-                        <input style="visibility: hidden" class="modal-input" type="number" name="block_number" value="{{ $lesson->blocks->count() + 1 }}" min="1" required>
+                        <input style="visibility: hidden" class="modal-input" type="number" name="block_number"
+                               value="{{ $lesson->blocks->count() + 1 }}" min="1" required>
                     </div>
 
                     <button type="submit" class="btn-update">Create Block</button>
@@ -188,19 +219,17 @@
         :lesson="$lesson"
         :course="$course"
         :chapter="$chapter"
-        :blocks="$blocks" />
-    <livewire:modular_site.block.blockcreate :lesson="$lesson" />
+        :blocks="$blocks"/>
+    <livewire:modular_site.block.blockcreate :lesson="$lesson"/>
 @endsection
 
 @section('sidebar-elements')
 
-
-
-    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters" :chapter="$chapter" :lesson="$lesson" lazy/>
+    <livewire:modular_site.chapter.chapters :course="$course" :chapters="$chapters" :chapter="$chapter"
+                                            :lesson="$lesson" lazy/>
 
 
     <livewire:modular_site.chapter.chaptercreate :course="$course"/>
-
 
 @endsection
 
@@ -211,17 +240,57 @@
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 
-
     <script src="{{ asset('js/function.js') }}"></script>
+
+
+    <script>
+        // BUG FIX #11: legacy modal notifies Livewire after block creation
+        async function legacyBlockFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const url  = form.dataset.action;
+            const data = new FormData(form);
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            data.set('_token', csrf);
+
+            try {
+                const res  = await fetch(url, { method: 'POST', body: data });
+                const json = await res.json();
+                if (res.ok && json.block) {
+                    closeModal('block-popup');
+                    // Notify the Livewire blocks component so the new block appears immediately
+                    if (window.Livewire) {
+                        Livewire.dispatch('BlockCreated', { id: json.block.id });
+                    }
+                } else {
+                    alert('Error creating block: ' + (json.message || res.status));
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            }
+        }
+    </script>
+
+    <script>
+        // ── Fix #4: intercept sidebar lesson-link clicks and dispatch LessonChanged ──
+        // This handles the case where the sidebar Livewire component uses plain <a> tags
+        // with data-lesson-id / data-chapter-id attributes.
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-lesson-id]');
+            if (!link) return;
+            e.preventDefault();
+            const lessonId  = link.dataset.lessonId;
+            const chapterId = link.dataset.chapterId ?? null;
+            if (window.Livewire && lessonId) {
+                Livewire.dispatch('LessonChanged', { id: lessonId, chapterId: chapterId });
+            }
+        });
+    </script>
 
 
 
 
     <script>
-
-
-
-
         // Helper function to update hidden input
         function updateFunctionHiddenInput(container, funcExpr, xMin, xMax, yMin, yMax, color, step) {
             const hiddenInput = container.nextElementSibling;
@@ -239,7 +308,7 @@
         }
 
         // Auto-render on input change
-        document.addEventListener('input', function(e) {
+        document.addEventListener('input', function (e) {
             if (e.target.closest('.function-editor')) {
                 const blockId = e.target.closest('.function-editor').dataset.blockId;
                 // Debounce
@@ -249,7 +318,7 @@
         });
 
         // Initial render for existing function blocks
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Wait for styles to load
             setTimeout(() => {
                 document.querySelectorAll('.function-editor').forEach(editor => {
@@ -268,80 +337,15 @@
           '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
-    {{-- MathJax 3 — fully local config, no CDN calls --}}
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath:  [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            },
-            startup: { typeset: false },
-        };
-    </script>
-    <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
-            onerror="document.head.insertAdjacentHTML('beforeend',
-          '<script src=\'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\'><\/script>')">
-    </script>
+    {{-- MathJax removed: using KaTeX only --}}
 
     <script>
-        // ── Markdown block tab switching ──────────────────────────────────────────────
-        function mbeSetTab(blockId, tab) {
-            const editPane    = document.getElementById('mbe-edit-'    + blockId);
-            const previewPane = document.getElementById('mbe-preview-' + blockId);
-            const tabs        = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
-
-            tabs.forEach(t => t.classList.remove('active'));
-
-            if (tab === 'edit') {
-                editPane.style.display    = '';
-                previewPane.style.display = 'none';
-                tabs[0].classList.add('active');
-            } else {
-                editPane.style.display    = 'none';
-                previewPane.style.display = '';
-                tabs[1].classList.add('active');
-                mbeRenderPreview(blockId);
-            }
-        }
-
-        function mbeUpdatePreview(blockId) {
-            // Only re-render if the preview pane is visible
-            const previewPane = document.getElementById('mbe-preview-' + blockId);
-            if (previewPane && previewPane.style.display !== 'none') {
-                mbeRenderPreview(blockId);
-            }
-        }
-
-        function mbeRenderPreview(blockId) {
-            const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
-            const previewPane = document.getElementById('mbe-preview-' + blockId);
-            if (!textarea || !previewPane) return;
-
-            const md = textarea.value || '';
-
-            if (typeof marked !== 'undefined') {
-                previewPane.innerHTML = marked.parse(md);
-            } else {
-                // Fallback: basic newline-to-br if marked.js not loaded
-                previewPane.innerHTML = md.replace(/\n/g, '<br>');
-            }
-
-            // Re-typeset math
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise([previewPane]).catch(console.warn);
-            }
-        }
-
         // ── Convert panel ─────────────────────────────────────────────────────────────
-        let _convertBlockId   = null;
+        let _convertBlockId = null;
         let _convertRawContent = '';
 
         function openConvertPanel(blockId, rawContent) {
-            _convertBlockId    = blockId;
+            _convertBlockId = blockId;
             _convertRawContent = rawContent;
 
             // Show snippet preview
@@ -350,18 +354,26 @@
                 snippetEl.innerHTML = typeof marked !== 'undefined'
                     ? marked.parse(rawContent)
                     : rawContent.replace(/\n/g, '<br>');
-                if (window.MathJax && MathJax.typesetPromise) {
-                    MathJax.typesetPromise([snippetEl]).catch(console.warn);
+                if (window.renderMathInElement) {
+                    renderMathInElement(snippetEl, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$',  right: '$',  display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true},
+                        ],
+                        throwOnError: false,
+                    });
                 }
             }
 
             document.getElementById('convert-status').style.display = 'none';
-            document.getElementById('convert-panel').style.display  = 'flex';
+            document.getElementById('convert-panel').style.display = 'flex';
         }
 
         function closeConvertPanel() {
             document.getElementById('convert-panel').style.display = 'none';
-            _convertBlockId    = null;
+            _convertBlockId = null;
             _convertRawContent = '';
         }
 
@@ -370,8 +382,8 @@
 
             const statusEl = document.getElementById('convert-status');
             statusEl.style.display = 'block';
-            statusEl.style.color   = 'var(--text-muted)';
-            statusEl.textContent   = 'Converting…';
+            statusEl.style.color = 'var(--text-muted)';
+            statusEl.textContent = 'Converting…';
 
             // Safely grab CSRF token — the edditor layout now includes the meta tag
             const csrfMeta = document.querySelector('meta[name="csrf-token"]');
@@ -384,14 +396,14 @@
             }
 
             try {
-                const res  = await fetch('{{ route("admin.ai.convert-block") }}', {
-                    method:  'POST',
+                const res = await fetch('{{ route("admin.ai.convert-block") }}', {
+                    method: 'POST',
                     headers: {
-                        'Content-Type':  'application/json',
-                        'Accept':        'application/json',
-                        'X-CSRF-TOKEN':  csrfToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ block_id: _convertBlockId, target_type: targetType }),
+                    body: JSON.stringify({block_id: _convertBlockId, target_type: targetType}),
                 });
                 const data = await res.json();
 
@@ -419,5 +431,44 @@
             }
         }
     </script>
+
+    <script>
+        // ── Markdown → Typed Blocks Exploder ──────────────────────────────────────
+        window.explodeMarkdownBlock = async function(blockId, url, event) {
+            var btn = event ? event.currentTarget : document.querySelector('.mbe-tab--explode');
+            var orig = btn.textContent;
+            btn.textContent = '⏳ Exploding…';
+            btn.disabled = true;
+
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            var csrf = csrfMeta ? csrfMeta.content : '';
+
+            try {
+                var res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                    },
+                    body: JSON.stringify({ block_id: blockId }),
+                });
+                var data = await res.json();
+                if (res.ok && data.success) {
+                    // Reload page so Livewire re-fetches blocks fresh (avoids 404 on dispatch)
+                    window.location.reload();
+                } else {
+                    alert('Explode failed: ' + (data.error || 'Unknown error'));
+                    btn.textContent = orig;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Network error: ' + e.message);
+                btn.textContent = orig;
+                btn.disabled = false;
+            }
+        };
+    </script>
+
 
 @endsection
