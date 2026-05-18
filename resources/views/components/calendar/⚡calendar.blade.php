@@ -26,7 +26,8 @@ new class extends Component {
     public string $f_visibility  = 'global';
 
     // ── Filters ──
-    public array $activeFilters = ['exam','vacation','project','assignment','personal'];
+    public array $activeFilters = ['exam','vacation','project','assignment'];
+    public array $activeVisibility = ['personal','section','compagnie','batallion'];
     protected $listeners = ['eventCreated','events'];
 
     public function mount(): void
@@ -34,8 +35,6 @@ new class extends Component {
         $this->year      = now()->year;
         $this->month     = now()->month;
         $this->weekStart = now()->startOfWeek(Carbon::SUNDAY)->format('Y-m-d');
-
-
     }
 
     // ─────────────────────────────────────────
@@ -373,6 +372,23 @@ new class extends Component {
                             </div>
                         @endforeach
                     </div>
+
+
+
+                    <div class="cal-sb-label">Event visibility</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
+                        @foreach($types as $t)
+                            <div
+                                class="type-filter{{ in_array($t,$activeVisibility) ? '' : ' off' }}"
+                                wire:click="toggleVisibility('{{ $t }}')"
+                            >
+                                <span class="type-dot {{ $typeDot[$t] }}"></span>
+                                {{ ucfirst($t) }}
+                            </div>
+                        @endforeach
+                    </div>
+
+
                 </div>
 
                 {{-- Upcoming --}}
@@ -576,6 +592,7 @@ new class extends Component {
                                 <button type="button"
                                         class="vis-opt{{ $f_visibility==='personal' ? ' selected' : '' }}"
                                         wire:click="$set('f_visibility','personal')">🔒 Personal (only me)</button>
+
                             </div>
                         </div>
                     @endif
