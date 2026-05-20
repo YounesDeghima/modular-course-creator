@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 

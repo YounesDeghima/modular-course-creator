@@ -696,7 +696,10 @@
 @endsection
 
 @section('js')
-    @verbatim
 
-    @endverbatim
+        <script>
+            window.__PTY_BASE__  = "{{ $ptyUrl }}";
+            window.__PTY_TOKEN__ = "{{ $ptyToken }}";
+        </script>
+
 @endsection
