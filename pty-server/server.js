@@ -49,9 +49,9 @@ const CFG = {
     // Secret shared with Laravel .env as PTY_SECRET
     // Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
     SECRET: (() => {
-        
+
         const s = process.env.PTY_SECRET ;
-        
+
         if (!s) {
             console.error('\n❌  PTY_SECRET env var is not set. Refusing to start.');
             console.error('    Generate one:');
@@ -77,7 +77,7 @@ const CFG = {
     PIDS:             Number(process.env.PIDS_LIMIT)       || 64,
 
     // Execution limits
-    RUN_TIMEOUT_MS:   Number(process.env.RUN_TIMEOUT_MS)   || 10_000,   // 10 s
+    RUN_TIMEOUT_MS:   Number(process.env.RUN_TIMEOUT_MS)   || 200_000,   // 10 s
     MAX_OUTPUT_BYTES: Number(process.env.MAX_OUTPUT_BYTES)  || 524_288,  // 512 KB
     MAX_CODE_BYTES:   Number(process.env.MAX_CODE_BYTES)    || 65_536,   // 64 KB
 
