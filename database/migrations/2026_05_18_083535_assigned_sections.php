@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('assigned_sections', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('section_id')->default(000)->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('section_id')->nullable()->constrained()->onDelete('cascade');
             $table->enum('role',['admin','teacher','user'])->default('user');
             $table->dateTime('last_seen')->nullable();
 

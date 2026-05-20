@@ -13,7 +13,7 @@ return new class extends Migration
     {
         schema::create('sections', function (Blueprint $table) {
            $table->id();
-           $table->integer('section_number')->default(000);
+           $table->integer('section_number');
 
         });
 
