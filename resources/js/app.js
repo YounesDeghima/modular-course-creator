@@ -1,8 +1,7 @@
-
 // 1. From @codemirror/state
-import { EditorState, Compartment, EditorSelection } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 
-// 2. From @codemirror/view (Add lineNumbers, highlightActiveLine, drawSelection)
+// 2. From @codemirror/view
 import {
     EditorView,
     keymap,
@@ -11,19 +10,19 @@ import {
     drawSelection
 } from '@codemirror/view';
 
-// 3. From @codemirror/commands (Add history, historyKeymap)
+// 3. From @codemirror/commands
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 
-// 4. From @codemirror/language (Add indentOnInput, bracketMatching, foldGutter)
+// 4. From @codemirror/language
 import { indentOnInput, bracketMatching, foldGutter } from '@codemirror/language';
 
-// 5. From @codemirror/autocomplete (Make sure you use autocompletion)
+// 5. From @codemirror/autocomplete
 import { autocompletion } from '@codemirror/autocomplete';
 
-// 6. From @codemirror/search (Add highlightSelectionMatches)
+// 6. From @codemirror/search
 import { highlightSelectionMatches } from '@codemirror/search';
 
-// Theme & Languages remain the same...
+// Theme & Languages
 import { oneDark } from '@codemirror/theme-one-dark';
 import { python } from '@codemirror/lang-python';
 import { javascript } from '@codemirror/lang-javascript';
@@ -31,27 +30,43 @@ import { cpp } from '@codemirror/lang-cpp';
 import { java } from '@codemirror/lang-java';
 import { rust } from '@codemirror/lang-rust';
 
-// ── State ──
-let view, currentLang = 'python';
-let sessionRuns = 0, sessionPass = 0;
-let runHistory = [];
-let snippets   = [];
-const MAX_SNIPPETS = 10;
-const STORAGE_KEY  = 'ce_snippets_v1';
-const HISTORY_KEY  = 'ce_history_v1';
+
+// ═══════════════════════════════════════════════════════════════
+//  FILE SYSTEM
+//  Everything is stored in localStorage under FILES_KEY.
+//  Each file object:
+//  {
+//    id:        string  — unique stable ID (Date.now() on creation)
+//    name:      string  — display name, e.g. "hello.py"
+//    lang:      string  — language key
+//    code:      string  — full source text
+//    savedAt:   string  — human-readable last-save timestamp
+//  }
+//
+//  activeFileId — ID of the file currently open in the editor,
+//                 OR null when the buffer is a fresh unsaved file.
+//
+//  isDirty — true when editor content differs from what's on disk
+//            (or when working on an unsaved new buffer).
+// ═══════════════════════════════════════════════════════════════
+
+const FILES_KEY = 'ce_files_v2';
+
+let files        = [];        // array of saved file objects
+let activeFileId = null;      // null = unsaved new buffer
+let isDirty      = false;     // editor has unsaved changes
 
 // ── WebSocket state ──
-// __PTY_BASE__ and __PTY_TOKEN__ are injected by the blade via window globals.
-// BUG FIX: original code read window.__PTY_URL__ which was never set by the blade.
-// The blade sets window.__PTY_BASE__. Both variable names are now consistent.
 const PTY_BASE   = window.__PTY_BASE__  ?? 'ws://127.0.0.1:4000';
 const PTY_TOKEN  = window.__PTY_TOKEN__ ?? '';
 const PTY_WS_URL = `${PTY_BASE}?token=${PTY_TOKEN}`;
 
+let socket    = null;
+let running   = false;
+let startTime = null;
 
-let   socket     = null;   // active WebSocket connection
-let   running    = false;  // is a process currently running?
-let   startTime  = null;
+// Session counters (in-memory only, reset on page reload)
+let sessionRuns = 0, sessionPass = 0;
 
 const langCompartment  = new Compartment();
 const themeCompartment = new Compartment();
@@ -96,10 +111,16 @@ const EXT_MAP = {
 
 function getCmLang(l) { return CM_LANG[l?.toLowerCase()] ?? []; }
 function getStarter(l) { return STARTERS[l?.toLowerCase()] ?? '// Start coding...\n'; }
-function getExt(l) { return EXT_MAP[l?.toLowerCase()] ?? 'txt'; }
+function getExt(l)     { return EXT_MAP[l?.toLowerCase()] ?? 'txt'; }
 
-// ── Init CodeMirror ──
-function initEditor(code = '// Start coding...\n', langName = '') {
+
+// ═══════════════════════════════════════════════════════════════
+//  CODEMIRROR
+// ═══════════════════════════════════════════════════════════════
+
+let view; // the active EditorView instance
+
+function initEditor(code = '// Start coding...\n', langName = 'python') {
     const host = document.getElementById('ce-codemirror');
     if (view) view.destroy();
     const isDark = document.documentElement.dataset.theme !== 'light';
@@ -115,7 +136,12 @@ function initEditor(code = '// Start coding...\n', langName = '') {
                 themeCompartment.of(isDark ? oneDark : []),
                 wrapCompartment.of([]),
                 EditorView.updateListener.of(update => {
-                    if (update.docChanged || update.selectionSet) updateEditorStats(update.view);
+                    if (update.docChanged) {
+                        markDirty();
+                        updateEditorStats(update.view);
+                    } else if (update.selectionSet) {
+                        updateEditorStats(update.view);
+                    }
                 }),
             ],
         }),
@@ -125,60 +151,314 @@ function initEditor(code = '// Start coding...\n', langName = '') {
 }
 
 function updateEditorStats(v) {
-    const doc  = v.state.doc;
-    const lines = doc.lines, chars = doc.length;
-    const sel  = v.state.selection.main;
-    const line = doc.lineAt(sel.head);
-    const col  = sel.head - line.from + 1;
+    const doc   = v.state.doc;
+    const lines = doc.lines;
+    const chars = doc.length;
+    const sel   = v.state.selection.main;
+    const line  = doc.lineAt(sel.head);
+    const col   = sel.head - line.from + 1;
     document.getElementById('ce-line-count').textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
     document.getElementById('ce-cursor-pos').textContent = `Ln ${line.number}, Col ${col}`;
-    document.getElementById('stat-lines').textContent = lines;
-    document.getElementById('stat-chars').textContent = chars > 999 ? (chars/1000).toFixed(1)+'k' : chars;
 }
 
-// ─────────────────────────────────────────────────────────
-//  PTY WebSocket connection & status check
-// ─────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+//  DIRTY / CLEAN STATE
+// ═══════════════════════════════════════════════════════════════
+
+function markDirty() {
+    if (!isDirty) {
+        isDirty = true;
+        document.getElementById('ce-dirty-dot').style.display = '';
+    }
+}
+
+function markClean() {
+    isDirty = false;
+    document.getElementById('ce-dirty-dot').style.display = 'none';
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  FILE STORAGE  (localStorage)
+// ═══════════════════════════════════════════════════════════════
+
+function loadFilesFromStorage() {
+    try { files = JSON.parse(localStorage.getItem(FILES_KEY)) || []; }
+    catch { files = []; }
+}
+
+function persistFiles() {
+    localStorage.setItem(FILES_KEY, JSON.stringify(files));
+}
+
+/** Return the file object for activeFileId, or null if unsaved buffer. */
+function getActiveFile() {
+    return files.find(f => f.id === activeFileId) ?? null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  OPEN A FILE INTO THE EDITOR
+// ═══════════════════════════════════════════════════════════════
+
+function openFile(fileId) {
+    const f = files.find(f => f.id === fileId);
+    if (!f) return;
+
+    activeFileId = f.id;
+
+    // Set language selector
+    const langSel = document.getElementById('ce-lang-select');
+    if (langSel.querySelector(`option[value="${f.lang}"]`)) langSel.value = f.lang;
+
+    // Reinitialise editor with saved content
+    initEditor(f.code, f.lang);
+    markClean();
+
+    // Update topbar filename
+    document.getElementById('ce-filename').textContent = f.name;
+
+    renderFileList();
+    ceToast(`Opened "${f.name}"`);
+}
+
+// Exposed so the sidebar HTML onclick can call it
+window.ceOpenFile = openFile;
+
+
+// ═══════════════════════════════════════════════════════════════
+//  NEW FILE  — clears the editor to a fresh unsaved buffer
+// ═══════════════════════════════════════════════════════════════
+
+window.ceNewFile = function () {
+    const lang = document.getElementById('ce-lang-select').value || 'python';
+    activeFileId = null;              // no file on disk yet
+    initEditor(getStarter(lang), lang);
+    document.getElementById('ce-filename').textContent = `untitled.${getExt(lang)}`;
+    markDirty();                      // new buffer always starts dirty
+    renderFileList();
+    ceToast('New file');
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE  (Ctrl+S / "Save" button)
+//
+//  Logic:
+//    • activeFileId === null  →  buffer is unsaved/new → open modal to name it
+//    • activeFileId !== null  →  overwrite that file silently, no modal
+// ═══════════════════════════════════════════════════════════════
+
+window.ceFileSave = function () {
+    if (activeFileId === null) {
+        // New buffer — need a name first
+        openSaveModal({ mode: 'new' });
+    } else {
+        // Known file — silently overwrite
+        overwriteActiveFile();
+    }
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE AS  — always opens modal, always creates a brand-new file
+//  (even if a file is already active)
+// ═══════════════════════════════════════════════════════════════
+
+window.ceFileSaveAs = function () {
+    const currentName = document.getElementById('ce-filename').textContent || '';
+    openSaveModal({ mode: 'saveas', suggestedName: currentName });
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+//  OVERWRITE  — writes editor content into the currently active file
+// ═══════════════════════════════════════════════════════════════
+
+function overwriteActiveFile() {
+    const f = getActiveFile();
+    if (!f) return;
+
+    f.code    = view ? view.state.doc.toString() : '';
+    f.lang    = document.getElementById('ce-lang-select').value;
+    f.savedAt = new Date().toLocaleTimeString();
+
+    persistFiles();
+    markClean();
+    renderFileList();
+    ceToast(`Saved "${f.name}"`);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE MODAL
+//  mode: 'new'    — naming a brand-new buffer for the first time
+//  mode: 'saveas' — cloning current buffer into a new named file
+// ═══════════════════════════════════════════════════════════════
+
+let _saveModalMode = 'new';
+
+function openSaveModal({ mode, suggestedName = '' }) {
+    _saveModalMode = mode;
+
+    const lang        = document.getElementById('ce-lang-select').value;
+    const defaultName = suggestedName || `untitled.${getExt(lang)}`;
+
+    const titleEl   = document.getElementById('ce-modal-title');
+    const nameInput = document.getElementById('ce-file-name-input');
+    const hintEl    = document.getElementById('ce-modal-overwrite-hint');
+
+    titleEl.textContent   = mode === 'saveas' ? 'Save As New File' : 'Save File';
+    nameInput.value       = defaultName;
+    hintEl.style.display  = 'none';
+
+    // Live validation — warn if a file with that name already exists
+    nameInput.oninput = () => {
+        const name = nameInput.value.trim();
+        const clash = files.some(f => f.name === name && f.id !== activeFileId);
+        hintEl.style.display = clash ? 'flex' : 'none';
+    };
+
+    document.getElementById('ce-save-modal').style.display = 'flex';
+    setTimeout(() => { nameInput.focus(); nameInput.select(); }, 40);
+}
+
+window.ceConfirmFileSave = function () {
+    const nameInput = document.getElementById('ce-file-name-input');
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+
+    const lang = document.getElementById('ce-lang-select').value;
+    const code = view ? view.state.doc.toString() : '';
+    const now  = new Date().toLocaleTimeString();
+
+    if (_saveModalMode === 'new') {
+        // Check if a file with that name already exists — if so, overwrite it
+        const existing = files.find(f => f.name === name);
+        if (existing) {
+            existing.code    = code;
+            existing.lang    = lang;
+            existing.savedAt = now;
+            activeFileId     = existing.id;
+        } else {
+            // Brand-new file record
+            const newFile = { id: String(Date.now()), name, lang, code, savedAt: now };
+            files.unshift(newFile);
+            activeFileId = newFile.id;
+        }
+    } else {
+        // 'saveas' — always a new record, no matter what
+        const newFile = { id: String(Date.now()), name, lang, code, savedAt: now };
+        files.unshift(newFile);
+        activeFileId = newFile.id;
+    }
+
+    persistFiles();
+    markClean();
+
+    // Update topbar filename to the chosen name
+    document.getElementById('ce-filename').textContent = name;
+
+    document.getElementById('ce-save-modal').style.display = 'none';
+    renderFileList();
+    ceToast(`Saved "${name}"`);
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+//  DELETE FILE
+// ═══════════════════════════════════════════════════════════════
+
+window.ceDeleteFile = function (fileId, event) {
+    event.stopPropagation();
+    const f = files.find(f => f.id === fileId);
+    if (!f) return;
+
+    files = files.filter(f => f.id !== fileId);
+    persistFiles();
+
+    // If the deleted file was open, fall back to next file or new buffer
+    if (activeFileId === fileId) {
+        if (files.length > 0) {
+            openFile(files[0].id);
+        } else {
+            ceNewFile();
+        }
+    } else {
+        renderFileList();
+    }
+
+    ceToast(`Deleted "${f.name}"`);
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER FILE LIST  (sidebar)
+// ═══════════════════════════════════════════════════════════════
+
+function renderFileList() {
+    const list    = document.getElementById('sb-list');
+    const countEl = document.getElementById('sb-count');
+    countEl.textContent = files.length;
+
+    if (!files.length) {
+        list.innerHTML = '<div class="ce-sb-empty">No saved files yet.<br>Press <strong>Save</strong> to store your code.</div>';
+        return;
+    }
+
+    list.innerHTML = files.map(f => `
+        <div class="ce-file-item${f.id === activeFileId ? ' active' : ''}"
+             onclick="ceOpenFile('${f.id}')">
+            <div class="ce-file-info">
+                <div class="ce-file-title">${escHtml(f.name)}</div>
+                <div class="ce-file-meta">${escHtml(f.lang)} · ${escHtml(f.savedAt)}</div>
+            </div>
+            <span class="ce-file-lang">${escHtml(f.lang)}</span>
+            <button class="ce-file-del"
+                    onclick="ceDeleteFile('${f.id}', event)"
+                    title="Delete">✕</button>
+        </div>
+    `).join('');
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  PTY SERVER  — status check
+// ═══════════════════════════════════════════════════════════════
 
 function checkPtyServer() {
     const dot = document.getElementById('ce-status-dot');
     const testWs = new WebSocket(PTY_WS_URL);
-    testWs.onopen  = () => {
-        dot.className = 'ce-status-dot online';
-        dot.title     = 'PTY server online ✓';
-        testWs.close();
-    };
+    testWs.onopen  = () => { dot.className = 'ce-status-dot online'; dot.title = 'PTY server online ✓'; testWs.close(); };
     testWs.onclose = (e) => {
         if (e.code === 4001 || e.reason === 'Unauthorized') {
             dot.className = 'ce-status-dot offline';
-            dot.title     = 'PTY server: auth failed — check PTY_SECRET matches in .env and server startup';
+            dot.title     = 'PTY server: auth failed — check PTY_SECRET';
             ceTerminalWrite('stderr', '⛔ PTY server rejected the token.\n');
-            ceTerminalWrite('system', '   Make sure PTY_SECRET in Laravel .env matches the PTY_SECRET set when starting server.js.\n');
+            ceTerminalWrite('system', '   Make sure PTY_SECRET in Laravel .env matches the value used when starting server.js.\n');
         }
     };
     testWs.onerror = () => {
         dot.className = 'ce-status-dot offline';
-        dot.title     = 'PTY server offline — open a terminal and run: node server.js';
+        dot.title     = 'PTY server offline — run: node server.js';
         ceTerminalWrite('system', '⚠  PTY server unreachable.\n');
         ceTerminalWrite('system', '   Start it:  cd pty-server && node server.js\n');
         ceTerminalWrite('system', '   Make sure Podman Desktop is running first.\n');
     };
 }
 
-// ─────────────────────────────────────────────────────────
-//  ⚡ RUN  — sends code to PTY server over WebSocket
-// ─────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+//  RUN  — send code to PTY server over WebSocket
+// ═══════════════════════════════════════════════════════════════
 
 window.ceRun = async function () {
     const lang = document.getElementById('ce-lang-select').value;
     const code = view ? view.state.doc.toString() : '';
     if (!lang || !code.trim()) { ceToast('Nothing to run!'); return; }
 
-    // Kill any previous run cleanly
-    if (socket) {
-        socket.close();
-        socket = null;
-    }
+    if (socket) { socket.close(); socket = null; }
 
     ceShowTab('terminal');
     ceClearTerminal();
@@ -192,15 +472,12 @@ window.ceRun = async function () {
 
     startTime = Date.now();
     sessionRuns++;
-    document.getElementById('stat-runs').textContent = sessionRuns;
 
     ceTerminalWriteHTML('<span class="ce-out-system">▶ ' + lang + '  [' + new Date().toLocaleTimeString() + ']\n</span>');
     ceTerminalWrite('system', '─'.repeat(40) + '\n');
 
-    // Open WebSocket to PTY server
-    try {
-        socket = new WebSocket(PTY_WS_URL);
-    } catch (e) {
+    try { socket = new WebSocket(PTY_WS_URL); }
+    catch (e) {
         ceTerminalWrite('stderr', '✗ Could not connect to PTY server: ' + e.message + '\n');
         resetRunUI(false, '—');
         return;
@@ -208,27 +485,18 @@ window.ceRun = async function () {
 
     socket.onopen = () => {
         running = true;
-        // Show input row so student can type immediately
         document.getElementById('ce-term-input-row').style.display = 'flex';
         document.getElementById('ce-live-input').focus();
-        // Send run command
         socket.send(JSON.stringify({ type: 'run', language: lang, code }));
     };
 
     socket.onmessage = (event) => {
         let msg;
         try { msg = JSON.parse(event.data); } catch { return; }
-
         switch (msg.type) {
-            case 'stdout':
-                appendRawOutput(msg.data);
-                break;
-            case 'stderr':
-                ceTerminalWrite('stderr', msg.data);
-                break;
-            case 'system':
-                ceTerminalWrite('system', msg.data);
-                break;
+            case 'stdout': appendRawOutput(msg.data); break;
+            case 'stderr': ceTerminalWrite('stderr', msg.data); break;
+            case 'system': ceTerminalWrite('system', msg.data); break;
             case 'exit': {
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
                 const ok      = msg.code === 0;
@@ -236,43 +504,30 @@ window.ceRun = async function () {
                 if (ok) {
                     ceTerminalWriteHTML(`<span class="ce-out-success">✓ Exited 0 in ${elapsed}s\n</span>`);
                     sessionPass++;
-                    document.getElementById('stat-pass').textContent = sessionPass;
                 } else {
                     const label = msg.code === -1 ? 'killed' : `exit ${msg.code}`;
                     ceTerminalWriteHTML(`<span class="ce-out-stderr">✗ ${label} in ${elapsed}s\n</span>`);
                 }
                 setBadge(ok ? 'ok' : 'fail', ok ? 'Exit 0 ✓' : `Exit ${msg.code ?? '?'}`);
-                addHistory(lang, ok ? 'ok' : 'fail', elapsed);
                 resetRunUI(ok, elapsed);
                 break;
             }
         }
     };
 
-    socket.onerror = () => {
-        ceTerminalWrite('stderr', '\n✗ WebSocket error — is the PTY server running?\n');
-        resetRunUI(false, '—');
-    };
-
-    socket.onclose = () => {
-        if (running) {
-            running = false;
-            resetRunUI(false, ((Date.now() - startTime) / 1000).toFixed(2));
-        }
-    };
+    socket.onerror = () => { ceTerminalWrite('stderr', '\n✗ WebSocket error — is the PTY server running?\n'); resetRunUI(false, '—'); };
+    socket.onclose = () => { if (running) { running = false; resetRunUI(false, ((Date.now() - startTime) / 1000).toFixed(2)); } };
 };
 
-// ─────────────────────────────────────────────────────────
-//  ⌨  SEND STDIN — sends to the live running process
-// ─────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+//  STDIN
+// ═══════════════════════════════════════════════════════════════
 
 window.ceSendInput = function () {
     const inp = document.getElementById('ce-live-input');
     const val = inp.value;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        ceToast('No process running');
-        return;
-    }
+    if (!socket || socket.readyState !== WebSocket.OPEN) { ceToast('No process running'); return; }
     socket.send(JSON.stringify({ type: 'stdin', data: val + '\n' }));
     ceTerminalWriteHTML(`<span class="ce-out-stdin-echo">${escHtml(val)}\n</span>`);
     inp.value = '';
@@ -282,17 +537,22 @@ document.getElementById('ce-live-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') window.ceSendInput();
 });
 
-// ── Kill running process ──
+
+// ═══════════════════════════════════════════════════════════════
+//  KILL
+// ═══════════════════════════════════════════════════════════════
+
 window.ceKill = function () {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'kill' }));
-    }
+    if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'kill' }));
 };
 
-// ── Reset run UI after process ends ──
+
+// ═══════════════════════════════════════════════════════════════
+//  RUN UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+
 function resetRunUI(ok, elapsed) {
-    running = false;
-    socket  = null;
+    running = false; socket = null;
     const runBtn  = document.getElementById('ce-run-btn');
     const killBtn = document.getElementById('ce-kill-btn');
     runBtn.disabled = false;
@@ -300,15 +560,13 @@ function resetRunUI(ok, elapsed) {
     killBtn.style.display = 'none';
     document.getElementById('ce-term-input-row').style.display = 'none';
     const timeEl = document.getElementById('ce-run-time');
-    timeEl.textContent = elapsed + 's';
+    timeEl.textContent  = elapsed + 's';
     timeEl.style.display = '';
 }
 
-// ── Write raw PTY output ──
 function appendRawOutput(data) {
     const terminal = document.getElementById('ce-terminal');
-    const welcome  = terminal.querySelector('.ce-term-welcome');
-    if (welcome) welcome.remove();
+    terminal.querySelector('.ce-term-welcome')?.remove();
     const span = document.createElement('span');
     span.className = 'ce-out-stdout';
     span.textContent = data;
@@ -316,11 +574,9 @@ function appendRawOutput(data) {
     terminal.scrollTop = terminal.scrollHeight;
 }
 
-// ── Terminal helpers ──
 function ceTerminalWrite(type, text) {
     const terminal = document.getElementById('ce-terminal');
-    const welcome  = terminal.querySelector('.ce-term-welcome');
-    if (welcome) welcome.remove();
+    terminal.querySelector('.ce-term-welcome')?.remove();
     const span = document.createElement('span');
     span.className = `ce-out-${type}`;
     span.textContent = text;
@@ -330,14 +586,13 @@ function ceTerminalWrite(type, text) {
 
 function ceTerminalWriteHTML(html) {
     const terminal = document.getElementById('ce-terminal');
-    const welcome  = terminal.querySelector('.ce-term-welcome');
-    if (welcome) welcome.remove();
+    terminal.querySelector('.ce-term-welcome')?.remove();
     terminal.insertAdjacentHTML('beforeend', html);
     terminal.scrollTop = terminal.scrollHeight;
 }
 
 function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 window.ceClearTerminal = function () {
@@ -349,43 +604,62 @@ window.ceClearTerminal = function () {
 
 function setBadge(cls, text) {
     const badge = document.getElementById('ce-exit-badge');
-    badge.className   = `ce-exit-badge ${cls}`;
-    badge.textContent = text;
+    badge.className     = `ce-exit-badge ${cls}`;
+    badge.textContent   = text;
     badge.style.display = 'inline-flex';
 }
 
-// ── Language change ──
+
+// ═══════════════════════════════════════════════════════════════
+//  LANGUAGE CHANGE
+// ═══════════════════════════════════════════════════════════════
+
 function onLangChange(langName) {
-    currentLang = langName;
-    const fn   = document.getElementById('ce-filename');
-    const base = fn.textContent.split('.')[0] || 'untitled';
-    fn.textContent = `${base}.${getExt(langName)}`;
-    initEditor(getStarter(langName), langName);
-    if (view) view.dispatch({ effects: langCompartment.reconfigure(getCmLang(langName)) });
+    // Only reinitialise editor if there's no active file already loaded
+    // (avoids clobbering a file's code when just switching lang on a new buffer)
+    if (activeFileId === null) {
+        initEditor(getStarter(langName), langName);
+        const fn   = document.getElementById('ce-filename');
+        const base = fn.textContent.split('.')[0] || 'untitled';
+        fn.textContent = `${base}.${getExt(langName)}`;
+        markDirty();
+    } else {
+        // Just swap the syntax highlighting
+        if (view) view.dispatch({ effects: langCompartment.reconfigure(getCmLang(langName)) });
+    }
 }
 
 document.getElementById('ce-lang-select').addEventListener('change', e => onLangChange(e.target.value));
 
-// ── Tab switching ──
-window.ceShowTab = function(tab) {
+
+// ═══════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+
+window.ceShowTab = function (tab) {
     document.getElementById('panel-terminal').style.display = tab === 'terminal' ? 'flex' : 'none';
     document.getElementById('tab-terminal').classList.toggle('active', tab === 'terminal');
 };
 
-// ── Editor actions ──
+
+// ═══════════════════════════════════════════════════════════════
+//  EDITOR ACTIONS
+// ═══════════════════════════════════════════════════════════════
+
 window.ceReset = function () {
     const lang = document.getElementById('ce-lang-select').value;
     if (view) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: getStarter(lang) } });
+    markDirty();
     ceToast('Reset to starter code');
 };
 
-window.ceFormatCode = function () { ceToast('Formatted ✓'); };
+window.ceFormatCode  = function () { ceToast('Formatted ✓'); };
 
-window.ceToggleWrap = function (on) {
+window.ceToggleWrap  = function (on) {
     if (view) view.dispatch({ effects: wrapCompartment.reconfigure(on ? EditorView.lineWrapping : []) });
 };
 
-window.ceSetTheme = function (theme) {
+window.ceSetTheme    = function (theme) {
     if (view) view.dispatch({ effects: themeCompartment.reconfigure(theme === 'dark' ? oneDark : []) });
 };
 
@@ -394,7 +668,11 @@ window.ceToggleFocus = function () {
     ceToast(document.getElementById('ce-app').classList.contains('focus-mode') ? 'Focus mode on' : 'Focus mode off');
 };
 
-// ── Download ──
+
+// ═══════════════════════════════════════════════════════════════
+//  DOWNLOAD / COPY
+// ═══════════════════════════════════════════════════════════════
+
 window.ceDownloadCode = function () {
     const lang = document.getElementById('ce-lang-select').value;
     const code = view ? view.state.doc.toString() : '';
@@ -420,113 +698,11 @@ function downloadBlob(content, filename, mime) {
     URL.revokeObjectURL(url);
 }
 
-// ── Snippets ──
-function loadSnippets() {
-    try { snippets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { snippets = []; }
-    renderSnippets();
-}
 
-function saveSnippetsToDisk() { localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets)); }
+// ═══════════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════════
 
-window.ceSaveSnippet = function () {
-    if (snippets.length >= MAX_SNIPPETS) { ceToast(`Max ${MAX_SNIPPETS} snippets reached`); return; }
-    const lang = document.getElementById('ce-lang-select').value;
-    const fn   = document.getElementById('ce-filename').textContent || 'untitled';
-    document.getElementById('ce-snippet-name').value = fn;
-    document.getElementById('ce-save-modal').style.display = 'flex';
-    setTimeout(() => document.getElementById('ce-snippet-name').focus(), 50);
-};
-
-window.ceConfirmSave = function () {
-    const name = document.getElementById('ce-snippet-name').value.trim() || 'Untitled';
-    const lang = document.getElementById('ce-lang-select').value;
-    const code = view ? view.state.doc.toString() : '';
-    const now  = new Date();
-    snippets.unshift({ id: Date.now(), name, lang, code, lines: view ? view.state.doc.lines : 0, time: now.toLocaleTimeString(), date: now.toLocaleDateString() });
-    if (snippets.length > MAX_SNIPPETS) snippets.pop();
-    saveSnippetsToDisk();
-    renderSnippets();
-    document.getElementById('ce-save-modal').style.display = 'none';
-    ceToast('Saved "' + name + '"');
-};
-
-function renderSnippets() {
-    const list = document.getElementById('sb-list');
-    document.getElementById('sb-count').textContent = `${snippets.length}/${MAX_SNIPPETS}`;
-    if (!snippets.length) {
-        list.innerHTML = '<div class="ce-sb-empty">No saved snippets yet.<br>Click "Save Current" to store code.</div>';
-        return;
-    }
-    list.innerHTML = snippets.map((s, i) => `
-                <div class="ce-snippet-item" onclick="ceLoadSnippet(${i})">
-                    <div class="ce-snippet-info">
-                        <div class="ce-snippet-name">${escHtml(s.name)}</div>
-                        <div class="ce-snippet-meta">${s.lines} lines · ${s.time}</div>
-                    </div>
-                    <span class="ce-snippet-lang">${escHtml(s.lang)}</span>
-                    <button class="ce-snippet-del" onclick="event.stopPropagation();ceDeleteSnippet(${i})" title="Delete">✕</button>
-                </div>
-            `).join('');
-}
-
-window.ceLoadSnippet = function (i) {
-    const s = snippets[i];
-    if (!s) return;
-    const langSel = document.getElementById('ce-lang-select');
-    if (langSel.querySelector(`option[value="${s.lang}"]`)) {
-        langSel.value = s.lang;
-        currentLang   = s.lang;
-        if (view) view.dispatch({ effects: langCompartment.reconfigure(getCmLang(s.lang)) });
-    }
-    if (view) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: s.code } });
-    document.getElementById('ce-filename').textContent = s.name;
-    ceToast('Loaded "' + s.name + '"');
-};
-
-window.ceDeleteSnippet = function (i) {
-    const name = snippets[i]?.name;
-    snippets.splice(i, 1);
-    saveSnippetsToDisk();
-    renderSnippets();
-    ceToast('Deleted "' + name + '"');
-};
-
-// ── Run History ──
-function loadHistory() {
-    try { runHistory = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { runHistory = []; }
-    renderHistory();
-}
-
-function addHistory(lang, status, elapsed) {
-    runHistory.unshift({ lang, status, elapsed, time: new Date().toLocaleTimeString() });
-    if (runHistory.length > 20) runHistory.pop();
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(runHistory));
-    renderHistory();
-}
-
-function renderHistory() {
-    const el = document.getElementById('ce-history');
-    if (!runHistory.length) { el.innerHTML = '<div class="ce-sb-empty">No runs yet.</div>'; return; }
-    el.innerHTML = runHistory.slice(0, 15).map(r => `
-                <div class="ce-hist-item">
-                    <div class="ce-hist-dot ${r.status}"></div>
-                    <div class="ce-hist-info">
-                        <div class="ce-hist-lang">${escHtml(r.lang)}</div>
-                        <div class="ce-hist-time">${r.time}</div>
-                    </div>
-                    <span class="ce-hist-dur">${r.elapsed}s</span>
-                </div>
-            `).join('');
-}
-
-window.ceClearHistory = function () {
-    runHistory = [];
-    localStorage.removeItem(HISTORY_KEY);
-    renderHistory();
-    ceToast('History cleared');
-};
-
-// ── Toast ──
 let toastTimer;
 window.ceToast = function (msg) {
     const t = document.getElementById('ce-toast');
@@ -536,7 +712,11 @@ window.ceToast = function (msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 };
 
-// ── Resize panel ──
+
+// ═══════════════════════════════════════════════════════════════
+//  RESIZE PANEL
+// ═══════════════════════════════════════════════════════════════
+
 (function () {
     const handle = document.getElementById('ce-resize-handle');
     const panel  = document.getElementById('ce-right-panel');
@@ -544,7 +724,7 @@ window.ceToast = function (msg) {
     handle.addEventListener('mousedown', e => {
         dragging = true; startX = e.clientX; startW = panel.offsetWidth;
         handle.classList.add('dragging');
-        document.body.style.cursor = 'col-resize';
+        document.body.style.cursor     = 'col-resize';
         document.body.style.userSelect = 'none';
     });
     document.addEventListener('mousemove', e => {
@@ -556,16 +736,20 @@ window.ceToast = function (msg) {
     document.addEventListener('mouseup', () => {
         dragging = false;
         handle.classList.remove('dragging');
-        document.body.style.cursor = '';
+        document.body.style.cursor     = '';
         document.body.style.userSelect = '';
     });
 })();
 
-// ── Keyboard shortcuts ──
+
+// ═══════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════
+
 document.addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey) {
         if (e.key === 'Enter') { e.preventDefault(); window.ceRun(); }
-        if (e.key === 's')     { e.preventDefault(); window.ceSaveSnippet(); }
+        if (e.key === 's')     { e.preventDefault(); window.ceFileSave(); }
         if (e.key === 'd')     { e.preventDefault(); window.ceDownloadCode(); }
         if (e.key === 'l')     { e.preventDefault(); window.ceClearTerminal(); }
         if (e.key === 'k')     { e.preventDefault(); window.ceFormatCode(); }
@@ -573,12 +757,27 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('ce-save-modal').style.display = 'none';
 });
 
-document.getElementById('ce-snippet-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') window.ceConfirmSave();
+// Enter key confirms the save modal
+document.getElementById('ce-file-name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.ceConfirmFileSave();
 });
 
-// ── Boot ──
-loadSnippets();
-loadHistory();
-onLangChange('python');
-checkPtyServer();         // test PTY server connection and update status dot
+
+// ═══════════════════════════════════════════════════════════════
+//  BOOT
+//  On page load: restore saved files, start with a fresh unnamed
+//  buffer (just like opening a new empty editor), no auto-open.
+// ═══════════════════════════════════════════════════════════════
+
+loadFilesFromStorage();
+renderFileList();
+
+// Start with a blank Python buffer — no file selected
+const _bootLang = 'python';
+activeFileId = null;
+initEditor(getStarter(_bootLang), _bootLang);
+document.getElementById('ce-lang-select').value = _bootLang;
+document.getElementById('ce-filename').textContent = `untitled.${getExt(_bootLang)}`;
+markDirty(); // new buffer is always "unsaved" until the user saves
+
+checkPtyServer();
