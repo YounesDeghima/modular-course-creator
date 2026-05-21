@@ -9,18 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-
-
     public function up(): void
     {
-
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('assigned_sections', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('last_name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->foreignId('section_id')->default(1)->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('section_id')->nullable()->constrained()->onDelete('cascade');
             $table->enum('role',['admin','teacher','user'])->default('user');
             $table->dateTime('last_seen')->nullable();
 
@@ -33,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('assigned_sections');
     }
 };

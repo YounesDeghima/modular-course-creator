@@ -1264,3 +1264,14 @@ textarea{
 .right-side-bar > div[wire\:id] > div[x-data]:only-child:empty {
     display: none;
 }
+
+/* ── Block editor: note dark mode (global override — Livewire scoping bypass) ── */
+[data-theme="dark"] .be-note-wrap,
+html[data-theme="dark"] .be-note-wrap {
+    background: #1f1a0f !important;
+    border-color: #78350f !important;
+}
+[data-theme="dark"] .be-note-label,
+html[data-theme="dark"] .be-note-label {
+    color: #fcd34d !important;
+}

@@ -13,8 +13,8 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->date('start_date');
             $table->date('end_date')->nullable();
-            $table->enum('type', ['exam','vacation','project','assignment','personal']);
-            $table->enum('visibility', ['global','personal'])->default('global');
+            $table->enum('type', ['exam','vacation','project','assignment']);
+            $table->enum('visibility', ['global','personal','section','compagnie','batallion'])->default('global');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
         });

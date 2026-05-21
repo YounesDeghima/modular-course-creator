@@ -41,15 +41,17 @@ class BlockToLatexTransformer
     {
         if (!$content) return '';
         return
-            "\\begin{tcolorbox}[colback=yellow!10!white, colframe=yellow!60!black, title=Note]\n" .
-            $this->escape($content) . "\n" .
-            "\\end{tcolorbox}";
+            "\\begin{lstlisting}\n" .
+            $this->escape($content) . "\n" . // <--- STOP! Remove $this->escape()
+            "\\end{lstlisting}";
     }
 
     private function renderCode(?string $content): string
     {
         if (!$content) return '';
-        // lstlisting preserves verbatim text — no escaping needed
+
+        // If you have a language property, use it like: [language=php]
+        // Otherwise, the default lstset from the preamble will be used.
         return
             "\\begin{lstlisting}\n" .
             $content . "\n" .
@@ -60,7 +62,14 @@ class BlockToLatexTransformer
     {
         if (!$content) return '';
         return
-            "\\begin{tcolorbox}[colback=blue!5!white, colframe=blue!50!black, title=Exercise]\n" .
+            "\\begin{tcolorbox}[
+            colback=blue!5!white,
+            colframe=blue!75!black,
+            arc=3pt,              % Rounded corners
+            boxrule=0.5pt,        % Thinner border
+            leftrule=4pt,         % Thicker left accent bar
+            title=Exercise
+        ]\n" .
             $this->escape($content) . "\n" .
             "\\end{tcolorbox}";
     }
@@ -70,9 +79,9 @@ class BlockToLatexTransformer
         if (!$content) return '';
         // $content is expected to be a file path or URL
         return
-            "\\begin{figure}[h]\n" .
+            "\\begin{figure}[htbp]\n" .
             "\\centering\n" .
-            "\\includegraphics[width=0.9\\linewidth]{" . $this->escapePath($content) . "}\n" .
+            "\\includegraphics[width=0.8\\linewidth]{" . $this->escapePath($content) . "}\n" .
             "\\end{figure}";
     }
 
@@ -146,17 +155,56 @@ class BlockToLatexTransformer
             "\\end{tcolorbox}";
     }
 
+
+
+    private function sanitizeColor(string $color): string
+    {
+        $color = trim($color);
+
+        // remove quotes if JSON sends them
+        $color = trim($color, "\"'");
+
+        // whitelist allowed colors (important)
+        $allowed = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
+
+        return in_array($color, $allowed) ? $color : 'blue';
+    }
+
     private function renderFunction(?string $content): string
     {
         if (!$content) return '';
-        // A named function definition — display as math or code depending on content
-        if (str_contains($content, '=') || str_contains($content, '\\')) {
-            return "\\[\n" . $content . "\n\\]";
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['function'])) {
+            return "\\[ " . $content . " \\]"; // Raw math if JSON fails
         }
-        return
-            "\\begin{lstlisting}\n" .
-            $content . "\n" .
-            "\\end{lstlisting}";
+
+        $func = $data['function'];
+        // Do NOT use $this->escape() on the function string used inside the plot
+        $plotFunc = str_replace(['y=', ' '], '', $func);
+        $plotFunc = preg_replace('/(\d)([a-zA-Z])/', '$1*$2', $plotFunc);
+
+        return "
+\\begin{center}
+\\begin{tikzpicture}
+    \\begin{axis}[
+        axis lines = middle,
+        xlabel = {\(x\)},
+        ylabel = {\(y\)},
+        xmin=" . ($data['xmin'] ?? -5) . ", xmax=" . ($data['xmax'] ?? 5) . ",
+        ymin=" . ($data['ymin'] ?? -5) . ", ymax=" . ($data['ymax'] ?? 5) . ",
+        grid = both,
+        unbounded coords=discard % Critical: ignores math errors like 1/0
+    ]
+    \\addplot [
+        domain=" . ($data['xmin'] ?? -5) . ":" . ($data['xmax'] ?? 5) . ",
+        samples=100,
+        color=" . $this->sanitizeColor($data['color'] ?? 'blue') . ",
+        thick
+    ] {" . $plotFunc . "};
+    \\end{axis}
+\\end{tikzpicture}
+\\end{center}";
     }
 
     // -------------------------------------------------------------------------
