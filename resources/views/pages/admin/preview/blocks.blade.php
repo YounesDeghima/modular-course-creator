@@ -6,6 +6,22 @@
 
 
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+    <script defer src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script defer src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"
+            onload="document.addEventListener('DOMContentLoaded', function() {
+                if (typeof renderMathInElement === 'function') {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            {left:'$$',right:'$$',display:true},
+                            {left:'$',right:'$',display:false},
+                            {left:'\\(',right:'\\)',display:false},
+                            {left:'\\[',right:'\\]',display:true}
+                        ],
+                        throwOnError: false
+                    });
+                }
+            })">
+    </script>
     <style>
         /* ── Photo & Video blocks ── */
         .block-media {
@@ -231,7 +247,7 @@
 @section('main')
 
     <div class="pdf-download-button">
-        <a type="button" style="height: 40px;width: 120px;padding: 10px;position: absolute;bottom: 20px;right: 20px;display: flex;text-align: center" href="{{route('user.lessons.pdf',['id'=>$lesson->id])}}">download as pdf</a>
+        <a target="_blank" style="height: 40px;width: 120px;padding: 10px;position: absolute;bottom: 20px;right: 20px;display: flex;text-align: center" href="{{route('user.lessons.pdf',['id'=>$lesson->id,'blocks'])}}">download as pdf</a>
     </div>
 
     <div class="lesson-wrapper">
@@ -368,7 +384,7 @@
 
                         @case('math')
                             <div
-                                style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid #e11d48; overflow-x: auto;">
+                                style="margin: 20px 0; padding: 20px; background: var(--bg-subtle); border-radius: 8px; border-left: 4px solid var(--accent); overflow-x: auto;">
                                 <div
                                     style="font-family: 'Times New Roman', Times, serif; font-size: 18px; font-style: italic; text-align: center;">
                                     $${{ $block->content }}$$
@@ -378,38 +394,38 @@
                             @break
 
                         @case('graph')
-                            @php $graphData = json_decode($block->content, true); @endphp
+                            @php
+                                $graphData = json_decode($block->content, true);
+                                if ($graphData) {
+                                    $isPie = ($graphData['type'] ?? 'line') === 'pie';
+                                    $chartConfig = [
+                                        'type' => $graphData['type'] ?? 'line',
+                                        'data' => [
+                                            'labels'   => $graphData['labels'] ?? [],
+                                            'datasets' => [[
+                                                'label'           => 'Values',
+                                                'data'            => $graphData['data'] ?? [],
+                                                'borderColor'     => '#4f46e5',
+                                                'backgroundColor' => $isPie
+                                                    ? ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6']
+                                                    : 'rgba(79,70,229,0.1)',
+                                                'tension' => 0.4,
+                                            ]],
+                                        ],
+                                        'options' => [
+                                            'responsive'          => true,
+                                            'maintainAspectRatio' => true,
+                                            'plugins' => ['legend' => ['display' => $isPie]],
+                                        ],
+                                    ];
+                                }
+                            @endphp
                             @if($graphData)
-                                <div
-                                    style="margin: 20px 0; padding: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-                                    <canvas id="chart-{{ $block->id }}" width="400" height="200"
-                                            style="max-width:100%;"></canvas>
+                                <div style="margin:20px 0;padding:20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+                                    <canvas id="chart-{{ $block->id }}"
+                                            data-chart-config="{{ htmlspecialchars(json_encode($chartConfig), ENT_QUOTES, 'UTF-8') }}"
+                                            width="400" height="200" style="max-width:100%;"></canvas>
                                 </div>
-                                <script>
-                                    (function () {
-                                        var ctx = document.getElementById('chart-{{ $block->id }}');
-                                        if (ctx && typeof Chart !== 'undefined') {
-                                            new Chart(ctx, {
-                                                type: '{{ $graphData['type'] ?? 'line' }}',
-                                                data: {
-                                                    labels: {!! json_encode($graphData['labels'] ?? []) !!},
-                                                    datasets: [{
-                                                        label: 'Values',
-                                                        data: {!! json_encode($graphData['data'] ?? []) !!},
-                                                        borderColor: '#4f46e5',
-                                                        backgroundColor: '{{ $graphData['type'] == 'pie' ? json_encode(['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']) : 'rgba(79, 70, 229, 0.1)' }}',
-                                                        tension: 0.4
-                                                    }]
-                                                },
-                                                options: {
-                                                    responsive: true,
-                                                    maintainAspectRatio: true,
-                                                    plugins: {legend: {display: {{ ($graphData['type'] ?? 'line') == 'pie' ? 'true' : 'false' }}}}
-                                                }
-                                            });
-                                        }
-                                    })();
-                                </script>
                             @endif
                             @break
 
@@ -490,6 +506,25 @@
 
 
     <script>
+        // ── Fix #8: Chart.js init via data attributes (survives Livewire DOM swaps) ──
+        function initAllCharts() {
+            document.querySelectorAll('canvas[data-chart-config]').forEach(canvas => {
+                if (canvas._chartInstance) {
+                    canvas._chartInstance.destroy();
+                    canvas._chartInstance = null;
+                }
+                try {
+                    const config = JSON.parse(canvas.dataset.chartConfig);
+                    canvas._chartInstance = new Chart(canvas, config);
+                } catch(e) { console.warn('Chart init error:', e); }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initAllCharts);
+        document.addEventListener('livewire:navigated', initAllCharts);
+        document.addEventListener('livewire:load', initAllCharts);
+    </script>
+
+    <script>
         // ── Solution toggle ──
         document.querySelectorAll('.toggle-solution').forEach(btn => {
             const blockId = btn.dataset.blockid;
@@ -522,7 +557,7 @@
 
         // ── Scroll progress + lesson completion ──
         let maxProgress = 0;
-        let sent = document.querySelector('.completed_checkbox').checked;
+        let sent = document.querySelector('.completed_checkbox')?.checked ?? false;
         const main = document.querySelector('main');
 
         main.addEventListener('scroll', () => {
@@ -555,26 +590,37 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            // THIS IS THE TRIGGER YOU ARE MISSING
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError: false
-            });
-
-            // Your existing KaTeX logic for function blocks
-            document.querySelectorAll('.katex-eq').forEach(el => {
-                const eq = el.getAttribute('data-eq');
-                if (eq) {
-                    katex.render(eq, el, {throwOnError: false});
-                }
-            });
+        // ── Fix #16: reset progress bar and counters on Livewire lesson navigation ──
+        document.addEventListener('livewire:navigated', () => {
+            maxProgress = 0;
+            sent = document.querySelector('.completed_checkbox')?.checked ?? false;
+            const bar = document.getElementById('scroll-progress');
+            if (bar) bar.style.width = '0%';
         });
+
+        function runKatex() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$',  right: '$',  display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+            if (typeof katex !== 'undefined') {
+                document.querySelectorAll('.katex-eq').forEach(el => {
+                    const eq = el.getAttribute('data-eq');
+                    if (eq) katex.render(eq, el, {throwOnError: false});
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', runKatex);
+        document.addEventListener('livewire:navigated', runKatex);
+        document.addEventListener('livewire:load', runKatex);
     </script>
 @endsection
 
