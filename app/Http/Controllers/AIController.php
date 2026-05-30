@@ -76,7 +76,7 @@ class AIController extends Controller
         try {
             $response = Http::timeout(120)->post('http://localhost:11434/api/chat', [
                 'model'    => $request->model,
-                'messages' => $request->messages,  // [{role: user|assistant, content: "..."}]
+                'messages' => $request->messages,
                 'stream'   => false,
             ]);
 
@@ -190,7 +190,7 @@ class AIController extends Controller
         return response()->json(['ok' => true, 'message' => 'Full retry queued (new MinerU + Ollama).']);
     }
 
-    // ── Retry MinerU only on a snapshot (re-extract PDF, new md snapshot) ─────
+    // ── Retry MinerU only on a snapshot ──────────────────────────────────────
     public function retryMd(Request $request, $id)
     {
         $aiJob = AiJob::findOrFail($id);
@@ -198,7 +198,6 @@ class AIController extends Controller
         $aiJob->log('Retry MinerU triggered by ' . (Auth::user()?->name ?? 'admin') . '.', 'info');
         $aiJob->update(['status' => 'queued', 'error_message' => null]);
 
-        // Dispatch full job — it will create a new snapshot with the next md_index
         ProcessPdfJob::dispatch($aiJob->id);
 
         return response()->json(['ok' => true, 'message' => 'MinerU re-extract queued. New snapshot will appear.']);
@@ -224,6 +223,39 @@ class AIController extends Controller
         return response()->json(['ok' => true, 'message' => "Recut queued on snapshot #{$snapshot->md_index} with [{$model}]."]);
     }
 
+    // ── Get raw markdown for a snapshot ──────────────────────────────────────
+    public function snapshotMarkdown($id, $snapId)
+    {
+        $snapshot = AiJobSnapshot::where('ai_job_id', $id)->where('id', $snapId)->firstOrFail();
+        return response()->json([
+            'id'               => $snapshot->id,
+            'md_index'         => $snapshot->md_index,
+            'markdown'         => $snapshot->markdown ?? '',
+            'markdown_length'  => mb_strlen($snapshot->markdown ?? ''),
+            'image_urls'       => $snapshot->image_urls ?? [],
+        ]);
+    }
+
+    // ── Get full result JSON for a specific cut ───────────────────────────────
+    public function snapshotResult($id, $snapId, $resultIndex)
+    {
+        $snapshot = AiJobSnapshot::where('ai_job_id', $id)->where('id', $snapId)->firstOrFail();
+        $results  = $snapshot->results ?? [];
+        $entry    = collect($results)->firstWhere('index', (int) $resultIndex);
+
+        if (!$entry) {
+            return response()->json(['error' => 'Result not found.'], 404);
+        }
+
+        return response()->json([
+            'index'       => $entry['index'],
+            'model'       => $entry['model'],
+            'status'      => $entry['status'],
+            'result_json' => $entry['result_json'] ?? null,
+            'error'       => $entry['error'] ?? null,
+        ]);
+    }
+
     // ── List snapshots for a job ──────────────────────────────────────────────
     public function snapshots($id)
     {
@@ -236,7 +268,10 @@ class AIController extends Controller
         ]);
     }
 
-    // ── Save a specific result as course ──────────────────────────────────────
+    // ── Save result as course ─────────────────────────────────────────────────
+    // NOTE: In the new flow the job already creates the course automatically.
+    // This endpoint is kept as a MANUAL FALLBACK — e.g. if the admin wants to
+    // re-save from the split JSON stored in result_json / snapshot result.
     public function store(Request $request)
     {
         $request->validate([
@@ -247,7 +282,7 @@ class AIController extends Controller
 
         $aiJob = AiJob::findOrFail($request->job_id);
 
-        // Determine which result JSON to use
+        // Determine which split JSON to use
         $resultJson = null;
 
         if ($request->snapshot_id && $request->result_index) {
@@ -259,9 +294,8 @@ class AIController extends Controller
             }
         }
 
-        // Fallback to job's result_json
         if (!$resultJson) {
-            if ($aiJob->status !== 'done' && $aiJob->status !== 'saved') {
+            if (!in_array($aiJob->status, ['done', 'saved'])) {
                 return response()->json(['error' => 'No successful result available.'], 422);
             }
             $resultJson = $aiJob->result_json;
@@ -270,10 +304,15 @@ class AIController extends Controller
         $data = json_decode($resultJson, true);
         if (!$data) return response()->json(['error' => 'Result JSON is invalid.'], 422);
 
+        // Get image URLs from the latest snapshot for injection
+        $latestSnapshot = AiJobSnapshot::where('ai_job_id', $aiJob->id)
+            ->orderByDesc('md_index')
+            ->first();
+        $imageUrls = $latestSnapshot?->image_urls ?? [];
+
         try {
             \DB::beginTransaction();
 
-            // Helper: safely truncate strings to fit DB columns
             $t = fn($s, $max = 255) => mb_substr((string)($s ?? ''), 0, $max);
 
             $courseRecord = course::create([
@@ -303,57 +342,62 @@ class AIController extends Controller
                         'status'        => 'draft',
                     ]);
 
-                    foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
-                        $type = $bData['type'] ?? 'markdown';
-                        $raw  = $bData['content'] ?? '';
-
-                        // Always a plain string
-                        if (is_array($raw) || is_object($raw)) {
-                            $content = json_encode($raw, JSON_UNESCAPED_UNICODE);
-                        } else {
-                            $content = (string) $raw;
-                        }
-
-                        // Structured types: must be valid JSON
-                        if (in_array($type, ['list', 'table', 'separator', 'graph', 'function'])) {
-                            json_decode($content);
-                            if (json_last_error() !== JSON_ERROR_NONE) {
-                                $content = json_encode(['raw' => $content], JSON_UNESCAPED_UNICODE);
+                    // New format: lesson has "markdown" field
+                    // Old format fallback: lesson has "blocks" array
+                    if (isset($lData['markdown'])) {
+                        $md = $lData['markdown'];
+                        // Inject images not already in markdown
+                        foreach ($imageUrls as $url) {
+                            if (!str_contains($md, $url)) {
+                                $md .= "\n![image]({$url})";
                             }
                         }
+                        $segments = $this->parseMarkdownToSegments($md);
+                        if (empty($segments)) {
+                            block::create(['lesson_id' => $lessonRecord->id, 'type' => 'markdown', 'content' => $md ?: '<!-- empty -->', 'block_number' => 1]);
+                        } else {
+                            foreach ($segments as $bIdx => $seg) {
+                                $blk = block::create(['lesson_id' => $lessonRecord->id, 'type' => $seg['type'], 'content' => $seg['content'], 'block_number' => $bIdx + 1]);
+                                if ($seg['type'] === 'exercise') {
+                                    $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+                                }
+                            }
+                        }
+                    } else {
+                        // Old format: blocks array (backwards compatible)
+                        foreach (($lData['blocks'] ?? []) as $bIdx => $bData) {
+                            $type = $bData['type'] ?? 'markdown';
+                            $raw  = $bData['content'] ?? '';
+                            $content = is_array($raw) || is_object($raw)
+                                ? json_encode($raw, JSON_UNESCAPED_UNICODE)
+                                : (string) $raw;
 
-                        $blk = block::create([
-                            'lesson_id'    => $lessonRecord->id,
-                            'type'         => $type,
-                            'content'      => $content,
-                            'block_number' => $bData['block_number'] ?? ($bIdx + 1),
-                        ]);
+                            if (in_array($type, ['list', 'table', 'separator', 'graph', 'function'])) {
+                                json_decode($content);
+                                if (json_last_error() !== JSON_ERROR_NONE) {
+                                    $content = json_encode(['raw' => $content], JSON_UNESCAPED_UNICODE);
+                                }
+                            }
 
-                        if ($type === 'exercise') {
-                            $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+                            $blk = block::create(['lesson_id' => $lessonRecord->id, 'type' => $type, 'content' => $content, 'block_number' => $bData['block_number'] ?? ($bIdx + 1)]);
+                            if ($type === 'exercise') {
+                                $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+                            }
                         }
                     }
                 }
             }
 
             $aiJob->update(['status' => 'saved']);
-            $aiJob->log('Saved as course ID ' . $courseRecord->id . '.', 'ok');
+            $aiJob->log('Manually saved as course ID ' . $courseRecord->id . '.', 'ok');
 
             \DB::commit();
             return response()->json(['success' => true, 'course_id' => $courseRecord->id, 'message' => 'Course saved as draft.']);
 
         } catch (\Throwable $e) {
             \DB::rollBack();
-            \Log::error('AI store failed: ' . $e->getMessage(), [
-                'job_id' => $aiJob->id,
-                'file'   => $e->getFile(),
-                'line'   => $e->getLine(),
-            ]);
-            return response()->json([
-                'error' => $e->getMessage(),
-                'file'  => basename($e->getFile()),
-                'line'  => $e->getLine(),
-            ], 500);
+            \Log::error('AI store failed: ' . $e->getMessage(), ['job_id' => $aiJob->id, 'file' => $e->getFile(), 'line' => $e->getLine()]);
+            return response()->json(['error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()], 500);
         }
     }
 
@@ -369,9 +413,7 @@ class AIController extends Controller
             $query->where('original_filename', 'like', '%' . $request->search . '%');
         }
 
-        $jobs = $query->paginate(20)->through(function ($j) {
-            return $this->jobSummary($j);
-        });
+        $jobs = $query->paginate(20)->through(fn($j) => $this->jobSummary($j));
 
         return response()->json($jobs);
     }
@@ -434,12 +476,11 @@ class AIController extends Controller
         if ($aiJob->pdf_path && Storage::disk('local')->exists($aiJob->pdf_path)) {
             Storage::disk('local')->delete($aiJob->pdf_path);
         }
-        // Delete image dirs
         $imagesDir = "ai_images/{$id}";
         if (Storage::disk('public')->exists($imagesDir)) {
             Storage::disk('public')->deleteDirectory($imagesDir);
         }
-        $aiJob->delete(); // cascades to snapshots
+        $aiJob->delete();
         return response()->json(['ok' => true]);
     }
 
@@ -576,7 +617,6 @@ class AIController extends Controller
             'image_count'     => count($s->image_urls ?? []),
             'image_urls'      => $s->image_urls ?? [],
             'results'         => array_map(function ($r) {
-                // Don't send full result_json in list view — too heavy
                 return [
                     'index'            => $r['index'],
                     'model'            => $r['model'],
@@ -605,6 +645,96 @@ class AIController extends Controller
         };
     }
 
+    // ── parseMarkdownToSegments (mirrors ProcessPdfJob — used by store fallback) ─
+    private function parseMarkdownToSegments(string $raw): array
+    {
+        $lines    = explode("\n", $raw);
+        $segments = [];
+        $i        = 0;
+        $total    = count($lines);
+
+        while ($i < $total) {
+            $line    = $lines[$i];
+            $trimmed = rtrim($line);
+
+            if (preg_match('/^```/', $trimmed)) {
+                $code = ''; $i++;
+                while ($i < $total && !preg_match('/^```/', rtrim($lines[$i]))) { $code .= $lines[$i] . "\n"; $i++; }
+                $i++;
+                if (trim($code) !== '') $segments[] = ['type' => 'code', 'content' => rtrim($code)];
+                continue;
+            }
+
+            if (preg_match('/^\$\$/', $trimmed)) {
+                if (preg_match('/^\$\$(.+)\$\$$/', $trimmed, $m)) { $segments[] = ['type' => 'math', 'content' => trim($m[1])]; $i++; continue; }
+                $math = ''; $i++;
+                while ($i < $total && !preg_match('/^\$\$/', rtrim($lines[$i]))) { $math .= $lines[$i] . "\n"; $i++; }
+                $i++;
+                if (trim($math) !== '') $segments[] = ['type' => 'math', 'content' => rtrim($math)];
+                continue;
+            }
+
+            if (preg_match('/^(#{1,6})\s+(.+)$/', $trimmed, $m)) { $segments[] = ['type' => 'header', 'content' => trim($m[2])]; $i++; continue; }
+            if (preg_match('/^(-{3,}|\*{3,}|_{3,})$/', $trimmed)) { $segments[] = ['type' => 'separator', 'content' => json_encode(['type' => 'divider'])]; $i++; continue; }
+
+            if (preg_match('/^>\s?(.*)$/', $trimmed, $m)) {
+                $noteLines = [trim($m[1])]; $i++;
+                while ($i < $total && preg_match('/^>\s?(.*)$/', rtrim($lines[$i]), $m2)) { $noteLines[] = trim($m2[1]); $i++; }
+                $segments[] = ['type' => 'note', 'content' => implode("\n", $noteLines)];
+                continue;
+            }
+
+            if (preg_match('/^!\[.*?\]\((.+?)\)$/', $trimmed, $m)) {
+                $url = trim($m[1]);
+                $segments[] = ['type' => 'photo', 'content' => $this->urlToStoragePath($url)];
+                $i++; continue;
+            }
+
+            if (preg_match('/^\|/', $trimmed)) {
+                $tableLines = [];
+                while ($i < $total && preg_match('/^\|/', rtrim($lines[$i]))) { $tableLines[] = rtrim($lines[$i]); $i++; }
+                $rows = [];
+                foreach ($tableLines as $tl) {
+                    if (preg_match('/^\|[\s\-|:]+\|$/', $tl)) continue;
+                    $cells = array_map('trim', explode('|', trim($tl, '|')));
+                    if (!empty(array_filter($cells, fn($c) => $c !== ''))) $rows[] = $cells;
+                }
+                if (!empty($rows)) $segments[] = ['type' => 'table', 'content' => json_encode($rows)];
+                continue;
+            }
+
+            if (preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', $trimmed, $m)) {
+                $isNumbered = preg_match('/^\s*\d+\./', $trimmed);
+                $items = [trim($m[2])]; $i++;
+                while ($i < $total && preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', rtrim($lines[$i]), $m2)) { $items[] = trim($m2[2]); $i++; }
+                $segments[] = ['type' => 'list', 'content' => json_encode(['style' => $isNumbered ? 'numbered' : 'bullet', 'items' => $items])];
+                continue;
+            }
+
+            if (trim($trimmed) === '') { $i++; continue; }
+
+            $paraLines = [$trimmed]; $i++;
+            while ($i < $total) {
+                $next = rtrim($lines[$i]);
+                if ($next === '') break;
+                if (preg_match('/^(#{1,6}\s|```|\$\$|>|!\[|-{3,}|\*{3,}|\||\s*[-*+]\s|\s*\d+\.\s)/', $next)) break;
+                $paraLines[] = $next; $i++;
+            }
+            $segments[] = ['type' => 'description', 'content' => implode("\n", $paraLines)];
+        }
+
+        return $segments;
+    }
+
+    private function urlToStoragePath(string $url): string
+    {
+        if (!preg_match('/^https?:\/\//', $url)) return $url;
+        $base = Storage::disk('public')->url('');
+        if (str_starts_with($url, $base)) return ltrim(substr($url, strlen($base)), '/');
+        if (preg_match('#/storage/(.+)$#', $url, $m)) return $m[1];
+        return $url;
+    }
+
     private function resolvePython(): string
     {
         $win  = base_path('scripts/.venv/Scripts/python.exe');
@@ -629,5 +759,120 @@ class AIController extends Controller
             $env['SYSTEMROOT'] ??= 'C:\\Windows';
         }
         return $env;
+    }
+
+
+    public function courseAssistChat(Request $request, course $course)
+    {
+        $request->validate([
+            'model'       => 'required|string',
+            'messages'    => 'required|array',
+            'lesson_id'   => 'nullable|integer',
+            'chapter_id'  => 'nullable|integer',
+        ]);
+
+        // ── 1. Gather full course structure ────────────────────────────────────
+        $allChapters = $course->chapters()
+            ->with(['lessons' => fn($q) => $q->orderBy('lesson_number')])
+            ->orderBy('chapter_number')
+            ->get();
+
+        // ── 2. Find current position ───────────────────────────────────────────
+        $currentLesson  = $request->lesson_id
+            ? \App\Models\lesson::with('blocks')->find($request->lesson_id)
+            : null;
+        $currentChapter = $request->chapter_id
+            ? \App\Models\chapter::find($request->chapter_id)
+            : ($currentLesson ? \App\Models\chapter::find($currentLesson->chapter_id) : null);
+
+        // ── 3. Build "what has been covered" vs "what is coming" ──────────────
+        $past   = [];  // chapters/lessons already passed
+        $future = [];  // chapters/lessons not yet reached
+        $atCurrent = false;
+
+        foreach ($allChapters as $ch) {
+            foreach ($ch->lessons as $ls) {
+                if ($currentLesson && $ls->id === $currentLesson->id) {
+                    $atCurrent = true;
+                    continue;
+                }
+                if (!$atCurrent) {
+                    $past[]   = "Chapter {$ch->chapter_number} \"{$ch->title}\" > Lesson {$ls->lesson_number} \"{$ls->title}\"";
+                } else {
+                    $future[] = "Chapter {$ch->chapter_number} \"{$ch->title}\" > Lesson {$ls->lesson_number} \"{$ls->title}\"";
+                }
+            }
+        }
+
+        // ── 4. Current lesson blocks text ─────────────────────────────────────
+        $lessonContent = '';
+        if ($currentLesson) {
+            $blocks = $currentLesson->blocks()->orderBy('block_number')->get();
+            foreach ($blocks as $block) {
+                if (in_array($block->type, ['markdown','header','description','note','code','exercise'])) {
+                    $lessonContent .= "[{$block->type}]\n{$block->content}\n\n";
+                }
+            }
+        }
+
+        // ── 5. Build system prompt ────────────────────────────────────────────
+        $courseTitle = $course->title;
+        $chapterTitle = $currentChapter ? $currentChapter->title : 'Unknown';
+        $lessonTitle  = $currentLesson  ? $currentLesson->title  : 'Unknown';
+
+        $pastList   = $past   ? implode("\n- ", $past)   : 'None (this is the first lesson)';
+        $futureList = $future ? implode("\n- ", $future) : 'None (this is the last lesson)';
+
+        $systemPrompt = <<<PROMPT
+You are an intelligent course assistant for the course: "{$courseTitle}".
+
+The student is currently on:
+  Chapter: "{$chapterTitle}"
+  Lesson:  "{$lessonTitle}"
+
+CONTENT OF THE CURRENT LESSON (use this to answer questions about it):
+---
+{$lessonContent}
+---
+
+LESSONS ALREADY COMPLETED (the student knows this material):
+- {$pastList}
+
+UPCOMING LESSONS (do NOT reveal detailed content of these — only mention they exist if relevant):
+- {$futureList}
+
+YOUR BEHAVIOUR RULES:
+1. Answer questions about the current lesson and past lessons freely and in detail.
+2. For future topics, say "That will be covered in an upcoming lesson" and encourage the student.
+3. Never invent content that is not in the course.
+4. Be encouraging, concise, and pedagogical.
+5. If the student seems stuck on the current lesson, give hints — not full answers to exercises.
+6. Respond in the same language the student uses.
+PROMPT;
+
+        // ── 6. Prepend system message ──────────────────────────────────────────
+        $messages = array_merge(
+            [['role' => 'system', 'content' => $systemPrompt]],
+            $request->messages
+        );
+
+        // ── 7. Call Ollama ────────────────────────────────────────────────────
+        try {
+            $response = Http::timeout(120)->post('http://localhost:11434/api/chat', [
+                'model'    => $request->model,
+                'messages' => $messages,
+                'stream'   => false,
+            ]);
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'Ollama error: ' . $response->status()], 502);
+            }
+
+            $content = $response->json('message.content') ?? '';
+            return response()->json(['ok' => true, 'content' => $content]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

@@ -532,12 +532,40 @@ new class extends Component {
 
                         @case('photo')
                             <div class="be-media-wrap">
-                                @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
+                                @php
+                                    $photoContent = $block['content'] ?? '';
+                                    // Determine display URL — content can be:
+                                    // (a) relative storage path: "ai_images/5/1/img.png"  → asset('storage/...')
+                                    // (b) full URL already: "http://..."                  → use directly
+                                    $photoUrl = '';
+                                    $photoExists = false;
+                                    if (!empty($photoContent)) {
+                                        if (preg_match('/^https?:\/\//', $photoContent)) {
+                                            $photoUrl    = $photoContent;
+                                            $photoExists = true;
+                                        } else {
+                                            $photoExists = \Storage::disk('public')->exists($photoContent);
+                                            $photoUrl    = asset('storage/' . $photoContent);
+                                        }
+                                    }
+                                @endphp
+                                @if($photoExists)
                                     <div class="be-media-preview" wire:ignore>
-                                        <img src="{{ asset('storage/' . $block['content']) }}"
+                                        <img src="{{ $photoUrl }}"
                                              onclick="window.open(this.src)"
                                              style="max-height:180px;border-radius:6px;cursor:pointer;display:block;">
-                                        <span class="be-media-filename">{{ basename($block['content']) }}</span>
+                                        <span class="be-media-filename">{{ basename($photoContent) }}</span>
+                                    </div>
+                                @elseif(!empty($photoContent))
+                                    <div class="be-media-preview" wire:ignore>
+                                        <div style="padding:8px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted)">
+                                            ⚠ Image not found locally — trying external URL
+                                        </div>
+                                        <img src="{{ $photoContent }}"
+                                             onclick="window.open(this.src)"
+                                             style="max-height:180px;border-radius:6px;cursor:pointer;display:block;margin-top:4px"
+                                             onerror="this.parentElement.innerHTML='<span style=\'color:#ef4444;font-size:11px\'>❌ Image not accessible: {{ addslashes($photoContent) }}</span>'">
+                                        <span class="be-media-filename">{{ $photoContent }}</span>
                                     </div>
                                 @endif
                                 <label class="be-upload-label">
