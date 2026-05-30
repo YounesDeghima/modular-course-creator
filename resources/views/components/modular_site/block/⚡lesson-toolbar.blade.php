@@ -77,6 +77,7 @@ new class extends Component {
         }
 
         $this->dispatch('notify', message: 'Block moved!');
+        $this->dispatch('LessonChanged', id: $this->lesson->id, chapterId: $this->lesson->chapter_id);
     }
 
     public function renumberAll(): void

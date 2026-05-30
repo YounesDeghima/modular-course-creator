@@ -426,6 +426,7 @@
                                             data-chart-config="{{ htmlspecialchars(json_encode($chartConfig), ENT_QUOTES, 'UTF-8') }}"
                                             width="400" height="200" style="max-width:100%;"></canvas>
                                 </div>
+
                             @endif
                             @break
 
@@ -590,6 +591,28 @@
             }
         });
 
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true  },
+                        { left: '$',  right: '$',  display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true  },
+                    ],
+                    throwOnError: false,
+                });
+            }
+            // Render KaTeX inline labels for function blocks
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const eq = el.getAttribute('data-eq');
+                if (eq && typeof katex !== 'undefined') {
+                    try { katex.render(eq, el, { throwOnError: false }); }
+                    catch(e) { el.textContent = eq; }
+                }
+            });
+        });
+
         // ── Fix #16: reset progress bar and counters on Livewire lesson navigation ──
         document.addEventListener('livewire:navigated', () => {
             maxProgress = 0;
@@ -626,23 +649,24 @@
 
 
 @once
+    <script src="{{ asset('vendors/chart.js') }}"></script>
     <script src="{{ asset('vendors/marked.min.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
               '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
     <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            },
-            startup: {typeset: false},
-        };
+        // window.MathJax = {
+        //     tex: {
+        //         inlineMath: [['$', '$'], ['\\(', '\\)']],
+        //         displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        //         processEscapes: true,
+        //     },
+        //     options: {
+        //         skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        //     },
+        //     startup: {typeset: false},
+        // };
     </script>
     <script src="{{ asset('vendors/mathjax/tex-chtml.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
@@ -789,19 +813,19 @@
             });
 
             // Single MathJax pass after all blocks are rendered
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise(
-                    Array.from(document.querySelectorAll('.block-markdown-view'))
-                ).catch(console.warn);
-            }
+            // if (window.MathJax && MathJax.typesetPromise) {
+            //     MathJax.typesetPromise(
+            //         Array.from(document.querySelectorAll('.block-markdown-view'))
+            //     ).catch(console.warn);
+            // }
         }
 
         // Run after DOM + MathJax are both ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllMarkdownBlocks, 100));
-        } else {
-            setTimeout(renderAllMarkdownBlocks, 100);
-        }
+        // if (document.readyState === 'loading') {
+        //     document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllMarkdownBlocks, 100));
+        // } else {
+        //     setTimeout(renderAllMarkdownBlocks, 100);
+        // }
 
         // Re-run when Livewire swaps content
         document.addEventListener('livewire:navigated', () => setTimeout(renderAllMarkdownBlocks, 150));
