@@ -6,12 +6,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev":   "node --watch server.js",
+    "dev": "node --watch server.js",
     "build-image": "podman build -t localhost/code-runner:latest -f Containerfile .",
-    "test-image":  "podman run --rm localhost/code-runner:latest python3 -c \"print('image OK')\""
+    "test-image": "podman run --rm localhost/code-runner:latest python3 -c \"print('image OK')\""
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "ws": "^8.21.0"
   },
   "engines": {
     "node": ">=18.0.0"
