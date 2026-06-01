@@ -15,4 +15,9 @@ class event extends Model
     ];
 
     public function user() { return $this->belongsTo(User::class); }
+    public function sections()
+    {
+        return $this->belongsToMany(Section::class, 'event_section', 'event_id', 'section_id');
+    }
+
 }

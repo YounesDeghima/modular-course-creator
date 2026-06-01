@@ -28,7 +28,6 @@ new class extends Component {
         $this->lesson = $lesson;
         $this->blocks = $blocks->map(function ($block) {
             $arr = $block->toArray();
-            // Load solutions for exercise blocks
             if ($block->type === 'exercise') {
                 $arr['solutions'] = $block->solutions->map(fn($s) => $s->toArray())->toArray();
             }
@@ -39,18 +38,16 @@ new class extends Component {
 
     public function addBlock($id)
     {
-        if (!$id) return; // id=0 means toolbar refresh only
-
+        if (!$id) return;
         $block = block::with('solutions')->findOrFail($id);
-
         if ($block) {
             $arr = $block->toArray();
             if ($block->type === 'exercise') {
                 $arr['solutions'] = $block->solutions->map(fn($s) => $s->toArray())->toArray();
             }
+            // BUG FIX #2: hydrate fields so function/graph/list/separator show correct inputs
             $this->hydrateBlockFields($arr);
             $this->blocks[] = $arr;
-            // Scroll to newly created block after re-render
             $this->dispatch('scrollToNewBlock', blockId: $id);
         }
     }
@@ -60,12 +57,13 @@ new class extends Component {
         $this->dispatch('scrollToNewBlock', blockId: $blockId);
     }
 
-
-    public function updateLesson($id, $chapterId)
+    public function updateLesson($id, $chapterId): void
     {
-        $this->blocks = block::where('lesson_id', $id)
+        $this->lesson  = lesson::findorfail($id);
+        $this->chapter = $this->lesson->chapter;
+        $this->blocks  = block::where('lesson_id', $id)
             ->orderBy('block_number')
-            ->with('solutions') // eager load
+            ->with('solutions')
             ->get()
             ->map(function ($b) {
                 $arr = $b->toArray();
@@ -76,10 +74,10 @@ new class extends Component {
                 return $arr;
             })
             ->toArray();
-
-
-        $this->lesson = lesson::findorfail($id);
-        $this->chapter = $this->lesson->chapter;
+        $this->lesson->refresh();
+        $this->chapter->refresh();
+        // Dispatch so JS re-renders math/charts
+        $this->dispatch('blocksReloaded');
     }
 
     public function updatedBlocks($value, $key)
@@ -93,7 +91,6 @@ new class extends Component {
             str_contains($key, 'step')) {
 
             $index = explode('.', $key)[0];
-
             $this->blocks[$index]['content'] = json_encode([
                 'function' => $this->blocks[$index]['func_expression'] ?? 'sin(x)',
                 'x_min' => $this->blocks[$index]['x_min'] ?? -10,
@@ -106,47 +103,42 @@ new class extends Component {
         }
     }
 
-
     public function saveAll()
     {
         foreach ($this->blocks as $blockData) {
             $content = $blockData['content'] ?? null;
 
-            // Re-encode structured types
             if ($blockData['type'] === 'graph') {
                 $content = json_encode([
-                    'type'   => $blockData['graph_type'] ?? 'line',
-                    'labels' => array_map('trim', explode(',', $blockData['graph_labels'] ?? '')),
-                    'data'   => array_map('trim', explode(',', $blockData['graph_data'] ?? '')),
+                    'type'   => $blockData['graph_type']   ?? 'line',
+                    'labels' => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_labels'] ?? '')))),
+                    'data'   => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_data']   ?? '')))),
                 ]);
             }
-
+            if ($blockData['type'] === 'list') {
+                $items = array_values(array_filter(array_map('trim', explode("
+", $blockData['list_items'] ?? ''))));
+                $content = json_encode([
+                    'style' => $blockData['list_style'] ?? 'bullet',
+                    'items' => $items,
+                ]);
+            }
+            if ($blockData['type'] === 'separator') {
+                $content = json_encode(['type' => $blockData['separator_type'] ?? 'divider']);
+            }
             if ($blockData['type'] === 'table') {
                 $content = $blockData['table_json'] ?? $blockData['content'];
             }
-
             if ($blockData['type'] === 'function') {
                 $content = json_encode([
                     'function' => $blockData['func_expression'] ?? 'sin(x)',
-                    'x_min'    => $blockData['x_min'] ?? -10,
-                    'x_max'    => $blockData['x_max'] ?? 10,
-                    'y_min'    => $blockData['y_min'] ?? -5,
-                    'y_max'    => $blockData['y_max'] ?? 5,
-                    'color'    => $blockData['color'] ?? '#4f46e5',
-                    'step'     => $blockData['step'] ?? 0.1,
+                    'x_min' => $blockData['x_min'] ?? -10,
+                    'x_max' => $blockData['x_max'] ?? 10,
+                    'y_min' => $blockData['y_min'] ?? -5,
+                    'y_max' => $blockData['y_max'] ?? 5,
+                    'color' => $blockData['color'] ?? '#4f46e5',
+                    'step' => $blockData['step'] ?? 0.1,
                 ]);
-            }
-
-            // code: content already contains "// lang:xxx\n<code>" set by JS syncToLivewire()
-            // Nothing extra needed — just save $content as-is.
-
-            if ($blockData['type'] === 'list') {
-                // list content is already JSON — re-encode only if it's a plain string
-                $decoded = json_decode($blockData['content'] ?? '', true);
-                if (!is_array($decoded)) {
-                    $items = array_filter(array_map('trim', explode("\n", $blockData['content'] ?? '')));
-                    $content = json_encode(['style' => 'bullet', 'items' => array_values($items)]);
-                }
             }
 
             block::where('id', $blockData['id'])->update([
@@ -155,102 +147,125 @@ new class extends Component {
                 'block_number' => $blockData['block_number'],
             ]);
 
-            // Save exercise solutions separately
             if ($blockData['type'] === 'exercise') {
                 foreach ($blockData['solutions'] ?? [] as $solution) {
                     exercisesolution::where('id', $solution['id'])
                         ->update(['content' => $solution['content']]);
                 }
             }
-
             if (in_array($blockData['type'], ['photo', 'video'])) {
                 $blockData['file_name'] = $blockData['content'] ? basename($blockData['content']) : 'No file selected';
             }
-
         }
 
         $this->dispatch('notify', message: 'Saved!');
     }
 
-    private function hydrateBlockFields(&$block)
+    private function hydrateBlockFields(&$block): void
     {
-        if (in_array($block['type'], ['function', 'graph'])) {
+        if ($block['type'] === 'function') {
             $data = json_decode($block['content'], true) ?? [];
-
             $block['func_expression'] = $data['function'] ?? 'sin(x)';
-            $block['x_min'] = $data['x_min'] ?? -10;
-            $block['x_max'] = $data['x_max'] ?? 10;
-            $block['y_min'] = $data['y_min'] ?? -5;
-            $block['y_max'] = $data['y_max'] ?? 5;
-            $block['color'] = $data['color'] ?? '#4f46e5';
-            $block['step'] = $data['step'] ?? 0.1;
+            $block['x_min']  = $data['x_min']  ?? -10;
+            $block['x_max']  = $data['x_max']  ??  10;
+            $block['y_min']  = $data['y_min']  ??  -5;
+            $block['y_max']  = $data['y_max']  ??   5;
+            $block['color']  = $data['color']  ?? '#4f46e5';
+            $block['step']   = $data['step']   ??  0.1;
         }
-
         if ($block['type'] === 'graph') {
             $data = json_decode($block['content'], true) ?? [];
-            $block['graph_type'] = $data['type'] ?? 'line';
+            $block['graph_type']   = $data['type']   ?? 'line';
             $block['graph_labels'] = implode(',', $data['labels'] ?? []);
-            $block['graph_data'] = implode(',', $data['data'] ?? []);
+            $block['graph_data']   = implode(',', $data['data']   ?? []);
+        }
+        if ($block['type'] === 'list') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['list_style'] = $data['style'] ?? 'bullet';
+            $block['list_items'] = implode("
+", $data['items'] ?? []);
+        }
+        if ($block['type'] === 'separator') {
+            $data = json_decode($block['content'], true) ?? [];
+            $block['separator_type'] = $data['type'] ?? 'divider';
         }
     }
 
-
-    public function deleteBlock(int $index)
+    public function deleteBlock(int $blockId): void
     {
-        $blockData = $this->blocks[$index] ?? null;
-
-        if (!$blockData) return;
-
-        Block::destroy($blockData['id']);
-
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+        block::destroy($blockId);
         array_splice($this->blocks, $index, 1);
-
-        // Re-number remaining blocks
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block deleted.');
     }
 
-    public function moveBlock(int $index, string $direction)
+    public function moveBlock(int $blockId, string $direction): void
     {
-        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
 
+        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
         if ($swapWith < 0 || $swapWith >= count($this->blocks)) return;
 
-        // Swap in array
         [$this->blocks[$index], $this->blocks[$swapWith]] =
             [$this->blocks[$swapWith], $this->blocks[$index]];
 
-        // Persist new order
+        // Re-index so array keys are 0,1,2... (required for Livewire)
+        $this->blocks = array_values($this->blocks);
+
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
-            block::where('id', $b['id'])->update(['block_number' => $b['block_number']]);
+            block::where('id', $b['id'])->update(['block_number' => $i + 1]);
         }
+        unset($b);
+        $this->dispatch('notify', message: 'Block moved.');
     }
 
-    public function updateBlockType(int $index, string $newType)
+    public function updateBlockType(int $blockId, string $newType): void
     {
+        $index = collect($this->blocks)->search(fn($b) => $b['id'] === $blockId);
+        if ($index === false) return;
+
         $this->blocks[$index]['type'] = $newType;
 
-        if ($newType === 'table' && !is_array(json_decode($this->blocks[$index]['content'] ?? '', true))) {
+        // Set sensible default content for JSON-based types when switching into them
+        $currentContent = $this->blocks[$index]['content'] ?? '';
+
+        if ($newType === 'table' && !is_array(json_decode($currentContent, true))) {
             $this->blocks[$index]['content'] = json_encode([['Header 1', 'Header 2'], ['', '']]);
-            Block::where('id', $this->blocks[$index]['id'])->update([
-                'type' => $newType,
-                'content' => $this->blocks[$index]['content'],
+        } elseif ($newType === 'list' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode(['style' => 'bullet', 'items' => ['Item 1', 'Item 2']]);
+        } elseif ($newType === 'separator' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode(['type' => 'divider']);
+        } elseif ($newType === 'function' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode([
+                'function' => 'sin(x)', 'x_min' => -10, 'x_max' => 10,
+                'y_min' => -5, 'y_max' => 5, 'color' => '#4f46e5', 'step' => 0.1,
             ]);
-            return;
+        } elseif ($newType === 'graph' && !is_array(json_decode($currentContent, true))) {
+            $this->blocks[$index]['content'] = json_encode([
+                'type' => 'line', 'labels' => ['Jan', 'Feb', 'Mar'], 'data' => ['10', '20', '15'],
+            ]);
         }
 
-        Block::where('id', $this->blocks[$index]['id'])->update(['type' => $newType]);
+        // Hydrate virtual fields so the editor inputs render correctly immediately
+        $this->hydrateBlockFields($this->blocks[$index]);
+
+        block::where('id', $blockId)->update([
+            'type'    => $newType,
+            'content' => $this->blocks[$index]['content'],
+        ]);
     }
 
     public function updatedPhotos($value, $key)
     {
-        // $key = block ID
         $path = $this->photos[$key]->store('blocks', 'public');
-
-        // 🔥 update the block content مباشرة
         foreach ($this->blocks as &$block) {
             if ($block['id'] == $key) {
                 $block['content'] = $path;
@@ -259,11 +274,11 @@ new class extends Component {
         }
     }
 
+
+
     public function updatedVideos($value, $key)
     {
         $path = $this->videos[$key]->store('blocks', 'public');
-
-        // 🔥 update the block content مباشرة
         foreach ($this->blocks as &$block) {
             if ($block['id'] == $key) {
                 $block['content'] = $path;
@@ -279,7 +294,6 @@ new class extends Component {
         $cols = count($tableData[0] ?? ['']);
 
         $tableData[] = array_fill(0, $cols, '');
-
         $this->blocks[$index]['content'] = json_encode($tableData);
     }
 
@@ -300,196 +314,113 @@ new class extends Component {
         $tableData[$rowIndex][$colIndex] = $value;
         $this->blocks[$index]['content'] = json_encode($tableData);
     }
-
-
 };
 ?>
 
-<div>
+@php
+    $typeConfig = [
+        'markdown'    => ['label'=>'MD',        'accent'=>'#6366f1'],
+        'header'      => ['label'=>'H1',        'accent'=>'#6366f1'],
+        'description' => ['label'=>'Text',      'accent'=>'#94a3b8'],
+        'note'        => ['label'=>'Note',      'accent'=>'#f59e0b'],
+        'code'        => ['label'=>'Code',      'accent'=>'#10b981'],
+        'exercise'    => ['label'=>'Exercise',  'accent'=>'#f43f5e'],
+        'photo'       => ['label'=>'Photo',     'accent'=>'#8b5cf6'],
+        'video'       => ['label'=>'Video',     'accent'=>'#8b5cf6'],
+        'math'        => ['label'=>'Math',      'accent'=>'#e11d48'],
+        'graph'       => ['label'=>'Graph',     'accent'=>'#059669'],
+        'table'       => ['label'=>'Table',     'accent'=>'#d97706'],
+        'function'    => ['label'=>'f(x)',      'accent'=>'#4f46e5'],
+        'ext'         => ['label'=>'HTML',      'accent'=>'#6366f1'],
+        'list'        => ['label'=>'List',      'accent'=>'#0ea5e9'],
+        'separator'   => ['label'=>'Sep',       'accent'=>'#a3a3a3'],
+    ];
+@endphp
 
-    <div class="blocks-list stack-container">
+<div class="blocks-editor">
 
+    {{-- ── Breadcrumb ── --}}
+    <div class="be-breadcrumb">
+        <span class="be-bc-dim">{{ $course->title }}</span>
+        <span class="be-bc-sep">›</span>
+        <span class="be-bc-dim">{{ $chapter->title }}</span>
+        <span class="be-bc-sep">›</span>
+        <span class="be-bc-active">{{ $lesson->title }}</span>
+        <span class="be-bc-status {{ $lesson->status }}">{{ ucfirst($lesson->status) }}</span>
+    </div>
+
+    {{-- ── Blocks ── --}}
+
+    <div class="be-blocks">
+
+        @placeholder
+        <div class="be-block-skeleton" style="padding: 15px;">
+
+            <div>
+                @foreach(range(1, 10) as $i)
+
+                    <div style="width: 100%; height: 80px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow: hidden;" class="be-block type-header">
+
+                        <div class="be-block-body">
+                            <div class="be-block-side" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;">
+                                <span class="be-type-label" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;"></span>
+                            </div>
+                            <div class="be-input be-input-title" style="position: absolute; top: 12px; left: 12px; width: 60%; height: 10px; background: var(--border-mid); border-radius: 2px; animation: pulse 2s infinite;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endplaceholder
         @forelse($blocks as $block)
+            @php $cfg = $typeConfig[$block['type']] ?? ['label'=>$block['type'],'accent'=>'#94a3b8']; @endphp
 
-            <div class="block-row type-{{ $block['type'] }}" data-id="{{ $block['id'] }}" data-block-id="{{ $block['id'] }}">
-                <input type="hidden" name="blocks[{{ $block['id'] }}][id]" wire:model="blocks.{{$loop->index}}.id">
-                <input type="hidden" name="blocks[{{ $block['id'] }}][block_number]"
-                       wire:model="blocks.{{$loop->index}}.block_number">
+            <div class="be-block type-{{ $block['type'] }}"
+                 data-id="{{ $block['id'] }}"
+                 data-block-id="{{ $block['id'] }}"
+                 wire:key="block-pos-{{ $loop->index }}-{{ $block['id'] }}">
 
-                <div class="block-main-content">
+                <input type="hidden" wire:model="blocks.{{ $loop->index }}.id">
+                <input type="hidden" wire:model="blocks.{{ $loop->index }}.block_number">
+
+                {{-- Left accent + label --}}
+                <div class="be-block-side" style="border-color:{{ $cfg['accent'] }}">
+                    <span class="be-type-label" style="color:{{ $cfg['accent'] }}">{{ $cfg['label'] }}</span>
+                </div>
+
+                {{-- Content --}}
+                <div class="be-block-body">
+
+
                     @switch($block['type'])
 
-                        @case('code')
-                            @php
-                                $blockId  = $block['id'];
-                                $rawContent  = $block['content'] ?? '';
-                                $storedLang = 'python';
-                                if (preg_match('/^\/\/\s*lang:(\w+)/m', $rawContent, $m)) {
-                                    $storedLang = strtolower(trim($m[1]));
-                                    $displayContent = preg_replace('/^\/\/\s*lang:\w+\n?/m', '', $rawContent, 1);
-                                } else {
-                                    $displayContent = $rawContent;
-                                }
-                                $runEndpoint = route('admin.code-runner.run');
-                            @endphp
-
-                            <div id="block-{{ $blockId }}" class="ce-inline-block" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-subtle);width:100%;">
-                                {{-- Toolbar --}}
-                                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;">
-                                    <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;"></span>
-                                    <select id="lang-{{ $blockId }}" onchange="ceBlockLangChange({{ $blockId }}, this.value)" style="background:var(--bg-subtle);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 7px;font-size:11px;font-family:inherit;cursor:pointer;outline:none;">
-                                        @foreach(['python','javascript','c','cpp','bash'] as $l)
-                                            <option value="{{ $l }}" {{ $storedLang === $l ? 'selected' : '' }}>{{ $l }}</option>
-                                        @endforeach
-                                    </select>
-                                    <span style="flex:1;font-size:11px;color:var(--text-faint);">Ctrl+Enter = Run · Tab = indent</span>
-                                    <button id="run-btn-{{ $blockId }}" onclick="ceBlockRun({{ $blockId }})" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s;white-space:nowrap;" onmouseover="this.style.filter='brightness(.9)'" onmouseout="this.style.filter=''">▶ Run</button>
-                                    <button onclick="ceBlockClear({{ $blockId }})" style="background:var(--bg-subtle);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Clear</button>
-                                </div>
-
-                                <textarea id="code-{{ $blockId }}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" onkeydown="ceBlockKey(event, {{ $blockId }})" style="display:block;width:100%;min-height:160px;background:var(--bg);color:var(--text);border:none;outline:none;padding:14px 16px;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:13px;line-height:1.7;tab-size:4;white-space:pre;overflow-x:auto;resize:vertical;box-sizing:border-box;">{{ $displayContent }}</textarea>
-
-                                <input type="hidden" id="content-{{ $blockId }}" data-index="{{ $loop->index }}">
-
-                                <div id="terminal-{{ $blockId }}" style="display:none;height:240px;border-top:1px solid #30363d;"></div>
-                            </div>
-
-                            <script>
-                                (function() {
-                                    const BLOCK_ID = {{ $blockId }};
-                                    const ENDPOINT = '{{ $runEndpoint }}';
-                                    const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-                                    const LW_INDEX = {{ $loop->index }};  // Livewire blocks array index
-                                    const INITIAL  = @json("// lang:{$storedLang}\n" . $displayContent);
-
-                                    let runner = null;
-
-                                    function getCode() { return document.getElementById('code-' + BLOCK_ID)?.value ?? ''; }
-                                    function getLang() { return document.getElementById('lang-' + BLOCK_ID)?.value ?? 'python'; }
-
-                                    /**
-                                     * Push current code+lang into the Livewire component state.
-                                     * We call @this.set() which is the correct way to update
-                                     * Livewire properties from external JS (no wire:model needed).
-                                     */
-                                    function syncToLivewire() {
-                                        const value = '// lang:' + getLang() + '\n' + getCode();
-                                        // @this is the Livewire component instance bound to the nearest [wire:id] ancestor
-                                        try {
-                                            const el = document.getElementById('block-' + BLOCK_ID);
-                                            const component = Livewire.find(el?.closest('[wire\\:id]')?.getAttribute('wire:id'));
-                                            if (component) {
-                                                component.set('blocks.' + LW_INDEX + '.content', value);
-                                            }
-                                        } catch(e) {}
-                                    }
-
-                                    function getOrCreateRunner() {
-                                        if (runner) return runner;
-                                        const termEl = document.getElementById('terminal-' + BLOCK_ID);
-                                        termEl.style.display = 'block';
-                                        runner = CeRunner.create(termEl, {
-                                            endpoint:  ENDPOINT,
-                                            csrfToken: CSRF,
-                                            onStatus: msg => {
-                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
-                                                if (btn) btn.textContent = msg === 'Running…' ? '⏳' : '▶ Run';
-                                            },
-                                            onDone: _code => {
-                                                const btn = document.getElementById('run-btn-' + BLOCK_ID);
-                                                if (btn) { btn.textContent = '▶ Run'; btn.disabled = false; }
-                                            },
-                                        });
-                                        return runner;
-                                    }
-
-                                    // Seed Livewire state with initial value on first render
-                                    document.addEventListener('livewire:init', function onInit() {
-                                        document.removeEventListener('livewire:init', onInit);
-                                        syncToLivewire();
-                                    });
-                                    // Also seed immediately in case livewire:init already fired
-                                    if (window.Livewire) { setTimeout(syncToLivewire, 100); }
-
-                                    window.ceBlockRun          = window.ceBlockRun          || function(id){};
-                                    window.ceBlockClear        = window.ceBlockClear        || function(id){};
-                                    window.ceBlockLangChange   = window.ceBlockLangChange   || function(id, lang){};
-                                    window.ceBlockKey          = window.ceBlockKey          || function(e, id){};
-
-                                    const _r = window.ceBlockRun, _c = window.ceBlockClear,
-                                        _l = window.ceBlockLangChange, _k = window.ceBlockKey;
-
-                                    window.ceBlockRun = function(id) {
-                                        if (id !== BLOCK_ID) { _r(id); return; }
-                                        document.getElementById('run-btn-' + BLOCK_ID).disabled = true;
-                                        getOrCreateRunner().run(getLang(), getCode());
-                                    };
-                                    window.ceBlockClear = function(id) {
-                                        if (id !== BLOCK_ID) { _c(id); return; }
-                                        runner?.clear();
-                                    };
-                                    window.ceBlockLangChange = function(id, lang) {
-                                        if (id !== BLOCK_ID) { _l(id, lang); return; }
-                                        syncToLivewire();
-                                    };
-                                    window.ceBlockKey = function(e, id) {
-                                        if (id !== BLOCK_ID) { _k(e, id); return; }
-                                        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); window.ceBlockRun(BLOCK_ID); return; }
-                                        if (e.key === 'Tab') {
-                                            e.preventDefault();
-                                            const t = e.target, s = t.selectionStart;
-                                            t.value = t.value.substring(0, s) + '    ' + t.value.substring(t.selectionEnd);
-                                            t.selectionStart = t.selectionEnd = s + 4;
-                                        }
-                                        // Debounced sync — don't call Livewire on every keystroke
-                                        clearTimeout(window['_ceSync_' + BLOCK_ID]);
-                                        window['_ceSync_' + BLOCK_ID] = setTimeout(syncToLivewire, 600);
-                                    };
-                                })();
-                            </script>
-                            @break
-
-
                         @case('markdown')
-                            {{--
-                                ADMIN EDITOR VIEW
-                                The textarea holds the raw Markdown/LaTeX.
-                                A live preview is rendered below it via marked.js + MathJax.
-                            --}}
                             <div class="markdown-block-editor">
                                 <div class="mbe-tabs" data-block-id="{{ $block['id'] }}">
-                                    <button type="button"
-                                            class="mbe-tab active"
-                                            onclick="mbeSetTab({{ $block['id'] }}, 'edit')">
-                                        ✏️ Edit
-                                    </button>
-                                    <button type="button"
-                                            class="mbe-tab"
-                                            onclick="mbeSetTab({{ $block['id'] }}, 'preview')">
-                                        👁 Preview
-                                    </button>
-                                    <button type="button"
-                                            class="mbe-tab mbe-tab--upgrade"
-                                            onclick="openConvertPanel({{ $block['id'] }}, {{ json_encode($block['content']) }})">
-                                        ⚡ Upgrade block
-                                    </button>
+                                    <button type="button" class="mbe-tab active" onclick="mbeSetTab({{ $block['id'] }}, 'edit')">✏️ Edit</button>
+                                    <button type="button" class="mbe-tab" onclick="mbeSetTab({{ $block['id'] }}, 'preview')">👁 Preview</button>
+                                    <button type="button" class="mbe-tab mbe-tab--upgrade" onclick="openConvertPanel({{ $block['id'] }}, {{ json_encode($block['content']) }})">⚡ Convert block</button>
+                                    {{-- NEW: Explode markdown into typed blocks --}}
+                                    <button
+                                        type="button"
+                                        class="mbe-tab mbe-tab--explode"
+                                        title="Parse this markdown and replace it with typed blocks (header, code, math, list…)"
+                                        onclick="explodeMarkdownBlock(
+                                            {{ $block['id'] }},
+                                            '{{ route('admin.courses.chapters.lessons.blocks.explode-markdown', [$course->id, $chapter->id, $lesson->id, $block['id']]) }}'
+                                        )"
+                                    >💥 Explode to blocks</button>
                                 </div>
-
-                                {{-- Edit pane --}}
                                 <div id="mbe-edit-{{ $block['id'] }}" class="mbe-pane mbe-pane--active">
-                                        <textarea
-                                            class="input-ghost content-style mbe-textarea"
-                                            name="blocks[{{ $block['id'] }}][content]"
-                                            wire:model="blocks.{{ $loop->index }}.content"
-                                            oninput="autoResize(this); mbeUpdatePreview({{ $block['id'] }})"
-                                            placeholder="Markdown and LaTeX supported. Use $...$ for inline math, $$...$$ for display math."
-                                        ></textarea>
-                                    <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">
-                                        Markdown + LaTeX ($...$, $$...$$) · Images not supported in this block
-                                    </small>
+                                    <textarea
+                                        class="be-input be-input-body mbe-textarea"
+                                        name="blocks[{{ $block['id'] }}][content]"
+                                        wire:model="blocks.{{ $loop->index }}.content"
+                                        oninput="autoResize(this); mbeUpdatePreview({{ $block['id'] }})"
+                                        placeholder="Markdown and LaTeX supported. Use $...$ for inline math, $$...$$ for display math."
+                                    ></textarea>
+                                    <span class="be-hint">Markdown + LaTeX ($...$, $$...$$) · Images not supported in this block</span>
                                 </div>
-
-                                {{-- Preview pane --}}
                                 <div id="mbe-preview-{{ $block['id'] }}"
                                      class="mbe-pane mbe-preview-rendered"
                                      style="display:none;padding:12px;border:1px solid var(--border);border-radius:6px;min-height:60px;background:var(--bg-subtle);">
@@ -497,187 +428,238 @@ new class extends Component {
                                 </div>
                             </div>
                             @break
+
                         @case('header')
-                            <textarea type="text" name="blocks[{{ $block['id'] }}][content]"
-                                      class="input-ghost title-style"
-                                      placeholder="Enter Title..."
-                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                <textarea
+                                    class="be-input be-input-title be-md-src"
+                                    name="blocks[{{ $block['id'] }}][content]"
+                                    placeholder="Enter heading... (markdown supported)"
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                ></textarea>
+                                <div class="be-md-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                            </div>
                             @break
 
                         @case('description')
-                            <textarea class="input-ghost content-style"
-                                      oninput="autoResize(this)"
-                                      name="blocks[{{ $block['id'] }}][content]"
-                                      wire:model="blocks.{{ $loop->index }}.content"
-                                      placeholder="Paragraph text…"></textarea>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                <textarea
+                                    class="be-input be-input-body be-md-src"
+                                    name="blocks[{{ $block['id'] }}][content]"
+                                    placeholder="Write your content here... (markdown supported)"
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                    rows="3"
+                                ></textarea>
+                                <div class="be-md-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                            </div>
                             @break
 
                         @case('note')
-                            <textarea class="input-ghost content-style"
-                                      oninput="autoResize(this)"
-                                      name="blocks[{{ $block['id'] }}][content]"
-                                      wire:model="blocks.{{ $loop->index }}.content"
-                                      placeholder="Note text…"></textarea>
+                            <div class="be-note-wrap">
+                                <div class="be-note-label">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                                    Note
+                                </div>
+                                <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                    <textarea
+                                        class="be-input be-input-body be-md-src"
+                                        name="blocks[{{ $block['id'] }}][content]"
+                                        placeholder="Add a note... (markdown supported)"
+                                        wire:model="blocks.{{ $loop->index }}.content"
+                                        oninput="autoResize(this);beMdLive(this)"
+                                        rows="2"
+                                    ></textarea>
+                                    <div class="be-md-preview" style="display:none"></div>
+                                    <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                                </div>
+                            </div>
+                            @break
+
+                        @case('code')
+                            <div class="be-code-wrap">
+                                <div class="be-code-header">
+                                    <span class="be-code-dots"><span></span><span></span><span></span></span>
+                                    <span class="be-code-lang">Code</span>
+                                </div>
+                                <textarea
+                                    class="be-input be-input-code be-input-dark"
+                                    name="blocks[{{ $block['id'] }}][content]"
+                                    placeholder="// Paste your code here..."
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this)"
+                                    rows="4"
+                                ></textarea>
+                            </div>
                             @break
 
                         @case('exercise')
-                            <div class="exercise-container">
-                                <label>Question:</label>
-                                <textarea class="input-ghost content-style" name="blocks[{{ $block['id'] }}][content]"
-                                          rows="1"
-                                          oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"
-                                          wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                            <div class="be-exercise-wrap">
+                                <div class="be-exercise-label">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                                    Question
+                                </div>
+                                <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
+                                    <textarea
+                                        class="be-input be-input-body be-md-src"
+                                        name="blocks[{{ $block['id'] }}][content]"
+                                        placeholder="Enter the question... (markdown supported)"
+                                        wire:model="blocks.{{ $loop->index }}.content"
+                                        oninput="autoResize(this);beMdLive(this)"
+                                        rows="2"
+                                    ></textarea>
+                                    <div class="be-md-preview" style="display:none"></div>
+                                    <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
+                                </div>
                                 @foreach($block['solutions'] ?? [] as $sIndex => $solution)
-                                    <label>Solution</label>
-                                    <textarea class="input-ghost content-style"
-                                              oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"
-                                              wire:model="blocks.{{ $loop->index }}.solutions.{{ $sIndex }}.content"
-                                              name="blocks[{{ $block['id'] }}][solutions][{{ $solution['id']}}]"></textarea>
+                                    <div class="be-solution-wrap">
+                                        <div class="be-solution-label">Solution {{ $sIndex + 1 }}</div>
+                                        <textarea
+                                            class="be-input be-input-body"
+                                            name="blocks[{{ $block['id'] }}][solutions][{{ $solution['id'] }}]"
+                                            wire:model="blocks.{{ $loop->index }}.solutions.{{ $sIndex }}.content"
+                                            oninput="autoResize(this)"
+                                            rows="2"
+                                            placeholder="Enter solution..."
+                                        ></textarea>
+                                    </div>
                                 @endforeach
                             </div>
                             @break
 
                         @case('photo')
-                            <div class="file-block">
-                                @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
-                                    <div class="file-preview">
-                                        <img src="{{ asset('storage/' . $block['content']) }}"
+                            <div class="be-media-wrap">
+                                @php
+                                    $photoContent = $block['content'] ?? '';
+                                    // Determine display URL — content can be:
+                                    // (a) relative storage path: "ai_images/5/1/img.png"  → asset('storage/...')
+                                    // (b) full URL already: "http://..."                  → use directly
+                                    $photoUrl = '';
+                                    $photoExists = false;
+                                    if (!empty($photoContent)) {
+                                        if (preg_match('/^https?:\/\//', $photoContent)) {
+                                            $photoUrl    = $photoContent;
+                                            $photoExists = true;
+                                        } else {
+                                            $photoExists = \Storage::disk('public')->exists($photoContent);
+                                            $photoUrl    = asset('storage/' . $photoContent);
+                                        }
+                                    }
+                                @endphp
+                                @if($photoExists)
+                                    <div class="be-media-preview" wire:ignore>
+                                        <img src="{{ $photoUrl }}"
                                              onclick="window.open(this.src)"
-
-                                             style="max-width:200px;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;">
-                                        <small style="display:block;color:var(--text-faint);margin-top:4px;">
-                                            {{ $block['content'] }}
-                                        </small>
+                                             style="max-height:180px;border-radius:6px;cursor:pointer;display:block;">
+                                        <span class="be-media-filename">{{ basename($photoContent) }}</span>
+                                    </div>
+                                @elseif(!empty($photoContent))
+                                    <div class="be-media-preview" wire:ignore>
+                                        <div style="padding:8px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted)">
+                                            ⚠ Image not found locally — trying external URL
+                                        </div>
+                                        <img src="{{ $photoContent }}"
+                                             onclick="window.open(this.src)"
+                                             style="max-height:180px;border-radius:6px;cursor:pointer;display:block;margin-top:4px"
+                                             onerror="this.parentElement.innerHTML='<span style=\'color:#ef4444;font-size:11px\'>❌ Image not accessible: {{ addslashes($photoContent) }}</span>'">
+                                        <span class="be-media-filename">{{ $photoContent }}</span>
                                     </div>
                                 @endif
-
-                                <input type="file" name="blocks[{{ $block['id'] }}][content_file]" accept="image/*"
-                                       wire:model="photos.{{ $block['id'] }}"
-                                       class="file-input" style="margin-top:8px;font-size:12px;">
-                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]"
-                                       wire:model="blocks.{{ $loop->index }}.content">
-                                <div wire:loading wire:target="photos.{{ $block['id'] }}">
-                                    <small>Uploading...</small>
-                                </div>
-                                <div wire:loading wire:target="photos.{{ $block['id'] }}" style="margin-top: 5px;">
-                                    <small style="color: #4f46e5; display: flex; align-items: center; gap: 4px;">
-                                        <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Processing Image...
-                                    </small>
+                                <label class="be-upload-label">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                    {{ empty($block['content']) ? 'Upload image' : 'Replace image' }}
+                                    <input type="file" accept="image/*" wire:model="photos.{{ $block['id'] }}" style="display:none;">
+                                </label>
+                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]" wire:model="blocks.{{ $loop->index }}.content">
+                                <div wire:loading wire:target="photos.{{ $block['id'] }}" class="be-uploading">
+                                    <span class="be-spinner"></span> Processing image...
                                 </div>
                             </div>
                             @break
 
                         @case('video')
-                            <div class="file-block">
+                            <div class="be-media-wrap">
                                 @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
-                                    <div class="file-preview">
+                                    <div class="be-media-preview" wire:ignore>
                                         <video src="{{ asset('storage/' . $block['content']) }}"
-                                               style="max-width:300px;max-height:200px;border-radius:8px;"
+                                               style="max-height:180px;border-radius:6px;display:block;"
                                                controls></video>
-                                        <small style="display:block;color:var(--text-faint);margin-top:4px;">
-                                            {{ basename($block['content']) }}
-                                        </small>
+                                        <span class="be-media-filename">{{ basename($block['content']) }}</span>
                                     </div>
                                 @endif
-                                <input type="file" name="blocks[{{ $block['id'] }}][content_file]" accept="video/*"
-                                       wire:model="videos.{{ $block['id'] }}"
-                                       class="file-input" style="margin-top:8px;font-size:12px;">
-                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]"
-                                       wire:model="blocks.{{ $loop->index }}.content">
-                                <span class="upload-status-{{ $loop->index }}"
-                                      style="font-size:11px;display:block;margin-top:4px;"></span>
-
-                                <div wire:loading wire:target="videos.{{ $block['id'] }}" style="margin-top: 5px;">
-                                    <small style="color: #4f46e5; display: flex; align-items: center; gap: 4px;">
-                                        <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Uploading Video (this may take a moment)...
-                                    </small>
+                                <label class="be-upload-label">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                    {{ empty($block['content']) ? 'Upload video' : 'Replace video' }}
+                                    <input type="file" accept="video/*" wire:model="videos.{{ $block['id'] }}" style="display:none;">
+                                </label>
+                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]" wire:model="blocks.{{ $loop->index }}.content">
+                                <div wire:loading wire:target="videos.{{ $block['id'] }}" class="be-uploading">
+                                    <span class="be-spinner"></span> Uploading video...
                                 </div>
-
                             </div>
                             @break
-                        @case('math')
-                            <textarea name="blocks[{{ $block['id'] }}][content]"
-                                      class="input-ghost content-style math-input"
-                                      placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
-                                      rows="2"
-                                      wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content"></textarea>
-                            <div class="math-preview"
-                                 style="margin-top:8px;padding:12px;background:var(--bg-subtle);border-radius:6px;border:1px solid var(--border);min-height:40px;">
-                                @if(!empty($block['content']))
-                                    <div>$${{ $block['content'] }}$$</div>
-                                @endif
-                            </div>
 
+                        @case('math')
+                            <textarea
+                                class="be-input be-input-mono"
+                                placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
+                                wire:model="blocks.{{ $loop->index }}.content"
+                                oninput="triggerMathPreview(this)"
+                                rows="2"
+                                oninput="renderMathPreview(this, 'math-preview-{{ $block['id'] }}')"
+                            ></textarea>
+                            <div id="math-preview-{{ $block['id'] }}" class="be-math-preview" data-math-src="{{ e($block['content'] ?? '') }}"></div>
                             @break
 
                         @case('graph')
                             @php
-                                $graphData = json_decode($block['content'], true)
-                                    ?? ['type' => 'line', 'labels' => ['Jan','Feb','Mar'], 'data' => [10,20,15]];
-                                // Flatten into editable fields
+                                $graphData = json_decode($block['content'], true) ?? ['type'=>'line','labels'=>['Jan','Feb','Mar'],'data'=>[10,20,15]];
                                 $this->blocks[$loop->index]['graph_type']   ??= $graphData['type']   ?? 'line';
                                 $this->blocks[$loop->index]['graph_labels'] ??= implode(',', $graphData['labels'] ?? []);
                                 $this->blocks[$loop->index]['graph_data']   ??= implode(',', $graphData['data']   ?? []);
                             @endphp
-                            <div class="graph-editor">
-                                <select wire:model="blocks.{{ $loop->index }}.graph_type"
-                                        name="blocks[{{ $block['id'] }}][chart_type]"
-                                        class="mini-type-select"
-                                        style="margin-bottom:8px;width:auto;display:inline-block;">
-                                    <option value="line">Line Chart</option>
-                                    <option value="bar">Bar Chart</option>
-                                    <option value="pie">Pie Chart</option>
-                                </select>
-                                <textarea wire:model="blocks.{{ $loop->index }}.graph_labels"
-                                          name="blocks[{{ $block['id'] }}][chart_data]"
-                                          class="input-ghost content-style"
-                                          placeholder="Labels: Jan, Feb, Mar (comma separated)"
-                                          rows="2" style="font-family:monospace;font-size:12px;"></textarea>
-                                <textarea wire:model="blocks.{{ $loop->index }}.graph_data"
-                                          class="input-ghost content-style"
-                                          placeholder="Values: 10, 20, 15 (comma separated)"
-                                          rows="2" style="font-family:monospace;font-size:12px;"></textarea>
-                                <small style="color:var(--text-faint);font-size:11px;">Row 1: Labels | Row 2:
-                                    Values</small>
-                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]"
-                                       wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content">
+                            <div class="be-field-stack">
+                                <div class="be-field">
+                                    <label class="be-field-label">Chart type</label>
+                                    <select class="be-select" wire:model="blocks.{{ $loop->index }}.graph_type" name="blocks[{{ $block['id'] }}][chart_type]">
+                                        <option value="line">Line Chart</option>
+                                        <option value="bar">Bar Chart</option>
+                                        <option value="pie">Pie Chart</option>
+                                    </select>
+                                </div>
+                                <div class="be-field">
+                                    <label class="be-field-label">Labels (comma separated)</label>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_labels" name="blocks[{{ $block['id'] }}][graph_labels]" placeholder="Jan, Feb, Mar"></textarea>
+                                </div>
+                                <div class="be-field">
+                                    <label class="be-field-label">Values (comma separated)</label>
+                                    <textarea class="be-input be-input-mono" rows="1" wire:model="blocks.{{ $loop->index }}.graph_data" name="blocks[{{ $block['id'] }}][graph_values]" placeholder="10, 20, 15"></textarea>
+                                </div>
+                                <input type="hidden" name="blocks[{{ $block['id'] }}][content]" wire:model.live.debounce.300ms="blocks.{{ $loop->index }}.content">
                             </div>
                             @break
 
                         @case('table')
                             @php
-                                $tableData = json_decode($block['content'], true)
-                                    ?? [['Header 1', 'Header 2'], ['Row 1 Col 1', 'Row 1 Col 2']];
+                                $tableData  = json_decode($block['content'], true) ?? [['Header 1','Header 2'],['Row 1 Col 1','Row 1 Col 2']];
                                 $blockIndex = collect($blocks)->search(fn($b) => $b['id'] === $block['id']);
                             @endphp
-                            <div class="table-editor" data-block-id="{{ $block['id'] }}">
-                                <div class="table-actions" style="margin-bottom:8px;display:flex;gap:6px;">
-                                    <button type="button" wire:click="addTableRow({{ $block['id'] }})"
-                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+ Row
-                                    </button>
-                                    <button type="button" wire:click="addTableCol({{ $block['id'] }})"
-                                            class="arrow-btn" style="width:auto;padding:4px 10px;font-size:11px;">+
-                                        Column
-                                    </button>
+                            <div class="be-table-wrap">
+                                <div class="be-table-actions">
+                                    <button type="button" class="be-btn-sm" wire:click="addTableRow({{ $block['id'] }})">+ Row</button>
+                                    <button type="button" class="be-btn-sm" wire:click="addTableCol({{ $block['id'] }})">+ Column</button>
                                 </div>
                                 <div style="overflow-x:auto;">
-                                    <table class="editable-table"
-                                           style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <table class="be-table">
                                         @foreach($tableData as $rowIndex => $row)
                                             <tr>
                                                 @foreach($row as $colIndex => $cell)
-                                                    <td style="border:1px solid var(--border);padding:0;min-width:80px;">
-                                                        <input type="text" value="{{ $cell }}"
-                                                               wire:change="updateTableCell({{$block['id']}},{{$rowIndex}},{{$colIndex}},$event.target.value)"
-                                                               style="width:100%;border:none;background:transparent;padding:8px;font-family:inherit;color:var(--text);">
+                                                    <td class="{{ $rowIndex === 0 ? 'be-th' : '' }}">
+                                                        <input type="text" value="{{ $cell }}" class="be-table-cell"
+                                                               wire:change="updateTableCell({{ $block['id'] }},{{ $rowIndex }},{{ $colIndex }},$event.target.value)">
                                                     </td>
                                                 @endforeach
                                             </tr>
@@ -794,177 +776,337 @@ new class extends Component {
                                    value="{{ $block['content'] }}">
                             @break
 
+                        @case('list')
+                            @php
+                                $listData = json_decode($block['content'], true) ?? ['style'=>'bullet','items'=>['Item 1','Item 2']];
+                                $listStyle = $block['list_style'] ?? ($listData['style'] ?? 'bullet');
+                                $listItems = $block['list_items'] ?? implode("
+", $listData['items'] ?? []);
+                            @endphp
+                            <div class="be-field-stack">
+                                <div class="be-field">
+                                    <label class="be-field-label">Style</label>
+                                    <select class="be-select"
+                                            wire:model="blocks.{{ $loop->index }}.list_style"
+                                            name="blocks[{{ $block['id'] }}][list_style]">
+                                        <option value="bullet"    @selected($listStyle === 'bullet')>Bullet</option>
+                                        <option value="numbered"  @selected($listStyle === 'numbered')>Numbered</option>
+                                        <option value="checklist" @selected($listStyle === 'checklist')>Checklist</option>
+                                    </select>
+                                </div>
+                                <div class="be-field">
+                                    <label class="be-field-label">Items (one per line)</label>
+                                    <textarea
+                                        class="be-input be-input-body"
+                                        wire:model="blocks.{{ $loop->index }}.list_items"
+                                        name="blocks[{{ $block['id'] }}][list_items]"
+                                        oninput="autoResize(this)"
+                                        rows="4"
+                                        placeholder="Item 1&#10;Item 2&#10;Item 3">{{ $listItems }}</textarea>
+                                </div>
+                            </div>
+                            @break
+
+                        @case('separator')
+                            @php
+                                $sepData = json_decode($block['content'], true) ?? ['type'=>'divider'];
+                                $sepType = $block['separator_type'] ?? ($sepData['type'] ?? 'divider');
+                            @endphp
+                            <div class="be-field">
+                                <label class="be-field-label">Separator Style</label>
+                                <select class="be-select"
+                                        wire:model.live="blocks.{{ $loop->index }}.separator_type"
+                                        name="blocks[{{ $block['id'] }}][separator_type]">
+                                    <option value="divider"       @selected($sepType === 'divider')>Line Divider</option>
+                                    <option value="section_break" @selected($sepType === 'section_break')>Section Break (§)</option>
+                                    <option value="page_break"    @selected($sepType === 'page_break')>Page Break</option>
+                                </select>
+                                <div style="margin-top:10px;">
+                                    @if($sepType === 'section_break')
+                                        <div style="display:flex;align-items:center;gap:1rem;">
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                            <span style="color:var(--text-faint);font-size:0.75rem;">§</span>
+                                            <div style="flex:1;height:1px;background:var(--border);"></div>
+                                        </div>
+                                    @elseif($sepType === 'page_break')
+                                        <div style="border:2px dashed var(--border);padding:8px;text-align:center;color:var(--text-faint);font-size:11px;border-radius:6px;">PAGE BREAK</div>
+                                    @else
+                                        <hr style="border:none;border-top:1px solid var(--border);">
+                                    @endif
+                                </div>
+                            </div>
+                            @break
+
                         @case('ext')
-                            <textarea class="input-ghost content-style"
-                                      placeholder="Paste HTML, iframe embed, or script code here..." rows="4"
-                                      style="font-family:'JetBrains Mono', monospace;font-size:12px;background:#0d1117;color:#e2e8f0;"
-                                      name="blocks[{{ $block['id'] }}][content]"
-                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
-                            <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:4px;">⚠️ Raw
-                                HTML - Be careful with external scripts</small>
+                            <div class="be-ext-warn">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                Raw HTML — use with caution
+                            </div>
+                            <div class="be-md-wrap" data-bid="{{ $block['id'] }}" data-mode="html">
+                                <textarea
+                                    class="be-input be-input-code be-input-dark be-md-src"
+                                    placeholder="Paste HTML, iframe embed, or script code here..."
+                                    wire:model="blocks.{{ $loop->index }}.content"
+                                    oninput="autoResize(this);beMdLive(this)"
+                                    rows="4"
+                                ></textarea>
+                                <div class="be-md-preview be-html-preview" style="display:none"></div>
+                                <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle HTML preview">👁 HTML</button>
+                            </div>
                             @break
 
                         @default
-                            <textarea class="input-ghost content-style"
-                                      oninput="autoResize(this)"
-                                      name="blocks[{{ $block['id'] }}][content]"
-                                      wire:model="blocks.{{ $loop->index }}.content"></textarea>
+                            <textarea
+                                class="be-input be-input-body"
+                                wire:model="blocks.{{ $loop->index }}.content"
+                                oninput="autoResize(this)"
+                                rows="2"
+                            ></textarea>
                     @endswitch
                 </div>
 
-                <div class="block-controls">
-                    <div class="control-group">
-                        <span class="control-icon" onclick="toggleTypeSelect('{{ $block['id'] }}')">✏️</span>
-                        <select wire:change="updateBlockType({{ $loop->index }}, $event.target.value)"
-                                name="blocks[{{ $block['id'] }}][type]"
-                                id="select-{{ $block['id'] }}">
-                            <option value="markdown" {{ $block['type'] == 'markdown' ? 'selected' : '' }}>Markdown</option>
-                            <option value="header" {{ $block['type'] == 'header' ? 'selected' : '' }}>H1</option>
-                            <option value="description" {{ $block['type'] == 'description' ? 'selected' : '' }}>Text
-                            </option>
-                            <option value="note" {{ $block['type'] == 'note' ? 'selected' : '' }}>Note</option>
-                            <option value="code" {{ $block['type'] == 'code' ? 'selected' : '' }}>Code</option>
-                            <option value="exercise" {{ $block['type'] == 'exercise' ? 'selected' : '' }}>Exercise
-                            </option>
-                            <option value="photo" {{ $block['type'] == 'photo' ? 'selected' : '' }}>Photo</option>
-                            <option value="video" {{ $block['type'] == 'video' ? 'selected' : '' }}>Video</option>
-                            <option value="function" {{ $block['type'] == 'function' ? 'selected' : '' }}>Function
-                            </option>
-                            <option value="math" {{ $block['type'] == 'math' ? 'selected' : '' }}>Math</option>
-                            <option value="graph" {{ $block['type'] == 'graph' ? 'selected' : '' }}>Graph</option>
-                            <option value="table" {{ $block['type'] == 'table' ? 'selected' : '' }}>Table</option>
-                            <option value="ext" {{ $block['type'] == 'ext' ? 'selected' : '' }}>HTML/Ext</option>
-
-                        </select>
-                    </div>
-
-                    <button type="button" wire:click="moveBlock({{ $loop->index }}, 'up')" class="arrow-btn">∧</button>
-                    <button type="button" wire:click="moveBlock({{ $loop->index }}, 'down')" class="arrow-btn">∨
+                {{-- Controls --}}
+                <div class="be-block-controls">
+                    <select class="be-type-select"
+                            wire:change="updateBlockType({{ $block['id'] }}, $event.target.value)"
+                            name="blocks[{{ $block['id'] }}][type]"
+                            title="Change type">
+                        <option value="markdown"    {{ $block['type']=='markdown'    ? 'selected':'' }}>MD</option>
+                        <option value="header"      {{ $block['type']=='header'      ? 'selected':'' }}>H1</option>
+                        <option value="description" {{ $block['type']=='description' ? 'selected':'' }}>Text</option>
+                        <option value="note"        {{ $block['type']=='note'        ? 'selected':'' }}>Note</option>
+                        <option value="code"        {{ $block['type']=='code'        ? 'selected':'' }}>Code</option>
+                        <option value="exercise"    {{ $block['type']=='exercise'    ? 'selected':'' }}>Exercise</option>
+                        <option value="photo"       {{ $block['type']=='photo'       ? 'selected':'' }}>Photo</option>
+                        <option value="video"       {{ $block['type']=='video'       ? 'selected':'' }}>Video</option>
+                        <option value="function"    {{ $block['type']=='function'    ? 'selected':'' }}>f(x)</option>
+                        <option value="math"        {{ $block['type']=='math'        ? 'selected':'' }}>Math</option>
+                        <option value="graph"       {{ $block['type']=='graph'       ? 'selected':'' }}>Graph</option>
+                        <option value="table"       {{ $block['type']=='table'       ? 'selected':'' }}>Table</option>
+                        <option value="list"        {{ $block['type']=='list'        ? 'selected':'' }}>List</option>
+                        <option value="separator"   {{ $block['type']=='separator'   ? 'selected':'' }}>Sep</option>
+                        <option value="ext"         {{ $block['type']=='ext'         ? 'selected':'' }}>HTML</option>
+                    </select>
+                    <div class="be-ctrl-divider"></div>
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'up')" title="Move up">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
                     </button>
-                    <button type="button" wire:click="deleteBlock({{ $loop->index }})"
-                            class="arrow-btn" style="color:red;">✕
+                    <button type="button" class="be-ctrl-btn" wire:click="moveBlock({{ $block['id'] }}, 'down')" title="Move down">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="be-ctrl-divider"></div>
+                    <button type="button" class="be-ctrl-btn be-ctrl-delete" wire:click="deleteBlock({{ $block['id'] }})" wire:confirm="Delete this block?" title="Delete">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
                 </div>
+
             </div>
 
-
-
         @empty
-            <div class="empty-state">
-                <p>No content here yet. Click the <strong>+</strong> button to add a block.</p>
+            <div class="be-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+                <p>No blocks yet — use the <strong>+</strong> button below to add content.</p>
             </div>
         @endforelse
 
+        {{-- Convert panel (markdown upgrade) --}}
         <div id="convert-panel" class="convert-panel-overlay" style="display:none" onclick="if(event.target===this)closeConvertPanel()">
             <div class="convert-panel-modal">
                 <div class="convert-panel-header">
                     <span>⚡ Upgrade Markdown Block</span>
                     <button type="button" onclick="closeConvertPanel()" class="convert-panel-close">✕</button>
                 </div>
-
-                <p class="convert-panel-sub">
-                    Choose a type to convert this block into.
-                    The original markdown text will be pre-filled so you only need to fine-tune.
-                </p>
-
-                <div id="convert-preview-snippet"
-                     class="convert-panel-snippet mbe-preview-rendered"
-                     style="max-height:160px;overflow:auto;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-subtle)">
-                </div>
-
+                <p class="convert-panel-sub">Choose a type to convert this block into. The original markdown text will be pre-filled.</p>
+                <div id="convert-preview-snippet" class="convert-panel-snippet mbe-preview-rendered"
+                     style="max-height:160px;overflow:auto;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-subtle)"></div>
                 <div class="convert-panel-grid">
                     @foreach([
-                        ['header',      'H1',   'Heading',       '#EEEDFE', '#534AB7'],
-                        ['description', 'P',    'Paragraph',     '#f0f9ff', '#0369a1'],
-                        ['note',        '!',    'Note',          '#fef9c3', '#854d0e'],
-                        ['code',        '</>',  'Code',          '#F1EFE8', '#444441'],
-                        ['math',        '∑',    'Math (LaTeX)',  '#EEEDFE', '#534AB7'],
-                        ['exercise',    '?',    'Exercise',      '#EEEDFE', '#534AB7'],
-                        ['table',       '▦',    'Table',         '#E1F5EE', '#0F6E56'],
-                        ['list',        '≡',    'List',          '#fef3c7', '#92400e'],
-                        ['graph',       '≈',    'Graph',         '#E6F1FB', '#185FA5'],
-                        ['function',    'f(x)', 'Function Plot', '#E1F5EE', '#0F6E56'],
-                    ] as [$type, $icon, $label, $bg, $fg])
-                        <button type="button"
-                                class="convert-type-btn"
-                                onclick="doConvert('{{ $type }}')"
-                                style="--btn-bg:{{ $bg }};--btn-fg:{{ $fg }}">
+                        ['header','H1','Heading','#EEEDFE','#534AB7'],
+                        ['description','P','Paragraph','#f0f9ff','#0369a1'],
+                        ['note','!','Note','#fef9c3','#854d0e'],
+                        ['code','</>','Code','#F1EFE8','#444441'],
+                        ['math','∑','Math (LaTeX)','#EEEDFE','#534AB7'],
+                        ['exercise','?','Exercise','#EEEDFE','#534AB7'],
+                        ['table','▦','Table','#E1F5EE','#0F6E56'],
+                        ['list','≡','List','#fef3c7','#92400e'],
+                        ['graph','≈','Graph','#E6F1FB','#185FA5'],
+                        ['function','f(x)','Function Plot','#E1F5EE','#0F6E56'],
+                    ] as [$type,$icon,$label,$bg,$fg])
+                        <button type="button" class="convert-type-btn" onclick="doConvert('{{ $type }}')" style="--btn-bg:{{ $bg }};--btn-fg:{{ $fg }}">
                             <div class="convert-type-icon">{{ $icon }}</div>
                             <span>{{ $label }}</span>
                         </button>
                     @endforeach
                 </div>
-
                 <div id="convert-status" style="margin-top:12px;font-size:12px;display:none"></div>
             </div>
         </div>
-    </div>
 
-    <div class="save-container">
+    </div>{{-- /be-blocks --}}
+
+    {{-- ── Save bar ── --}}
+    <div class="be-save-bar">
+        {{-- <livewire:modular_site.block.blockcreate :lesson="$lesson"/>--}}
+
         <button
             type="button"
             wire:click="saveAll"
             wire:loading.attr="disabled"
             x-data="{ status: 'idle' }"
-            x-on:notify.window="
-        if ($event.detail.message === 'Saved!') {
-            status = 'saved';
-            setTimeout(() => status = 'idle', 2000);
-        }"
-            class="btn-save-all"
-            style="min-width: 150px; transition: all 0.3s ease;"
+            x-on:notify.window="if($event.detail.message==='Saved!'){status='saved';setTimeout(()=>status='idle',2500)}"
+            class="be-save-btn"
         >
-            {{-- 1. Default State: Visible only when not loading and status is idle --}}
-            <span x-show="status === 'idle'" wire:loading.remove wire:target="saveAll">Save All Changes</span>
-
-            {{-- 2. Loading State: Triggered automatically by Livewire --}}
+            <span wire:loading.remove wire:target="saveAll" x-show="status==='idle'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save all
+            </span>
             <span wire:loading wire:target="saveAll">
-            <svg class="animate-spin" style="width:14px; height:14px; display:inline; margin-right:5px;"
-                 viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"
-                        style="opacity:0.25"></circle>
-                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            Saving...
-        </span>
-
-            {{-- 3. Success State: Visible after 'notify' event is received --}}
-            <span x-show="status === 'saved'" x-cloak style="color: #10b981; font-weight: bold;">Saved ✓</span>
+                <svg class="be-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                Saving...
+            </span>
+            <span x-show="status==='saved'" x-cloak style="color:#10b981;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Saved
+            </span>
         </button>
     </div>
 
 </div>
 
+
+
 <script>
-    /* ── Auto-resize all textareas to fit their content ── */
+    // ── Auto-resize all textareas to fit their content ──
     function autoResize(el) {
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
     }
 
     function autoResizeAll() {
-        document.querySelectorAll('.blocks-list textarea').forEach(autoResize);
+        document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
     }
 
-    // Run on first load and after every Livewire re-render
-    document.addEventListener('DOMContentLoaded', autoResizeAll);
-    document.addEventListener('livewire:navigated', autoResizeAll);
-    document.addEventListener('livewire:update', () => setTimeout(autoResizeAll, 50));
-    if (window.Livewire) {
-        Livewire.hook('commit', ({ component, succeed }) => {
-            succeed(() => setTimeout(autoResizeAll, 80));
+    function renderAllMathPreviews() {
+        document.querySelectorAll('.be-math-preview').forEach(el => {
+            const src = el.dataset.mathSrc || '';
+            if (src && window.katex) {
+                try {
+                    katex.render(src, el, { displayMode: true, throwOnError: false });
+                    el.dataset.mathSrc = src;
+                } catch(e) { el.textContent = src; }
+            }
         });
     }
 
-    // ── Toolbar "Save All" button wires into blocks Livewire component ──
+    // Run on first load and after every Livewire re-render
+    document.addEventListener('DOMContentLoaded', () => { autoResizeAll(); renderAllMathPreviews(); });
+    document.addEventListener('livewire:navigated', () => { autoResizeAll(); renderAllMathPreviews(); });
+    document.addEventListener('livewire:load',      () => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 50));
+    document.addEventListener('livewire:update',    () => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 50));
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ component, succeed }) => {
+            succeed(() => setTimeout(() => { autoResizeAll(); renderAllMathPreviews(); }, 80));
+        });
+    }
+
+    // ── Toolbar "Save All" button ──
     window.addEventListener('toolbar-save', () => {
-        // Find the blocks Livewire component and call saveAll on it
-        const blocksEl = document.querySelector('[wire\\:id]');
-        if (blocksEl && window.Livewire) {
-            // Dispatch to all components — saveAll only exists on blocks component
-            Livewire.dispatch('triggerSaveAll');
-        }
+        if (window.Livewire) Livewire.dispatch('triggerSaveAll');
     });
+
+    // ── Math preview trigger (inline, before Livewire round-trip) ──
+    window.triggerMathPreview = function(textarea) {
+        const wrap = textarea.closest('.be-block-body');
+        if (!wrap) return;
+        const preview = wrap.querySelector('.be-math-preview');
+        if (!preview) return;
+        const raw = textarea.value || '';
+        try {
+            katex.render(raw, preview, { displayMode: true, throwOnError: false });
+        } catch(e) {
+            preview.textContent = raw;
+        }
+    };
+
+    // ── Markdown block editor functions (defined here to avoid race condition) ──
+    window.mbeSetTab = function(blockId, tab) {
+        const editPane    = document.getElementById('mbe-edit-' + blockId);
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        const tabs = document.querySelectorAll('.mbe-tabs[data-block-id="' + blockId + '"] .mbe-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tab === 'edit') {
+            editPane.style.display = '';
+            previewPane.style.display = 'none';
+            tabs[0] && tabs[0].classList.add('active');
+        } else {
+            editPane.style.display = 'none';
+            previewPane.style.display = '';
+            tabs[1] && tabs[1].classList.add('active');
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeUpdatePreview = function(blockId) {
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (previewPane && previewPane.style.display !== 'none') {
+            window.mbeRenderPreview(blockId);
+        }
+    };
+
+    window.mbeRenderPreview = function(blockId) {
+        const textarea    = document.querySelector('#mbe-edit-' + blockId + ' textarea');
+        const previewPane = document.getElementById('mbe-preview-' + blockId);
+        if (!textarea || !previewPane) return;
+        const md = textarea.value || '';
+        previewPane.innerHTML = (typeof marked !== 'undefined')
+            ? marked.parse(md)
+            : md.replace(/\n/g, '<br>');
+        if (window.renderMathInElement) {
+            renderMathInElement(previewPane, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$',  right: '$',  display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true},
+                ],
+                throwOnError: false,
+            });
+        }
+    };
+
+    // ── Livewire commit hook: re-render math, canvases, resize textareas ──
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                setTimeout(() => {
+                    // Resize textareas
+                    document.querySelectorAll('.be-blocks textarea').forEach(autoResize);
+                    // Math previews (KaTeX)
+                    renderAllMathPreviews();
+                    // Function canvases
+                    document.querySelectorAll('.function-editor').forEach(editor => {
+                        if (typeof ImplicitPlotter !== 'undefined') {
+                            const bid = editor.dataset.blockId;
+                            const canvas = document.getElementById('func-canvas-' + bid);
+                            if (canvas) {
+                                const opts = {
+                                    equation:   editor.querySelector('input[name*="func_expression"]')?.value ?? 'y=sin(x)',
+                                    xMin:       parseFloat(editor.querySelector('input[name*="x_min"]')?.value)  || -10,
+                                    xMax:       parseFloat(editor.querySelector('input[name*="x_max"]')?.value)  ||  10,
+                                    yMin:       parseFloat(editor.querySelector('input[name*="y_min"]')?.value)  ||  -6,
+                                    yMax:       parseFloat(editor.querySelector('input[name*="y_max"]')?.value)  ||   6,
+                                    color:      editor.querySelector('input[name*="color"]')?.value              || '#4f46e5',
+                                    resolution: parseFloat(editor.querySelector('input[name*="step"]')?.value)   || 0.05,
+                                };
+                                if (!canvas.style.height) canvas.style.height = '240px';
+                                ImplicitPlotter.render(canvas, opts);
+                            }
+                        }
+                    });
+                }, 80);
+            });
+        });
+    }
 
     // ── Scroll to newly created block ──
     window.addEventListener('scrollToNewBlock', (e) => {
@@ -974,8 +1116,8 @@ new class extends Component {
         // Wait for Livewire to finish re-rendering, then scroll
         const tryScroll = (attempts = 0) => {
             // Try both data-block-id attr and the block-row cards by order
-            const el = document.querySelector(`[data-block-id="${blockId}"]`)
-                || document.querySelector(`.block-row[data-id="${blockId}"]`);
+            const el = document.querySelector('[data-block-id="' + blockId + '"]')
+                || document.querySelector('.block-row[data-id="' + blockId + '"]');
 
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -993,5 +1135,420 @@ new class extends Component {
         };
         setTimeout(() => tryScroll(), 80);
     });
+    // ── Math preview for math blocks (id-based targeting) ──
+    function renderMathPreview(textarea, previewId) {
+        const preview = document.getElementById(previewId);
+        if (!preview) return;
+        const latex = textarea.value.trim();
+        if (!latex) { preview.innerHTML = ''; return; }
+        try {
+            preview.innerHTML = katex.renderToString(latex, {
+                displayMode: true,
+                throwOnError: false,
+            });
+        } catch(e) {
+            preview.textContent = latex;
+        }
+    }
+
+    // On load, render all existing math blocks
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+            const textarea = preview.previousElementSibling;
+            if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+        });
+    });
+
+    // Re-render after Livewire updates
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+                    const textarea = preview.previousElementSibling;
+                    if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+                });
+            });
+        });
+    }
+
+    // ── BUG FIX #9 (toolbar outline scroll): fixed in _lesson-toolbar_blade.php ──
+
+    // ── Markdown preview toggle for individual blocks ──
+    window.beMdToggle = function(btn) {
+        var wrap    = btn.closest('.be-md-wrap');
+        var src     = wrap.querySelector('.be-md-src');
+        var preview = wrap.querySelector('.be-md-preview');
+        var isHtml  = wrap.dataset.mode === 'html';
+        var showing = preview.style.display !== 'none';
+
+        if (showing) {
+            preview.style.display = 'none';
+            src.style.display = '';
+            btn.classList.remove('active');
+        } else {
+            src.style.display = 'none';
+            preview.style.display = '';
+            btn.classList.add('active');
+            if (isHtml) {
+                preview.innerHTML = src.value;
+            } else {
+                preview.innerHTML = (typeof marked !== 'undefined')
+                    ? marked.parse(src.value || '')
+                    : (src.value || '').replace(/\n/g, '<br>');
+                if (window.renderMathInElement) {
+                    renderMathInElement(preview, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$',  right: '$',  display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true},
+                        ],
+                        throwOnError: false,
+                    });
+                }
+            }
+        }
+    };
+
+    window.beMdLive = function(textarea) {
+        var wrap    = textarea.closest('.be-md-wrap');
+        if (!wrap) return;
+        var preview = wrap.querySelector('.be-md-preview');
+        if (!preview || preview.style.display === 'none') return;
+        var isHtml  = wrap.dataset.mode === 'html';
+        if (isHtml) {
+            preview.innerHTML = textarea.value;
+        } else {
+            preview.innerHTML = (typeof marked !== 'undefined')
+                ? marked.parse(textarea.value || '')
+                : (textarea.value || '').replace(/\n/g, '<br>');
+            if (window.renderMathInElement) {
+                renderMathInElement(preview, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$',  right: '$',  display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                    ],
+                    throwOnError: false,
+                });
+            }
+        }
+    };
 
 </script>
+<style>
+
+
+    /* ── Markdown preview toggle (shared by header/desc/note/exercise/ext) ── */
+    .be-md-wrap { position: relative; }
+    .be-md-toggle {
+        position: absolute;
+        top: 6px; right: 6px;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 2px 7px;
+        font-size: 11px;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: background .13s, color .13s;
+        z-index: 2;
+        line-height: 1.6;
+    }
+    .be-md-toggle:hover { background: var(--bg-hover); color: var(--text); }
+    .be-md-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .be-md-preview {
+        min-height: 40px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg-subtle);
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--text);
+        overflow-x: auto;
+    }
+    .be-md-preview h1,.be-md-preview h2,.be-md-preview h3 { font-weight:700;margin:.5em 0 .25em; }
+    .be-md-preview p { margin: .4em 0; }
+    .be-md-preview code { background:var(--bg-hover);padding:2px 5px;border-radius:3px;font-size:.9em; }
+    .be-md-preview pre { background:var(--bg-hover);padding:10px;border-radius:6px;overflow-x:auto; }
+    .be-md-preview ul,.be-md-preview ol { padding-left:1.4em;margin:.4em 0; }
+    .be-md-preview blockquote { border-left:3px solid var(--accent);padding-left:10px;color:var(--text-muted);margin:.5em 0; }
+    .be-md-preview table { border-collapse:collapse;width:100%;font-size:13px; }
+    .be-md-preview th,.be-md-preview td { border:1px solid var(--border);padding:5px 8px; }
+    .be-md-preview th { background:var(--bg-hover);font-weight:600; }
+    .be-html-preview { border: 2px dashed var(--border); }
+
+    /* ── Explode button ── */
+    .mbe-tab--explode {
+        background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+        font-weight: 700;
+    }
+    .mbe-tab--explode:hover {
+        opacity: .88;
+    }
+    .mbe-tab--explode:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    /* BUG FIX #7: x-cloak must be hidden before Alpine initialises */
+    [x-cloak] { display: none !important; }
+
+    /* ════════════════════════════════════
+       BLOCKS EDITOR
+    ════════════════════════════════════ */
+    .blocks-editor {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* ── Breadcrumb ── */
+    .be-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 18px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        background: var(--bg);
+        position: sticky;
+        top: -11px;
+        z-index: 5;
+
+    }
+    .be-bc-dim    { font-size: 12px; color: var(--text-muted); }
+    .be-bc-sep    { font-size: 12px; color: var(--text-faint); }
+    .be-bc-active { font-size: 12px; font-weight: 600; color: var(--text); }
+    .be-bc-status { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-left: 4px; }
+    .be-bc-status.published { background: #d1fae5; color: #065f46; }
+    .be-bc-status.draft     { background: #f3f4f6; color: #6b7280; }
+    [data-theme="dark"] .be-bc-status.published { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .be-bc-status.draft     { background: #2a2a2a; color: #9ca3af; }
+
+    /* ── Blocks list ── */
+    .be-blocks {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* ── Single block ── */
+    .be-block {
+        display: flex;
+        align-items: stretch;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .be-block:hover {
+        border-color: var(--accent);
+        box-shadow: 0 2px 12px rgba(79,70,229,.07);
+    }
+
+    /* Left accent strip */
+    .be-block-side {
+        width: 34px;
+        flex-shrink: 0;
+        border-right: 3px solid;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 10px;
+        background: var(--bg-subtle);
+    }
+    .be-type-label {
+        font-size: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        transform: rotate(180deg);
+        opacity: .9;
+    }
+
+    /* Block body */
+    .be-block-body {
+        flex: 1;
+        padding: 11px 14px;
+        min-width: 0;
+    }
+
+    /* Controls column */
+    .be-block-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 5px;
+        border-left: 1px solid var(--border-mid);
+        flex-shrink: 0;
+        background: var(--bg-subtle);
+    }
+    .be-type-select {
+        font-size: 10px;
+        padding: 3px 2px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--bg);
+        color: var(--text-muted);
+        cursor: pointer;
+        font-family: inherit;
+        width: 50px;
+    }
+    .be-ctrl-divider { width: 20px; height: 1px; background: var(--border-mid); margin: 2px 0; }
+    .be-ctrl-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px;
+        border: none; background: none; border-radius: 5px;
+        cursor: pointer; color: var(--text-faint);
+        transition: background .12s, color .12s;
+    }
+    .be-ctrl-btn:hover        { background: var(--bg-hover); color: var(--text); }
+    .be-ctrl-delete:hover     { background: #fff5f5; color: #ef4444; }
+    [data-theme="dark"] .be-ctrl-delete:hover { background: #2a0f0f; color: #f87171; }
+
+    /* ── Inputs ── */
+    .be-input {
+        display: block; width: 100%;
+        background: transparent; border: none; outline: none; resize: none;
+        font-family: inherit; color: var(--text); line-height: 1.65;
+        transition: background .12s; box-sizing: border-box;
+    }
+    .be-input:focus { background: var(--bg-subtle); border-radius: 4px; padding: 2px 4px; }
+    .be-input::placeholder { color: var(--text-faint); }
+    .be-input-title { font-size: 20px; font-weight: 700; letter-spacing: -.02em; min-height: 34px; }
+    .be-input-body  { font-size: 13.5px; min-height: 46px; }
+    .be-input-mono  { font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 13px; }
+    .be-input-code  { font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 12.5px; line-height: 1.7; }
+    .be-input-dark  { background: #0d1117 !important; color: #e2e8f0; border-radius: 6px; padding: 10px; }
+    .be-input-sm    { font-size: 12px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-subtle); }
+
+    /* ── Note ── */
+    .be-note-wrap {
+        background: var(--note-bg, #fffbeb);
+        border: 1px solid var(--note-border, #fde68a);
+        border-radius: 7px;
+        padding: 10px 12px;
+    }
+    [data-theme="dark"] .be-note-wrap,
+    html[data-theme="dark"] .be-note-wrap,
+    body[data-theme="dark"] .be-note-wrap,
+    .dark .be-note-wrap {
+        background: #1f1a0f;
+        border-color: #78350f;
+    }
+    .be-note-label {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+        color: #92400e; margin-bottom: 6px;
+    }
+    [data-theme="dark"] .be-note-label,
+    html[data-theme="dark"] .be-note-label,
+    body[data-theme="dark"] .be-note-label,
+    .dark .be-note-label { color: #fcd34d; }
+
+    /* ── Code ── */
+    .be-code-wrap { background: #0d1117; border-radius: 8px; overflow: hidden; }
+    .be-code-header { display:flex;align-items:center;gap:8px;padding:7px 12px;background:#161b22;border-bottom:1px solid #30363d; }
+    .be-code-dots { display:flex;gap:5px; }
+    .be-code-dots span { width:10px;height:10px;border-radius:50%; }
+    .be-code-dots span:nth-child(1){background:#ff5f57}
+    .be-code-dots span:nth-child(2){background:#febc2e}
+    .be-code-dots span:nth-child(3){background:#28c840}
+    .be-code-lang { font-size:10px;color:#8b949e;font-family:monospace;margin-left:auto; }
+    .be-code-wrap .be-input { color:#e2e8f0; padding:12px; }
+
+    /* ── Exercise ── */
+    .be-exercise-wrap { display:flex;flex-direction:column;gap:8px; }
+    .be-exercise-label, .be-solution-label {
+        display:flex;align-items:center;gap:5px;
+        font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+        color:var(--text-faint);margin-bottom:2px;
+    }
+    .be-solution-wrap { padding:8px 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;border-left:3px solid #10b981; }
+
+    /* ── Media ── */
+    .be-media-wrap { display:flex;flex-direction:column;gap:8px; }
+    .be-media-preview { display:flex;flex-direction:column;gap:4px; }
+    .be-media-filename { font-size:11px;color:var(--text-faint); }
+    .be-upload-label {
+        display:inline-flex;align-items:center;gap:6px;
+        padding:7px 14px;border:1.5px dashed var(--border);border-radius:7px;
+        font-size:12px;color:var(--text-muted);cursor:pointer;font-weight:500;
+        transition:border-color .15s,background .15s;
+    }
+    .be-upload-label:hover { border-color:var(--accent);color:var(--accent);background:var(--bg-hover); }
+    .be-uploading { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent); }
+    .be-spinner { display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:be-spin .6s linear infinite; }
+    @keyframes be-spin { to{transform:rotate(360deg)} }
+
+    /* ── Math ── */
+    .be-math-preview { margin-top:8px;padding:10px 12px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;font-family:'Times New Roman',serif;font-size:16px;min-height:40px; }
+
+    /* ── Fields ── */
+    .be-field { display:flex;flex-direction:column;gap:3px; }
+    .be-field-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint); }
+    .be-field-stack { display:flex;flex-direction:column;gap:8px; }
+    .be-field-row { display:flex;gap:8px;flex-wrap:wrap; }
+    .be-field-row .be-field { flex:1;min-width:65px; }
+    .be-select { padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-subtle);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit; }
+    .be-color-input { width:100%;height:32px;border:1px solid var(--border);border-radius:5px;cursor:pointer;padding:2px; }
+
+    /* ── Table ── */
+    .be-table-wrap { overflow-x:auto; }
+    .be-table-actions { display:flex;gap:6px;margin-bottom:8px; }
+    .be-btn-sm { padding:4px 10px;border:1px solid var(--border);border-radius:5px;background:none;font-size:11px;color:var(--text-muted);cursor:pointer;font-family:inherit;transition:background .12s; }
+    .be-btn-sm:hover { background:var(--bg-hover);color:var(--text); }
+    .be-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .be-table td { border:1px solid var(--border);padding:0;min-width:80px; }
+    .be-th { background:var(--bg-subtle); }
+    .be-table-cell { width:100%;border:none;background:transparent;padding:7px 9px;font-family:inherit;font-size:13px;color:var(--text);outline:none; }
+    .be-table-cell:focus { background:var(--bg-hover); }
+
+    /* ── Function ── */
+    .be-function-wrap { display:flex;flex-direction:column;gap:6px; }
+    .be-canvas-wrap { position:relative;margin-top:10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:10px; }
+
+    /* ── Ext warn ── */
+    .be-ext-warn { display:flex;align-items:center;gap:6px;font-size:11px;color:#f59e0b;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:5px 10px;margin-bottom:8px;font-weight:500; }
+    [data-theme="dark"] .be-ext-warn { background:#1f1a0f;border-color:#78350f;color:#fcd34d; }
+
+    /* ── Hint ── */
+    .be-hint { font-size:11px;color:var(--text-faint);margin-top:4px;display:block; }
+
+    /* ── Empty ── */
+    .be-empty { display:flex;flex-direction:column;align-items:center;padding:48px 20px;color:var(--text-faint);font-size:13px;text-align:center;border:1.5px dashed var(--border);border-radius:10px; }
+    .be-empty svg { opacity:.25;margin-bottom:10px; }
+
+    /* ── Save bar ── */
+    .be-save-bar {
+        display:flex;align-items:center;justify-content:space-between;
+        padding:10px 18px;border-top:1px solid var(--border);
+        background:var(--bg);flex-shrink:0;gap:10px;
+        position:sticky;bottom:-11px;z-index:5;
+    }
+    .be-save-btn {
+        display:flex;align-items:center;gap:6px;
+        padding:8px 20px;background:var(--accent);color:#fff;
+        border:none;border-radius:8px;font-size:13px;font-weight:600;
+        cursor:pointer;font-family:inherit;transition:background .15s;flex-shrink:0;
+    }
+    .be-save-btn:hover { background:var(--accent-hover); }
+    .be-save-btn:disabled { opacity:.6;cursor:not-allowed; }
+    .be-spin { animation:be-spin .7s linear infinite; }
+</style>

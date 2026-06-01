@@ -310,7 +310,7 @@
 
 /* Add a glow to the progress fill */
 .sb-progress-fill {
-    box-shadow: 0 0 8px var(--accent);
+    /*box-shadow: 0 0 8px var(--accent);*/
     position: relative;
 }
 
@@ -511,7 +511,7 @@
     flex: 1;
 }
 #block-popup {
-    display: none;
+
     flex-direction: column;
     gap: 12px;
     background: var(--bg);

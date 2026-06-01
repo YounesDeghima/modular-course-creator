@@ -88,19 +88,19 @@ new class extends Component {
         <div class="modal">
             <div class="form-group">
                 <label>Title</label>
-                <input type="text" name="title" class="modal-input" wire:model.live="title">
+                <input type="text" name="title" class="modal-input" wire:model="title">
             </div>
 
             <div class="form-group">
                 <label>Chapter Number</label>
 
-                <input type="number" name="chapter_number" wire:model.live="chapter_number"
+                <input type="number" name="chapter_number" wire:model="chapter_number"
                        class="modal-input">
             </div>
 
             <div class="form-group">
                 <label>Visibility Status</label>
-                <select name="status" class="modal-input" wire:model.live="status">
+                <select name="status" class="modal-input" wire:model="status">
                     <option value="draft">Draft (Hidden)</option>
                     <option value="published">Published (Live)</option>
                 </select>
@@ -108,7 +108,7 @@ new class extends Component {
 
             <div class="form-group">
                 <label>Description</label>
-                <textarea name="description" class="modal-input" wire:model.live="description"
+                <textarea name="description" class="modal-input" wire:model="description"
                           style="height:120px"></textarea>
             </div>
             <button type="submit" class="btn-update" wire:click="update" @click="open_update_modal=false">Update

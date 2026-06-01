@@ -9,15 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+
+
     public function up(): void
     {
+
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('last_name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('role',['admin','user'])->default('user');
+            $table->foreignId('section_id')->default(1)->constrained()->onDelete('cascade');
+            $table->enum('role',['admin','teacher','user'])->default('user');
             $table->dateTime('last_seen')->nullable();
 
             $table->timestamps();

@@ -7,12 +7,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Modular-Course-Creator</title>
     <link rel="stylesheet" href="{{asset('css/admin-layout.css')}}">
-
-    <script src="{{ asset('vendors/chart.js') }}"></script>
-
-    <!-- For math (optional - if you want rendered math instead of raw LaTeX) -->
     <link rel="stylesheet" href="{{ asset('vendors/katex/katex.min.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 
 
     @yield('css')
@@ -32,10 +31,6 @@
             <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
             <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' style="color: #4f46e5; font-weight: bold;">
                 ✨ AI Generator
-            </a>
-            {{-- 🔥 NEW: Code Editor link --}}
-            <a href="{{ route('admin.codeeditor') }}" data-item='Code Editor' style="color: #10b981; font-weight: bold;">
-                💻 Code Editor
             </a>
 
         </div>
@@ -97,10 +92,8 @@
 
 @yield('js')
 <script src="{{ asset('vendors/chart.js') }}"></script>
-<script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
-<script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script src="{{ asset('js/function.js') }}"></script>
 <script>
     const sidebarToggle = document.getElementById('sidebarToggle');

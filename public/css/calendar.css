@@ -329,6 +329,11 @@
 .dot-assignment { background: #BA7517; }
 .dot-personal   { background: #378ADD; }
 
+.dot-personal   { background: #378ADD; }
+.dot-section    { background: #7F77DD; }
+.dot-compagnie  { background: #BA7517; }
+.dot-batallion  { background: #E24B4A; }
+
 [data-theme="dark"] .type-exam       { background: #5c1a1a; color: #fca5a5; }
 [data-theme="dark"] .type-vacation   { background: #14330a; color: #86efac; }
 [data-theme="dark"] .type-project    { background: #2a2660; color: #c4b5fd; }

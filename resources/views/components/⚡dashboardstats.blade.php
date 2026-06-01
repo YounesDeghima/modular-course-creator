@@ -25,10 +25,7 @@ new class extends Component {
         $this->loadstats();
     }
 
-    public function update($totalCourses,$pubCourses,$draftCourses,$pubLessons,$draftLessons,$inProgress,$completed)
-    {
 
-    }
 
 
     public function loadstats()
@@ -54,15 +51,17 @@ new class extends Component {
             }
         }
 
-        $this->dispatch("stats-updated" ,[
-            'totalCourses' => $this->totalCourses,
-            'pubCourses' => $this->pubCourses,
-            'draftCourses' => $this->draftCourses,
-            'pubLessons' => $this->pubLessons,
-            'draftLessons' => $this->draftLessons,
-            'inProgress' => $this->inProgress,
-            'completed' => $this->completed,
-            'totalUsers' => $this->totalUsers]
+
+        $this->dispatch("stats-updated" ,
+
+            totalCourses: $this->totalCourses,
+            pubCourses: $this->pubCourses,
+            draftCourses: $this->draftCourses,
+            pubLessons: $this->pubLessons,
+            draftLessons: $this->draftLessons,
+            inProgress: $this->inProgress,
+            completed: $this->completed,
+            totalUsers: $this->totalUsers
 
         );
 

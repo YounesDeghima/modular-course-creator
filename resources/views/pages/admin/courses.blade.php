@@ -157,6 +157,34 @@
     .ai-result.ok, .ai-result.error {
         white-space: pre-wrap; /* lets \n line-breaks show */
     }
+
+    .modal-overlay {
+        display:none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(2px);
+    }
+    .open{
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 26px;
+        width: 100%;
+        max-width: 460px;
+        box-shadow: 0 20px 60px var(--shadow);
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
     </style>
 
 
@@ -359,7 +387,7 @@
 
 
 
-    <livewire:course.coursecreate/>
+
 
 
     <livewire:course.courses :courses="$courses" />
@@ -367,8 +395,11 @@
 
 
 @section('sidebar-elements')
-    <div class="admin-sb-section">
-        <button class="admin-new-btn" id="open-popup-btn">+ New course</button>
+    <div class="admin-sb-section" x-data="{open_course_modal:false}">
+        <button class="admin-new-btn" id="open-popup-btn" @click="open_course_modal=true">+ New course</button>
+
+            <livewire:course.coursecreate/>
+
     </div>
 
     <div class="admin-sb-divider"></div>
@@ -409,13 +440,10 @@
             document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         const adder = document.getElementById('block-popup');
-        const openBtn = document.getElementById('open-popup-btn');
+
         const closeBtn = document.getElementById('close-popup');
 
-        openBtn.addEventListener('click', () => {
-            adder.style.visibility = 'visible';
-            adder.style.opacity = 1;
-        });
+
 
         // ── Branch visibility per form ──
         // document.querySelectorAll('.update-form').forEach(form => {
@@ -552,9 +580,7 @@
         document.addEventListener('DOMContentLoaded', updateGlobalButtonUI);
 
         // ── Popup open/close (FIXED) ──
-        document.getElementById('open-popup-btn').addEventListener('click', () => {
-            document.getElementById('block-popup').classList.toggle('open');
-        });
+
         document.getElementById('close-popup').addEventListener('click', () => {
             document.getElementById('block-popup').classList.remove('open');
         });
