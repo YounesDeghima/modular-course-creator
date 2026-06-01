@@ -158,6 +158,7 @@
                 <button class="sb-filter-btn active" data-role="all">All users</button>
                 <button class="sb-filter-btn" data-role="admin">Admins</button>
                 <button class="sb-filter-btn" data-role="user">Students</button>
+
             </div>
         </div>
 
@@ -212,6 +213,7 @@
                 <select id="f-role">
                     <option value="user">Student</option>
                     <option value="admin">Admin</option>
+                    <option value="teacher">teacher</option>
                 </select>
             </div>
             <div class="modal-actions">
@@ -314,7 +316,7 @@
                 closeModal();
                 location.reload(); // simple reload to reflect changes
             } catch (err) {
-                alert(err.response?.data?.message || 'Something went wrong.');
+
             }
         });
 
