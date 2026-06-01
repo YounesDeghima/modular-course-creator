@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('assigned_sections', function (Blueprint $table) {
+        Schema::create('assignedsections', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('section_id')->nullable()->constrained()->onDelete('cascade');
-            $table->enum('role',['admin','teacher','user'])->default('user');
-            $table->dateTime('last_seen')->nullable();
+
+
 
             $table->timestamps();
         });

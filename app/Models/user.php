@@ -50,5 +50,10 @@ class user extends Authenticatable
         dd($users);           // dump & die to see results
     }
 
+    public function assignedsections()
+    {
+        return $this->hasMany(assignedsection::class,'user_id', 'section_id');
+    }
+
 
 }
