@@ -4,6 +4,10 @@ namespace App\Jobs;
 
 use App\Models\AiJob;
 use App\Models\AiJobSnapshot;
+use App\Models\block;
+use App\Models\chapter;
+use App\Models\course;
+use App\Models\lesson;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -54,39 +58,35 @@ class ProcessPdfJob implements ShouldQueue
 
         try {
             // ─────────────────────────────────────────────────────────────────
-            // RECUT MODE: skip MinerU, use existing snapshot
+            // RECUT MODE: skip MinerU, re-run Ollama split on existing snapshot
             // ─────────────────────────────────────────────────────────────────
             if ($this->recutSnapshotId !== null) {
                 $snapshot = AiJobSnapshot::findOrFail($this->recutSnapshotId);
                 $aiJob->log("RECUT mode → snapshot #{$snapshot->md_index} (id={$snapshot->id})", 'info');
-                $this->runOllamaOnSnapshot($aiJob, $snapshot, $model, $startTime);
+                $this->runSplitOnSnapshot($aiJob, $snapshot, $model, $startTime);
                 return;
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // FULL MODE: MinerU → Ollama
+            // FULL MODE: MinerU → Ollama split → explode blocks
             // ─────────────────────────────────────────────────────────────────
 
-            // Next md_index for this job
-            $mdIndex = AiJobSnapshot::where('ai_job_id', $aiJob->id)->count() + 1;
-
-            // Persistent output dir in public storage so images are servable
+            $mdIndex       = AiJobSnapshot::where('ai_job_id', $aiJob->id)->count() + 1;
             $imagesRelPath = "ai_images/{$aiJob->id}/{$mdIndex}";
             $imagesAbsPath = Storage::disk('public')->path($imagesRelPath);
 
             $aiJob->log("STEP 1 — Starting MinerU PDF extraction (md #{$mdIndex}).", 'info');
 
-            // Create snapshot record early (md_status=processing)
             $snapshot = AiJobSnapshot::create([
-                'ai_job_id'    => $aiJob->id,
-                'md_index'     => $mdIndex,
-                'markdown'     => null,
-                'images_path'  => $imagesRelPath,
-                'image_urls'   => [],
-                'md_status'    => 'processing',
-                'md_error'     => null,
-                'md_created_at'=> now(),
-                'results'      => [],
+                'ai_job_id'     => $aiJob->id,
+                'md_index'      => $mdIndex,
+                'markdown'      => null,
+                'images_path'   => $imagesRelPath,
+                'image_urls'    => [],
+                'md_status'     => 'processing',
+                'md_error'      => null,
+                'md_created_at' => now(),
+                'results'       => [],
             ]);
 
             try {
@@ -103,15 +103,12 @@ class ProcessPdfJob implements ShouldQueue
                 $aiJob->log("STEP 1 — Done. Extracted {$chars} chars + " . count($imageUrls) . " images.", 'ok');
 
             } catch (\Throwable $e) {
-                $snapshot->update([
-                    'md_status' => 'failed',
-                    'md_error'  => $e->getMessage(),
-                ]);
-                throw $e; // bubble up → job fails
+                $snapshot->update(['md_status' => 'failed', 'md_error' => $e->getMessage()]);
+                throw $e;
             }
 
-            // ── STEP 2: Ollama ────────────────────────────────────────────────
-            $this->runOllamaOnSnapshot($aiJob, $snapshot, $model, $startTime);
+            // STEP 2 + 3
+            $this->runSplitOnSnapshot($aiJob, $snapshot, $model, $startTime);
 
         } catch (\Throwable $e) {
             $duration = (int)(microtime(true) - $startTime);
@@ -133,50 +130,37 @@ class ProcessPdfJob implements ShouldQueue
                 self::dispatch($aiJob->id)->delay(now()->addSeconds($delay));
             } else {
                 $aiJob->log("Max attempts ({$aiJob->max_attempts}) reached.", 'error');
-                $aiJob->log("Use 'Retry MD' or 'Retry Cut' buttons per snapshot.", 'warn');
             }
         }
     }
 
-    // ── Run Ollama on a snapshot (with inner retry loop) ──────────────────────
-    private function runOllamaOnSnapshot(
-        AiJob           $aiJob,
-        AiJobSnapshot   $snapshot,
-        string          $model,
-        float           $startTime
+    // ── STEP 2: Ask Ollama to split markdown into chapters/lessons only ────────
+    private function runSplitOnSnapshot(
+        AiJob         $aiJob,
+        AiJobSnapshot $snapshot,
+        string        $model,
+        float         $startTime
     ): void {
-        $markdown = $snapshot->markdown ?? '';
-
-        $aiJob->log("STEP 2 — Sending snapshot #{$snapshot->md_index} to Ollama [{$model}]…", 'info');
+        $aiJob->log("STEP 2 — Asking Ollama [{$model}] to split into chapters/lessons…", 'info');
 
         $ollamaStart = microtime(true);
         $maxRetries  = 3;
         $lastError   = '';
-        $resultJson  = null;
+        $splitData   = null;
 
         for ($try = 1; $try <= $maxRetries; $try++) {
             try {
-                $aiJob->log("STEP 2 — Ollama attempt {$try}/{$maxRetries}…", 'info');
-                $structured = $this->structureWithOllama($aiJob, $snapshot, $model);
+                $aiJob->log("STEP 2 — attempt {$try}/{$maxRetries}…", 'info');
+                $splitData = $this->splitWithOllama($aiJob, $snapshot, $model);
 
-                if (empty($structured['chapters'])) {
-                    throw new \RuntimeException('Ollama returned empty chapters.');
-                }
-                $totalBlocks = array_sum(array_map(
-                    fn($c) => array_sum(array_map(fn($l) => count($l['blocks'] ?? []), $c['lessons'] ?? [])),
-                    $structured['chapters']
-                ));
-                if ($totalBlocks === 0) {
-                    throw new \RuntimeException('Ollama produced zero blocks.');
+                if (empty($splitData['chapters'])) {
+                    throw new \RuntimeException('Ollama returned no chapters.');
                 }
 
-                $resultJson = json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
-                $ch = count($structured['chapters'] ?? []);
-                $ls = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $structured['chapters'] ?? []));
-                $aiJob->log("STEP 2 — OK. Chapters:{$ch} Lessons:{$ls} Blocks:{$totalBlocks}.", 'ok');
-
-                break; // success
+                $ch = count($splitData['chapters']);
+                $ls = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $splitData['chapters']));
+                $aiJob->log("STEP 2 — OK. Chapters:{$ch} Lessons:{$ls}.", 'ok');
+                break;
 
             } catch (\Throwable $e) {
                 $lastError = $e->getMessage();
@@ -190,42 +174,144 @@ class ProcessPdfJob implements ShouldQueue
 
         $ollamaDuration = (int)(microtime(true) - $ollamaStart);
 
-        if ($resultJson === null) {
-            // ── ALL RETRIES FAILED — record failure, do NOT fake success ──────
-            $aiJob->log("STEP 2 — All Ollama retries exhausted. Last error: {$lastError}", 'error');
-            $aiJob->log("Use 'Retry Cut' on snapshot #{$snapshot->md_index} to try again.", 'warn');
-
+        if ($splitData === null) {
+            $aiJob->log("STEP 2 — All Ollama retries exhausted: {$lastError}", 'error');
             $snapshot->addResult($model, 'failed', null, $lastError, $ollamaDuration);
-
             $aiJob->update([
                 'status'           => 'failed',
-                'error_message'    => "Ollama failed on snapshot #{$snapshot->md_index}: {$lastError}",
+                'error_message'    => "Ollama split failed on snapshot #{$snapshot->md_index}: {$lastError}",
                 'finished_at'      => now(),
                 'duration_seconds' => (int)(microtime(true) - $startTime),
             ]);
             return;
         }
 
-        // ── SUCCESS ───────────────────────────────────────────────────────────
-        $snapshot->addResult($model, 'done', $resultJson, null, $ollamaDuration);
-
-        $totalDuration = (int)(microtime(true) - $startTime);
-        $aiJob->log("STEP 3 — Persisting result. Total time: {$totalDuration}s.", 'ok');
+        // Save the split JSON to the snapshot result
+        $splitJson = json_encode($splitData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $snapshot->addResult($model, 'done', $splitJson, null, $ollamaDuration);
 
         $aiJob->update([
-            'status'           => 'done',
-            'result_json'      => $resultJson,   // latest successful result
-            'finished_at'      => now(),
-            'duration_seconds' => $totalDuration,
-            'error_message'    => null,
+            'result_json' => $splitJson,
+        ]);
+
+        // STEP 3: explode blocks for each lesson
+        $this->explodeAllLessons($aiJob, $splitData, $snapshot->image_urls ?? [], $startTime);
+    }
+
+    // ── STEP 3: Build course/chapters/lessons/blocks from split data ───────────
+    private function explodeAllLessons(
+        AiJob  $aiJob,
+        array  $splitData,
+        array  $imageUrls,
+        float  $startTime
+    ): void {
+        $aiJob->log("STEP 3 — Creating course structure and exploding lesson blocks…", 'info');
+
+        \DB::beginTransaction();
+        try {
+            $t = fn($s, $max = 255) => mb_substr((string)($s ?? ''), 0, $max);
+
+            $courseRecord = course::create([
+                'title'       => $t($splitData['title'] ?? 'Untitled Course'),
+                'year'        => $splitData['year']   ?? $aiJob->year,
+                'branch'      => $splitData['branch'] ?? $aiJob->branch,
+                'description' => $t($splitData['description'] ?? '', 1000),
+                'status'      => 'draft',
+            ]);
+
+            $aiJob->log("STEP 3 — Course created (id={$courseRecord->id}).", 'info');
+
+            $lessonTotal  = 0;
+            $lessonFailed = 0;
+
+            foreach (($splitData['chapters'] ?? []) as $chIdx => $chData) {
+                $chapterRecord = chapter::create([
+                    'course_id'      => $courseRecord->id,
+                    'title'          => $t($chData['title'] ?? 'Chapter ' . ($chIdx + 1)),
+                    'description'    => $t($chData['description'] ?? '', 1000),
+                    'chapter_number' => $chData['chapter_number'] ?? ($chIdx + 1),
+                    'status'         => 'draft',
+                ]);
+
+                foreach (($chData['lessons'] ?? []) as $lIdx => $lData) {
+                    $lessonTotal++;
+                    $lessonNum    = $lData['lesson_number'] ?? ($lIdx + 1);
+                    $lessonTitle  = $t($lData['title'] ?? 'Lesson ' . $lessonNum);
+                    $lessonMd     = $lData['markdown'] ?? '';
+
+                    $lessonRecord = lesson::create([
+                        'chapter_id'    => $chapterRecord->id,
+                        'title'         => $lessonTitle,
+                        'description'   => $t($lData['description'] ?? '', 1000),
+                        'lesson_number' => $lessonNum,
+                        'content'       => '',
+                        'status'        => 'draft',
+                    ]);
+
+                    // Inject image URLs into markdown so the parser can pick them up
+                    $mdWithImages = $this->injectImageUrls($lessonMd, $imageUrls);
+
+                    try {
+                        $segments = $this->parseMarkdownToSegments($mdWithImages);
+
+                        if (empty($segments)) {
+                            // Nothing parsed — save as raw markdown block
+                            $this->saveRawMarkdownBlock($lessonRecord->id, $lessonMd, 1);
+                            $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\": empty segments, saved as raw markdown block.", 'warn');
+                        } else {
+                            foreach ($segments as $bIdx => $seg) {
+                                $blk = block::create([
+                                    'lesson_id'    => $lessonRecord->id,
+                                    'type'         => $seg['type'],
+                                    'content'      => $seg['content'],
+                                    'block_number' => $bIdx + 1,
+                                ]);
+                                if ($seg['type'] === 'exercise') {
+                                    $blk->solutions()->create(['solution_number' => 1, 'content' => 'nothing here yet']);
+                                }
+                            }
+                            $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\": " . count($segments) . " blocks created.", 'ok');
+                        }
+
+                    } catch (\Throwable $e) {
+                        $lessonFailed++;
+                        $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\" explode FAILED: " . $e->getMessage() . " — saved raw markdown block.", 'error');
+                        // Save raw markdown so teacher can manually explode
+                        $this->saveRawMarkdownBlock($lessonRecord->id, $lessonMd, 1);
+                    }
+                }
+            }
+
+            $aiJob->update(['status' => 'done', 'finished_at' => now(), 'duration_seconds' => (int)(microtime(true) - $startTime), 'error_message' => null]);
+            \DB::commit();
+
+            $summary = "STEP 3 — Done. Lessons:{$lessonTotal}" . ($lessonFailed > 0 ? " ({$lessonFailed} saved as raw markdown — explode manually)." : " all exploded OK.");
+            $aiJob->log($summary, $lessonFailed > 0 ? 'warn' : 'ok');
+            $aiJob->log("Course id={$courseRecord->id} created as draft.", 'ok');
+
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            $aiJob->log("STEP 3 — Course creation transaction failed: " . $e->getMessage(), 'error');
+            throw $e;
+        }
+    }
+
+    // ── Save a single raw markdown block (fallback for failed lessons) ─────────
+    private function saveRawMarkdownBlock(int $lessonId, string $markdown, int $blockNumber): void
+    {
+        block::create([
+            'lesson_id'    => $lessonId,
+            'type'         => 'markdown',
+            'content'      => $markdown ?: '<!-- empty lesson -->',
+            'block_number' => $blockNumber,
         ]);
     }
 
-    // ── Ollama structuring (single attempt) ───────────────────────────────────
-    private function structureWithOllama(AiJob $aiJob, AiJobSnapshot $snapshot, string $model): array
+    // ── Ollama: split only — much lighter prompt ───────────────────────────────
+    private function splitWithOllama(AiJob $aiJob, AiJobSnapshot $snapshot, string $model): array
     {
-        $markdown = $snapshot->markdown ?? '';
-        $maxChars = 60000;
+        $markdown  = $snapshot->markdown ?? '';
+        $maxChars  = 60000;
         $truncated = mb_strlen($markdown) > $maxChars
             ? mb_substr($markdown, 0, $maxChars) . "\n\n[...truncated...]"
             : $markdown;
@@ -234,87 +320,43 @@ class ProcessPdfJob implements ShouldQueue
         $sentLen = mb_strlen($truncated);
         $aiJob->log("Markdown {$origLen} chars → sending {$sentLen} chars to [{$model}].", 'info');
 
-        // Inject image references into the markdown context for Ollama
-        $imageUrls = $snapshot->image_urls ?? [];
-        $imageNote = '';
-        if (!empty($imageUrls)) {
-            $imageNote = "\n\nAVAILABLE IMAGES (use these URLs in photo blocks):\n";
-            foreach ($imageUrls as $i => $url) {
-                $imageNote .= "  Image " . ($i + 1) . ": {$url}\n";
-            }
-        }
-
         $year   = $aiJob->year;
         $branch = $aiJob->branch;
 
         $prompt = <<<PROMPT
-You are a strict course content parser. Convert the Markdown document below into a JSON course structure.
+You are a course content organizer. Read the markdown document below and split it into chapters and lessons based on context and headings.
 
-═══════════════════════════════════════════════════════════════
-CHAPTER / LESSON SPLITTING RULES
-═══════════════════════════════════════════════════════════════
-- Lines starting with `# ` → new CHAPTER
-- Lines starting with `## ` → new LESSON inside the current chapter
-- If no `# ` exists → one chapter for the whole document
-- If no `## ` exists → one lesson for the whole chapter
+YOUR ONLY JOB: decide where chapter and lesson boundaries are, and copy the raw markdown for each lesson verbatim.
+Do NOT rewrite content. Do NOT create blocks. Do NOT summarize. Copy lesson content exactly as-is.
 
-═══════════════════════════════════════════════════════════════
-BLOCK SPLITTING RULES  (most important part)
-═══════════════════════════════════════════════════════════════
-Each lesson must be split into MULTIPLE blocks. Do NOT dump everything into a single markdown block.
-Scan the content sequentially and emit one block per detected segment:
-
-| Detected content              | block type   | content field                                      |
-|-------------------------------|--------------|----------------------------------------------------|
-| `# ` or `## ` heading text    | "header"     | plain heading text (no # symbols)                 |
-| `### ` or `#### ` sub-heading | "header"     | plain heading text                                 |
-| Plain paragraph text          | "description"| paragraph text verbatim                           |
-| `> ` blockquote / note        | "note"       | text inside the blockquote                        |
-| `$$...$$` or `\[...\]` LaTeX  | "math"       | LaTeX expression verbatim (keep delimiters)       |
-| Fenced code block             | "code"       | code verbatim (no fences)                         |
-| Image reference ![...](...) or image URL from AVAILABLE IMAGES list | "photo" | the image URL |
-| Bullet / numbered list        | "list"       | {"style":"bullet","items":["item1","item2"]}      |
-| Table                         | "table"      | [["H1","H2"],["r1c1","r1c2"]]  (JSON array)       |
-| `---` horizontal rule         | "separator"  | {"type":"divider"}                                |
-
-CRITICAL: When you see an image reference in the markdown (e.g. ![fig](path)) OR an entry from
-the AVAILABLE IMAGES list below, always emit a "photo" block with the full image URL as content.
-Do NOT skip images.
-{$imageNote}
-
-═══════════════════════════════════════════════════════════════
-OUTPUT FORMAT (pure JSON, no markdown fences)
-═══════════════════════════════════════════════════════════════
+OUTPUT FORMAT (pure JSON, no markdown fences):
 {
-  "title": "<first # heading or filename>",
+  "title": "<course title from first heading or filename>",
   "year": $year,
   "branch": "$branch",
   "description": "<one sentence summary>",
-  "status": "draft",
   "chapters": [
     {
-      "title": "...",
-      "description": "...",
+      "title": "Chapter title",
+      "description": "One sentence.",
       "chapter_number": 1,
-      "status": "draft",
       "lessons": [
         {
-          "title": "...",
-          "description": "...",
+          "title": "Lesson title",
+          "description": "One sentence.",
           "lesson_number": 1,
-          "status": "draft",
-          "blocks": [
-            {"type": "header",      "content": "Introduction",                                      "block_number": 1},
-            {"type": "description", "content": "Some paragraph...",                                 "block_number": 2},
-            {"type": "math",        "content": "$$ f(x) = 0$$",                                     "block_number": 3},
-            {"type": "photo",       "content": "https://example.com/storage/ai_images/1/1/fig.png","block_number": 4},
-            {"type": "list",        "content": "{\"style\":\"bullet\",\"items\":[\"item1\"]}",      "block_number": 5}
-          ]
+          "markdown": "<raw markdown content of this lesson, copied verbatim>"
         }
       ]
     }
   ]
 }
+
+SPLITTING RULES:
+- A new CHAPTER starts when you see a major section change (e.g. # heading or clear topic shift).
+- A new LESSON starts at ## headings or clear sub-topic shifts within a chapter.
+- If the document has no clear structure, put everything in 1 chapter and 1 lesson.
+- Copy the full lesson content into "markdown" verbatim — do not skip anything.
 
 --- MARKDOWN DOCUMENT ---
 $truncated
@@ -351,8 +393,8 @@ PROMPT;
 
         // Strip accidental markdown fences
         $jsonString = preg_replace('/^```json\s*/i', '', trim($jsonString));
-        $jsonString = preg_replace('/^```\s*/i', '', $jsonString);
-        $jsonString = preg_replace('/```\s*$/', '', $jsonString);
+        $jsonString = preg_replace('/^```\s*/i',     '', $jsonString);
+        $jsonString = preg_replace('/```\s*$/',       '', $jsonString);
 
         $decoded = json_decode($jsonString, true);
 
@@ -371,7 +413,202 @@ PROMPT;
         return $decoded;
     }
 
-    // ── MinerU extraction ─────────────────────────────────────────────────────
+    // ── Inject image URLs as markdown references so the parser finds them ──────
+    private function injectImageUrls(string $markdown, array $imageUrls): string
+    {
+        if (empty($imageUrls)) return $markdown;
+
+        // Only inject images that aren't already referenced
+        $appendix = '';
+        foreach ($imageUrls as $url) {
+            if (!str_contains($markdown, $url)) {
+                $appendix .= "\n![image]({$url})";
+            }
+        }
+        return $markdown . $appendix;
+    }
+
+    // ── Markdown → typed segments (copied from blockcontroller, standalone) ─────
+    private function parseMarkdownToSegments(string $raw): array
+    {
+        $lines    = explode("\n", $raw);
+        $segments = [];
+        $i        = 0;
+        $total    = count($lines);
+
+        while ($i < $total) {
+            $line    = $lines[$i];
+            $trimmed = rtrim($line);
+
+            // Fenced code block
+            if (preg_match('/^```/', $trimmed)) {
+                $code = '';
+                $i++;
+                while ($i < $total && !preg_match('/^```/', rtrim($lines[$i]))) {
+                    $code .= $lines[$i] . "\n";
+                    $i++;
+                }
+                $i++;
+                if (trim($code) !== '') {
+                    $segments[] = ['type' => 'code', 'content' => rtrim($code)];
+                }
+                continue;
+            }
+
+            // Display math $$...$$
+            if (preg_match('/^\$\$/', $trimmed)) {
+                $math = '';
+                if (preg_match('/^\$\$(.+)\$\$$/', $trimmed, $m)) {
+                    $segments[] = ['type' => 'math', 'content' => trim($m[1])];
+                    $i++;
+                    continue;
+                }
+                $i++;
+                while ($i < $total && !preg_match('/^\$\$/', rtrim($lines[$i]))) {
+                    $math .= $lines[$i] . "\n";
+                    $i++;
+                }
+                $i++;
+                if (trim($math) !== '') {
+                    $segments[] = ['type' => 'math', 'content' => rtrim($math)];
+                }
+                continue;
+            }
+
+            // Heading
+            if (preg_match('/^(#{1,6})\s+(.+)$/', $trimmed, $m)) {
+                $segments[] = ['type' => 'header', 'content' => trim($m[2])];
+                $i++;
+                continue;
+            }
+
+            // Horizontal rule
+            if (preg_match('/^(-{3,}|\*{3,}|_{3,})$/', $trimmed)) {
+                $segments[] = ['type' => 'separator', 'content' => json_encode(['type' => 'divider'])];
+                $i++;
+                continue;
+            }
+
+            // Blockquote → note
+            if (preg_match('/^>\s?(.*)$/', $trimmed, $m)) {
+                $noteLines = [trim($m[1])];
+                $i++;
+                while ($i < $total) {
+                    $nextRaw = rtrim($lines[$i]);
+                    if (preg_match('/^>\s?(.*)$/', $nextRaw, $m2)) {
+                        $noteLines[] = trim($m2[1]);
+                        $i++;
+                    } else {
+                        break;
+                    }
+                }
+                $segments[] = ['type' => 'note', 'content' => implode("\n", $noteLines)];
+                continue;
+            }
+
+            // Image → photo
+            if (preg_match('/^!\[.*?\]\((.+?)\)$/', $trimmed, $m)) {
+                $url = trim($m[1]);
+                // Convert full URL back to relative storage path so the block renderer works
+                $segments[] = ['type' => 'photo', 'content' => $this->urlToStoragePath($url)];
+                $i++;
+                continue;
+            }
+
+            // Table
+            if (preg_match('/^\|/', $trimmed)) {
+                $tableLines = [];
+                while ($i < $total && preg_match('/^\|/', rtrim($lines[$i]))) {
+                    $tableLines[] = rtrim($lines[$i]);
+                    $i++;
+                }
+                $tableData = $this->parseMarkdownTable($tableLines);
+                if (!empty($tableData)) {
+                    $segments[] = ['type' => 'table', 'content' => json_encode($tableData)];
+                }
+                continue;
+            }
+
+            // List
+            if (preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', $trimmed, $m)) {
+                $isNumbered = preg_match('/^\s*\d+\./', $trimmed);
+                $items      = [trim($m[2])];
+                $i++;
+                while ($i < $total && preg_match('/^(\s*[-*+]|\s*\d+\.)\s+(.+)$/', rtrim($lines[$i]), $m2)) {
+                    $items[] = trim($m2[2]);
+                    $i++;
+                }
+                $segments[] = [
+                    'type'    => 'list',
+                    'content' => json_encode(['style' => $isNumbered ? 'numbered' : 'bullet', 'items' => $items]),
+                ];
+                continue;
+            }
+
+            // Empty line
+            if (trim($trimmed) === '') {
+                $i++;
+                continue;
+            }
+
+            // Plain paragraph
+            $paraLines = [$trimmed];
+            $i++;
+            while ($i < $total) {
+                $next = rtrim($lines[$i]);
+                if ($next === '') break;
+                if (preg_match('/^(#{1,6}\s|```|\$\$|>|!\[|-{3,}|\*{3,}|\||\s*[-*+]\s|\s*\d+\.\s)/', $next)) break;
+                $paraLines[] = $next;
+                $i++;
+            }
+            $segments[] = ['type' => 'description', 'content' => implode("\n", $paraLines)];
+        }
+
+        return $segments;
+    }
+
+    /**
+     * Convert a full public URL to a relative storage path.
+     * e.g. "http://localhost/storage/ai_images/5/1/img.png"
+     *      → "ai_images/5/1/img.png"
+     * If it's already a relative path, return as-is.
+     */
+    private function urlToStoragePath(string $url): string
+    {
+        // Already relative (no scheme)
+        if (!preg_match('/^https?:\/\//', $url)) {
+            return $url;
+        }
+
+        // Strip domain + /storage/ prefix
+        $storagePubUrl = Storage::disk('public')->url('');
+        if (str_starts_with($url, $storagePubUrl)) {
+            return ltrim(substr($url, strlen($storagePubUrl)), '/');
+        }
+
+        // Fallback: strip anything up to /storage/
+        if (preg_match('#/storage/(.+)$#', $url, $m)) {
+            return $m[1];
+        }
+
+        // Can't resolve — return full URL, blade will handle gracefully
+        return $url;
+    }
+
+    private function parseMarkdownTable(array $lines): array
+    {
+        $rows = [];
+        foreach ($lines as $line) {
+            if (preg_match('/^\|[\s\-|:]+\|$/', $line)) continue;
+            $cells = array_map('trim', explode('|', trim($line, '|')));
+            if (!empty(array_filter($cells, fn($c) => $c !== ''))) {
+                $rows[] = $cells;
+            }
+        }
+        return $rows;
+    }
+
+    // ── MinerU extraction (unchanged) ─────────────────────────────────────────
     private function extractWithMinerU(AiJob $aiJob, string $imagesAbsPath): array
     {
         $pdfAbsPath = Storage::disk('local')->path($aiJob->pdf_path);
@@ -424,11 +661,9 @@ PROMPT;
             throw new \RuntimeException('MinerU returned empty Markdown. PDF may be image-only.');
         }
 
-        // Build public URLs for images
         $imagePaths = $output['images'] ?? [];
         $imageUrls  = [];
         foreach ($imagePaths as $absPath) {
-            // Make path relative to storage/app/public for URL generation
             $relToPublic = ltrim(str_replace(
                 Storage::disk('public')->path(''),
                 '',
@@ -439,10 +674,7 @@ PROMPT;
 
         $aiJob->log("MinerU found " . count($imageUrls) . " images.", 'info');
 
-        return [
-            'markdown'  => $markdown,
-            'imageUrls' => $imageUrls,
-        ];
+        return ['markdown' => $markdown, 'imageUrls' => $imageUrls];
     }
 
     private function resolvePython(): string

@@ -12,6 +12,7 @@
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
 
+
     @yield('css')
 
     @vite(['resources/js/app.js'])

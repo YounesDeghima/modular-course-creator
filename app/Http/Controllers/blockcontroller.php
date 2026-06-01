@@ -246,7 +246,8 @@ class blockcontroller extends Controller
 
             // ── Image → photo ──
             if (preg_match('/^!\[.*?\]\((.+?)\)$/', $trimmed, $m)) {
-                $segments[] = ['type' => 'photo', 'content' => trim($m[1])];
+                $url = trim($m[1]);
+                $segments[] = ['type' => 'photo', 'content' => $this->urlToStoragePath($url)];
                 $i++;
                 continue;
             }
@@ -322,6 +323,26 @@ class blockcontroller extends Controller
             }
         }
         return $rows;
+    }
+
+    /**
+     * Convert a full public URL to a relative storage path.
+     * e.g. "http://localhost/storage/ai_images/5/1/img.png" → "ai_images/5/1/img.png"
+     * If already relative, return as-is.
+     */
+    private function urlToStoragePath(string $url): string
+    {
+        if (!preg_match('/^https?:\/\//', $url)) {
+            return $url;
+        }
+        $storagePubUrl = \Storage::disk('public')->url('');
+        if (str_starts_with($url, $storagePubUrl)) {
+            return ltrim(substr($url, strlen($storagePubUrl)), '/');
+        }
+        if (preg_match('#/storage/(.+)$#', $url, $m)) {
+            return $m[1];
+        }
+        return $url;
     }
 
     public function updateAll(Request $request, $courseId, $chapterId, $lessonId)

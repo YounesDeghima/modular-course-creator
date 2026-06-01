@@ -59,7 +59,9 @@ new class extends Component {
 
     public function updateLesson($id, $chapterId): void
     {
-        $this->blocks = block::where('lesson_id', $id)
+        $this->lesson  = lesson::findorfail($id);
+        $this->chapter = $this->lesson->chapter;
+        $this->blocks  = block::where('lesson_id', $id)
             ->orderBy('block_number')
             ->with('solutions')
             ->get()
@@ -72,11 +74,10 @@ new class extends Component {
                 return $arr;
             })
             ->toArray();
-
-        $this->lesson  = lesson::findOrFail($id);
         $this->lesson->refresh();
-        $this->chapter = $this->lesson->chapter;
         $this->chapter->refresh();
+        // Dispatch so JS re-renders math/charts
+        $this->dispatch('blocksReloaded');
     }
 
     public function updatedBlocks($value, $key)
@@ -215,6 +216,9 @@ new class extends Component {
         [$this->blocks[$index], $this->blocks[$swapWith]] =
             [$this->blocks[$swapWith], $this->blocks[$index]];
 
+        // Re-index so array keys are 0,1,2... (required for Livewire)
+        $this->blocks = array_values($this->blocks);
+
         foreach ($this->blocks as $i => &$b) {
             $b['block_number'] = $i + 1;
             block::where('id', $b['id'])->update(['block_number' => $i + 1]);
@@ -269,6 +273,8 @@ new class extends Component {
             }
         }
     }
+
+
 
     public function updatedVideos($value, $key)
     {
@@ -372,7 +378,7 @@ new class extends Component {
             <div class="be-block type-{{ $block['type'] }}"
                  data-id="{{ $block['id'] }}"
                  data-block-id="{{ $block['id'] }}"
-                 wire:key="block-{{ $block['id'] }}-{{ $block['block_number'] }}">
+                 wire:key="block-pos-{{ $loop->index }}-{{ $block['id'] }}">
 
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.id">
                 <input type="hidden" wire:model="blocks.{{ $loop->index }}.block_number">
@@ -526,12 +532,40 @@ new class extends Component {
 
                         @case('photo')
                             <div class="be-media-wrap">
-                                @if(!empty($block['content']) && \Storage::disk('public')->exists($block['content']))
+                                @php
+                                    $photoContent = $block['content'] ?? '';
+                                    // Determine display URL — content can be:
+                                    // (a) relative storage path: "ai_images/5/1/img.png"  → asset('storage/...')
+                                    // (b) full URL already: "http://..."                  → use directly
+                                    $photoUrl = '';
+                                    $photoExists = false;
+                                    if (!empty($photoContent)) {
+                                        if (preg_match('/^https?:\/\//', $photoContent)) {
+                                            $photoUrl    = $photoContent;
+                                            $photoExists = true;
+                                        } else {
+                                            $photoExists = \Storage::disk('public')->exists($photoContent);
+                                            $photoUrl    = asset('storage/' . $photoContent);
+                                        }
+                                    }
+                                @endphp
+                                @if($photoExists)
                                     <div class="be-media-preview" wire:ignore>
-                                        <img src="{{ asset('storage/' . $block['content']) }}"
+                                        <img src="{{ $photoUrl }}"
                                              onclick="window.open(this.src)"
                                              style="max-height:180px;border-radius:6px;cursor:pointer;display:block;">
-                                        <span class="be-media-filename">{{ basename($block['content']) }}</span>
+                                        <span class="be-media-filename">{{ basename($photoContent) }}</span>
+                                    </div>
+                                @elseif(!empty($photoContent))
+                                    <div class="be-media-preview" wire:ignore>
+                                        <div style="padding:8px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted)">
+                                            ⚠ Image not found locally — trying external URL
+                                        </div>
+                                        <img src="{{ $photoContent }}"
+                                             onclick="window.open(this.src)"
+                                             style="max-height:180px;border-radius:6px;cursor:pointer;display:block;margin-top:4px"
+                                             onerror="this.parentElement.innerHTML='<span style=\'color:#ef4444;font-size:11px\'>❌ Image not accessible: {{ addslashes($photoContent) }}</span>'">
+                                        <span class="be-media-filename">{{ $photoContent }}</span>
                                     </div>
                                 @endif
                                 <label class="be-upload-label">
@@ -571,13 +605,13 @@ new class extends Component {
                         @case('math')
                             <textarea
                                 class="be-input be-input-mono"
-                                name="blocks[{{ $block['id'] }}][content]"
                                 placeholder="Enter LaTeX (e.g., x^2 + y^2 = z^2)"
                                 wire:model="blocks.{{ $loop->index }}.content"
                                 oninput="triggerMathPreview(this)"
                                 rows="2"
+                                oninput="renderMathPreview(this, 'math-preview-{{ $block['id'] }}')"
                             ></textarea>
-                            <div class="be-math-preview" data-math-src="{{ e($block['content'] ?? '') }}"></div>
+                            <div id="math-preview-{{ $block['id'] }}" class="be-math-preview" data-math-src="{{ e($block['content'] ?? '') }}"></div>
                             @break
 
                         @case('graph')
@@ -1101,10 +1135,45 @@ new class extends Component {
         };
         setTimeout(() => tryScroll(), 80);
     });
+    // ── Math preview for math blocks (id-based targeting) ──
+    function renderMathPreview(textarea, previewId) {
+        const preview = document.getElementById(previewId);
+        if (!preview) return;
+        const latex = textarea.value.trim();
+        if (!latex) { preview.innerHTML = ''; return; }
+        try {
+            preview.innerHTML = katex.renderToString(latex, {
+                displayMode: true,
+                throwOnError: false,
+            });
+        } catch(e) {
+            preview.textContent = latex;
+        }
+    }
+
+    // On load, render all existing math blocks
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+            const textarea = preview.previousElementSibling;
+            if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+        });
+    });
+
+    // Re-render after Livewire updates
+    if (window.Livewire) {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                document.querySelectorAll('[id^="math-preview-"]').forEach(preview => {
+                    const textarea = preview.previousElementSibling;
+                    if (textarea && textarea.value) renderMathPreview(textarea, preview.id);
+                });
+            });
+        });
+    }
 
     // ── BUG FIX #9 (toolbar outline scroll): fixed in _lesson-toolbar_blade.php ──
 
-    // ── Markdown preview toggle for individual blocks ──────────────────────
+    // ── Markdown preview toggle for individual blocks ──
     window.beMdToggle = function(btn) {
         var wrap    = btn.closest('.be-md-wrap');
         var src     = wrap.querySelector('.be-md-src');

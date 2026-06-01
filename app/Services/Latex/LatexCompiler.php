@@ -14,14 +14,14 @@ class LatexCompiler
         file_put_contents("$dir/doc.tex", $latex);
 
         $process = new Process([
-            'C:\\Users\\merie\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\xelatex.exe',
+            'C:\\Users\\ENPEI\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\xelatex.exe',
             '-interaction=nonstopmode',
             'doc.tex'
         ], $dir, [
-            'HOME'        => 'C:\\Users\\merie',
-            'USERPROFILE' => 'C:\\Users\\merie',
-            'APPDATA'     => 'C:\\Users\\merie\\AppData\\Roaming',
-            'LOCALAPPDATA'=> 'C:\\Users\\merie\\AppData\\Local',
+            'HOME'        => 'C:\\Users\\ENPEI',
+            'USERPROFILE' => 'C:\\Users\\ENPEI',
+            'APPDATA'     => 'C:\\Users\\ENPEI\\AppData\\Roaming',
+            'LOCALAPPDATA'=> 'C:\\Users\\ENPEI\\AppData\\Local',
         ]);
 
         $process->setTimeout(60);
