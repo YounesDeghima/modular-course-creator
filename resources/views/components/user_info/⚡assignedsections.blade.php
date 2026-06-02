@@ -83,24 +83,16 @@ new class extends Component {
             ->pluck('id')
             ->toArray();
 
-        // Manually sync the pivot table
-        DB::table('assignedsections')
-            ->where('user_id', $this->teacherId)
-            ->delete();
+        // Find the teacher model instance safely
+        $teacher = User::findOrFail($this->teacherId);
 
-        $rows = array_map(fn($id) => [
-            'user_id'    => $this->teacherId,
-            'section_id' => $id,
-        ], $sectionIds);
+        // 🌟 USE SYNC: This automatically adds new, removes old, and clears state caches
+        $teacher->assignedsections()->sync($sectionIds);
 
-        if (!empty($rows)) {
-            DB::table('assignedsections')->insert($rows);
-        }
-
+        // Update your local component arrays so they reflect changes cleanly
         $this->f_sectionids = $sectionIds;
 
         session()->flash('success', 'Sections saved successfully.');
-
     }
 
 };
