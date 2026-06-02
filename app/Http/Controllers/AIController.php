@@ -568,6 +568,7 @@ class AIController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Helper formatters for json response ───────────────────────────────────
     private function jobSummary(AiJob $job, bool $includeLogs = false): array
     {
         $data = [
@@ -575,7 +576,7 @@ class AIController extends Controller
             'status'            => $job->status,
             'original_filename' => $job->original_filename,
             'file_size'         => $job->file_size,
-            'file_size_human'   => $job->fileSizeHuman(),
+            'file_size_human'   => method_exists($job, 'fileSizeHuman') ? $job->fileSizeHuman() : '0 B',
             'pdf_path'          => $job->pdf_path,
             'year'              => $job->year,
             'branch'            => $job->branch,
@@ -587,15 +588,17 @@ class AIController extends Controller
             'started_by_id'     => $job->started_by_id,
             'note'              => $job->note,
             'error_message'     => $job->error_message,
-            'progress'          => $job->progressPercent(),
-            'can_retry'         => $job->canRetry(),
-            'can_cancel'        => $job->canCancel(),
+            'progress'          => method_exists($job, 'progressPercent') ? $job->progressPercent() : 0,
+            'can_retry'         => method_exists($job, 'canRetry') ? $job->canRetry() : false,
+            'can_cancel'        => method_exists($job, 'canCancel') ? $job->canCancel() : false,
             'started_at'        => $job->started_at?->toDateTimeString(),
             'finished_at'       => $job->finished_at?->toDateTimeString(),
             'duration_seconds'  => $job->duration_seconds,
             'created_at'        => $job->created_at?->toDateTimeString(),
             'updated_at'        => $job->updated_at?->toDateTimeString(),
-            'snapshot_count'    => AiJobSnapshot::where('ai_job_id', $job->id)->count(),
+            'snapshot_count'    => class_exists(\App\Models\AiJobSnapshot::class)
+                ? \App\Models\AiJobSnapshot::where('ai_job_id', $job->id)->count()
+                : 0,
         ];
 
         if ($includeLogs) {
@@ -605,30 +608,18 @@ class AIController extends Controller
         return $data;
     }
 
-    private function snapshotSummary(AiJobSnapshot $s): array
+    private function snapshotSummary($snapshot): array
     {
         return [
-            'id'              => $s->id,
-            'md_index'        => $s->md_index,
-            'md_status'       => $s->md_status,
-            'md_error'        => $s->md_error,
-            'md_created_at'   => $s->md_created_at?->toDateTimeString(),
-            'markdown_length' => mb_strlen($s->markdown ?? ''),
-            'image_count'     => count($s->image_urls ?? []),
-            'image_urls'      => $s->image_urls ?? [],
-            'results'         => array_map(function ($r) {
-                return [
-                    'index'            => $r['index'],
-                    'model'            => $r['model'],
-                    'status'           => $r['status'],
-                    'error'            => $r['error'] ?? null,
-                    'created_at'       => $r['created_at'],
-                    'duration_seconds' => $r['duration_seconds'] ?? null,
-                    'has_result'       => !empty($r['result_json']),
-                ];
-            }, $s->results ?? []),
+            'id'               => $snapshot->id,
+            'ai_job_id'        => $snapshot->ai_job_id,
+            'md_index'         => $snapshot->md_index,
+            'markdown_snippet' => mb_substr($snapshot->markdown ?? '', 0, 150) . '...',
+            'results_count'    => count($snapshot->results ?? []),
+            'created_at'       => $snapshot->created_at?->toDateTimeString(),
         ];
     }
+
 
     private function convertContent(string $raw, string $targetType): string
     {
