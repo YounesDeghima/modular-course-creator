@@ -44,10 +44,11 @@ new class extends Component {
 
         // 4. Optional: Dispatch a browser event if you want your frontend UI to update immediately
         $this->dispatch('progress-saved');
+
+        // 5. Dispatch event to update sidebar immediately
+        $this->dispatch('reloadProgress');
     }
 
 };
 ?>
 <div></div>
-
-

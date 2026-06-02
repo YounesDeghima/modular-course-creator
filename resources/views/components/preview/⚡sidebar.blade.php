@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 
 new class extends Component
 {
@@ -8,17 +9,16 @@ new class extends Component
     public $course;
     public $courseProgress;
 
-    public $listeners = ['chapterReset','reloadProgress'];
-
     public function mount($id,$course){
         $this->id = $id;
         $this->course = $course;
         $this->reloadProgress();
     }
 
+    #[On('chapterReset')]
+    #[On('reloadProgress')]
     public function reloadProgress(){
         $this->courseProgress = $this->course->progressForUser($this->id);
-
     }
 
 };
