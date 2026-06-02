@@ -2,6 +2,7 @@
 
 use App\Models\Event;
 use App\Models\Section;
+use App\Models\user;
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Carbon;
@@ -14,7 +15,10 @@ new class extends Component {
     public int $year;
     public int $month;
     public string $weekStart = '';
-    public $isAdmin ;
+    public $isAdmin;
+    public $isTeacher;
+    public $teacherId;
+
 
     // ── Modal ──
     public bool $showModal = false;
@@ -30,9 +34,11 @@ new class extends Component {
     public array $f_sections = [];
     public string $f_sectionInput = '';
 
+    public array $f_sectionIds = [];
+
     // ── Filters ──
     public array $activeFilters = ['exam', 'vacation', 'project', 'assignment'];
-    public array $activeVisibilities = ['personal','global','section', 'compagnie', 'batallion'];
+    public array $activeVisibilities = ['personal', 'global', 'section', 'compagnie', 'batallion'];
     protected $listeners = ['eventCreated', 'events'];
 
 
@@ -42,6 +48,15 @@ new class extends Component {
         $this->month = now()->month;
         $this->weekStart = now()->startOfWeek(Carbon::SUNDAY)->format('Y-m-d');
         $this->isAdmin = auth::user()->role == 'admin' ?? false;
+        $this->isTeacher = auth::user()->role == 'teacher' ?? false;
+
+        $this->f_sectionids = user::findOrFail(auth::user()->id)
+            ->assignedsections()
+            ->pluck('section_id')
+            ->toArray();
+
+
+
     }
 
     // ─────────────────────────────────────────
@@ -55,6 +70,7 @@ new class extends Component {
         if ($input === '') return [];
 
         return Section::select('section_number')
+            ->wherein('id',$this->f_sectionIds)
             ->where('section_number', 'like', $input . '%')
             ->whereNotIn('section_number', $this->f_sections)
             ->limit(8)
@@ -98,19 +114,18 @@ new class extends Component {
                             });
                     });
             })
-            ->when(!empty($this->activeFilters), fn($q) =>
-            $q->whereIn('type', $this->activeFilters)
+            ->when(!empty($this->activeFilters), fn($q) => $q->whereIn('type', $this->activeFilters)
                 ->whereIn('visibility', $this->activeVisibilities)
             )
             ->get()
             ->map(fn($e) => [
-                'id'          => $e->id,
-                'title'       => $e->title,
+                'id' => $e->id,
+                'title' => $e->title,
                 'description' => $e->description ?? '',
-                'start_date'  => substr($e->start_date, 0, 10),   // avoids Carbon overhead
-                'end_date'    => substr($e->end_date ?? $e->start_date, 0, 10),
-                'type'        => $e->type,
-                'visibility'  => $e->visibility,
+                'start_date' => substr($e->start_date, 0, 10),   // avoids Carbon overhead
+                'end_date' => substr($e->end_date ?? $e->start_date, 0, 10),
+                'type' => $e->type,
+                'visibility' => $e->visibility,
             ])
             ->toArray();
     }
@@ -665,7 +680,7 @@ new class extends Component {
         @if($showModal)
             @php
 
-            @endphp
+                @endphp
             <div class="cal-modal-backdrop open">
                 <div class="cal-modal">
                     <button class="cal-modal-close" wire:click="closeModal">✕</button>

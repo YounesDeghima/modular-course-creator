@@ -311,16 +311,71 @@
 
 {{-- ── Sidebar ───────────────────────────────────────────────────── --}}
 @section('sidebar-elements')
-    <livewire:preview.lesson-sidebar
-        :id="$id"
-        :chapter="$chapter"
-        :lesson="$lesson"
-        :course="$course"
-        :prevlesson="$prevlesson"
-        :nextlesson="$nextlesson"
-        :prevchapter="$prevchapter"
-        :nextchapter="$nextchapter"
-    />
+    <div class="sb-course-head">
+        <div class="sb-course-label">Chapter</div>
+        <div class="sb-chapter-name">{{ $chapter->title }}</div>
+        <div class="sb-ch-progress">
+            <div class="sb-ch-prog-label">
+                <span>Chapter progress</span>
+                <span>{{ $chapter->progressForUser($id) }}%</span>
+            </div>
+            <div class="sb-ch-bar">
+                <div class="sb-ch-fill" style="width: {{ $chapter->progressForUser($id) }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="lesson-nav-list">
+        @foreach($chapter->lessons as $i => $lesson_item)
+            @if($lesson_item->status === 'published')
+                @php
+                    $lp     = $lesson_item->progressForUser($id);
+                    $isDone = $lp && $lp->progress >= 90;
+                @endphp
+                <a class="lesson-nav-item {{ $lesson_item->id === $lesson->id ? 'active' : '' }}"
+                   href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$lesson_item]) }}">
+                    <span class="lesson-nav-num">{{ $chapter->chapter_number }}.{{ $i+1 }}</span>
+                    <span class="lesson-nav-title">{{ $lesson_item->title }}</span>
+                    <span class="lesson-nav-check {{ $isDone ? 'lnc-done' : 'lnc-none' }}">
+                        {{ $isDone ? '✓' : '' }}
+                    </span>
+                </a>
+            @endif
+        @endforeach
+    </nav>
+
+    <div class="sb-lesson-nav">
+        @if($prevlesson)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$prevlesson]) }}">
+                ‹ Prev
+            </a>
+        @elseif($prevchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$prevchapter]) }}">
+                ‹ Prev chapter
+            </a>
+        @else
+            <span class="sb-nav-btn disabled">‹ Prev</span>
+        @endif
+
+        @if($nextlesson)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.blocks', ['course'=>$course,'chapter'=>$chapter,'lesson'=>$nextlesson]) }}">
+                Next ›
+            </a>
+        @elseif($nextchapter)
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.lessons', ['course'=>$course,'chapter'=>$nextchapter]) }}">
+                Next chapter ›
+            </a>
+        @else
+            <a class="sb-nav-btn"
+               href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">
+                Back to course ›
+            </a>
+        @endif
+    </div>
 @endsection
 
 {{-- ── Top breadcrumb + completion bar ────────────────────────── --}}
@@ -807,8 +862,6 @@
                 // Clean canonical communication directly to our Livewire component
                 if (window.Livewire) {
                     Livewire.dispatch('progressReached', { progress: Math.round(maxProgress) });
-                    // Update sidebar immediately when lesson is completed
-                    Livewire.dispatch('reloadProgress');
                 }
             }
         }

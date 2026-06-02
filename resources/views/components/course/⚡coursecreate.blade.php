@@ -1,15 +1,16 @@
 <?php
 
+use App\Models\chapter;
 use App\Models\course;
 use Livewire\Component;
 
 new class extends Component {
 
-    public $title='title';
-    public $description='description';
-    public $year='1';
-    public $branch='none';
-    public $status='draft';
+    public $title = 'title';
+    public $description = 'description';
+    public $year = '1';
+    public $branch = 'none';
+    public $status = 'draft';
 
     public $course;
 
@@ -23,6 +24,11 @@ new class extends Component {
         }
     }
 
+
+    public function resetmodal()
+    {
+        $this->reset();
+    }
 
     public function store()
     {
@@ -41,7 +47,26 @@ new class extends Component {
 
 
         $this->course = course::create($validated);
-        $this->dispatch('courseCreated',id:$this->course->id);
+        $this->dispatch('courseCreated', id: $this->course->id);
+
+
+        $latestCourse = course::max('id');
+
+
+        $placeholder_chapter = chapter::create([
+            'course_id' => $latestCourse,
+            'title' => 'Chapter 1',
+            'chapter_number' => 1,
+            'description' => 'Add your chapter description here',
+            'status' => 'draft'
+        ]);
+
+        $placeholder_chapter->lessons()->create([
+            'title' => 'Lesson 1',
+            'lesson_number' => 1,
+            'content' => 'Add your lesson content here',
+            'status' => 'draft'
+        ]);
 
 
         $this->reset();
@@ -51,12 +76,14 @@ new class extends Component {
 <div id="add-course-modal" class="modal-overlay" x-data="{
             year:@entangle('year'),
             branch:@entangle('branch')}"
-            x-show="open_course_modal" :class="{ 'open': open_course_modal }">
-    <div id="block-popup" class="modal-content" :class="{ 'open': open_course_modal }"  @click.away="open_course_modal=false" >
-        <form id="new-block-form" wire:submit.prevent="store" >
+     x-show="open_course_modal" :class="{ 'open': open_course_modal }">
+    <div id="block-popup" class="modal-content" :class="{ 'open': open_course_modal }"
+         @click.away="open_course_modal=false">
+        <form id="new-block-form" wire:submit.prevent="store">
 
             @if ($errors->any())
-                <div style="background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <div
+                    style="background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                     <ul>
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -81,14 +108,13 @@ new class extends Component {
                         <option value="3">Year 3</option>
                     </select>
                 </div>
-                <div style="flex:1;">
+                <div :style="year != 1 ? 'flex: 1;' : 'display: none; flex: 0;'">
                     <label class="branch-label">Branch</label>
 
                     <select name="branch"
                             class="branch-input"
                             wire:model="branch"
-                            x-model="branch"
-                            :disabled="year == 1">
+                            x-model="branch">
 
                         <option value="mi" selected>MI</option>
                         <option value="st">ST</option>
@@ -108,10 +134,11 @@ new class extends Component {
                 </select>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
-                <button type="button" id="close-popup" @click="open_course_modal = false">Cancel</button>
-                <button type="submit">Create course</button>
+                <button type="button" id="close-popup" @click="open_course_modal = false" wire:click="resetmodal">
+                    Cancel
+                </button>
+                <button type="submit" @click="open_course_modal = false">Create course</button>
             </div>
         </form>
     </div>
 </div>
-

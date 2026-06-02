@@ -52,7 +52,8 @@ class user extends Authenticatable
 
     public function assignedsections()
     {
-        return $this->hasMany(assignedsection::class,'user_id', 'section_id');
+        // Ensure the pivot table name aligns with 'assignedsections'
+        return $this->belongsToMany(Section::class, 'assignedsections', 'user_id', 'section_id');
     }
 
 

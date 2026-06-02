@@ -74,7 +74,7 @@ new class extends Component {
                 @if($lesson->status == 'published')
                     @php
                         $progress = $lesson->progressForUser($id);
-                        $done = $progress && $progress->progress > 90;
+                        $done = $progress && $progress->progress > 80;
                     @endphp
 
                     <a class="lesson-card {{ $done ? 'done' : '' }}"
