@@ -855,16 +855,11 @@
                 if (bar) bar.style.width = maxProgress + '%';
             }
 
+            // Trigger update when user clears 90% threshold and it hasn't been sent in this lifecycle
             if (maxProgress >= 90 && !progressSent) {
                 progressSent = true;
-                // FIX #3: dispatch to Livewire component instead of calling .submit()
-                const progressInput = document.getElementById('progress-input');
-                if (progressInput) {
-                    progressInput.value = Math.round(maxProgress);
-                    // Livewire detects the input change and handles persistence
-                    progressInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-                // Also attempt direct Livewire dispatch as fallback
+
+                // Clean canonical communication directly to our Livewire component
                 if (window.Livewire) {
                     Livewire.dispatch('progressReached', { progress: Math.round(maxProgress) });
                 }

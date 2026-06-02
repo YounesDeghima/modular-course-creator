@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\block;
 use App\Models\lesson;
+use App\Services\Pdf\PdfCompiler;
 use Illuminate\Http\Request;
-use App\Services\Latex\LatexBuilder;
-use App\Services\Latex\LatexCompiler;
+use App\Services\Pdf\MarkdownBuilder;
+
 use Illuminate\Support\Facades\Response;
 
 class LessonPdfController extends Controller
@@ -19,10 +20,10 @@ class LessonPdfController extends Controller
             ->orderBy('block_number','asc')
             ->get();
 
-        $builder = new LatexBuilder();
+        $builder = new MarkdownBuilder();
         $latex = $builder->build($lesson, $blocks);
 
-        $compiler = new LatexCompiler();
+        $compiler = new PdfCompiler();
         $pdfPath = $compiler->compile($latex);
 
         return response()->download($pdfPath)->deleteFileAfterSend();
@@ -36,18 +37,15 @@ class LessonPdfController extends Controller
         $lesson = Lesson::findOrFail($lessonId);
 
         $blocks = Block::where('lesson_id', $lessonId)
-            ->orderBy('block_number','asc')
+            ->orderBy('block_number')
             ->get();
-        $builder = new \App\Services\Latex\LatexBuilder();
-        $compiler = new \App\Services\Latex\LatexCompiler();
 
-        // 1. Generate the LaTeX and compile to PDF
-        $latex = $builder->build($lesson, $blocks);
-        $pdfPath = $compiler->compile($latex);
+        $builder = new MarkdownBuilder();
+        $compiler = new PdfCompiler();
 
-        if (ob_get_level()) ob_end_clean();
-        // 2. Return as 'inline' to open in a new tab
-        // Use the file() helper for better stream handling
+        $markdown = $builder->build($lesson, $blocks);
+        $pdfPath = $compiler->compile($markdown);
+
         return response()->stream(function () use ($pdfPath) {
             readfile($pdfPath);
         }, 200, [
