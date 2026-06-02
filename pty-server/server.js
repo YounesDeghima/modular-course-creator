@@ -1,5 +1,5 @@
 /**
- * pty-server/server.js  -  WINDOWS-NATIVE VERSION (PTY INTERACTIVE STREAM FIX)
+ * pty-server/server.js  -  WINDOWS-NATIVE VERSION (TTY WARNING FILTER INTEGRATED)
  */
 
 import { WebSocketServer }           from 'ws';
@@ -48,7 +48,7 @@ const CFG = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  LANGUAGE MAP  -  Simplified clean execution maps relying on native TTY behaviors
+//  LANGUAGE MAP  -  Execution configurations relying on native TTY behaviors
 // ─────────────────────────────────────────────────────────────────────────────
 const LANGUAGES = {
     python: { ext: 'py', cmd: ['python3', '-u', '/code/code.py'] },
@@ -109,7 +109,7 @@ function buildPodmanArgs(containerName, lang, srcFile) {
     const normalizedSrcFile = srcFile.replace(/\\/g, '/');
     return [
         'run', '--rm',
-        '-i', '-t', // Allocates a pseudo-TTY interface to trigger interactive buffering natively
+        '-i', '-t',
         '--name', containerName,
         '--network', 'none',
         '--memory', CFG.MEMORY,
@@ -248,8 +248,18 @@ wss.on('connection', (ws) => {
                 });
 
                 containerProc.stderr.on('data', (chunk) => {
-                    outputBytes += chunk.length;
-                    send(ws, 'stderr', { data: chunk.toString('utf8') });
+                    let str = chunk.toString('utf8');
+
+                    // Filter out the native Podman TTY input device warning lines entirely
+                    if (str.includes('The input device is not a TTY')) {
+                        str = str.replace(/^.*The input device is not a TTY.*$/gm, '');
+                    }
+
+                    // Avoid transferring messages if the line block has been fully cleared
+                    if (str.trim() === '') return;
+
+                    outputBytes += Buffer.byteLength(str, 'utf8');
+                    send(ws, 'stderr', { data: str });
                 });
 
                 containerProc.on('close', (exitCode) => {
