@@ -32,7 +32,7 @@ new class extends Component {
 
     // ── Filters ──
     public array $activeFilters = ['exam', 'vacation', 'project', 'assignment'];
-    public array $activeVisibilities = ['personal', 'section', 'compagnie', 'batallion'];
+    public array $activeVisibilities = ['personal','global','section', 'compagnie', 'batallion'];
     protected $listeners = ['eventCreated', 'events'];
 
 
@@ -79,7 +79,7 @@ new class extends Component {
     }
 
 
-    #[Computed(cache: true)]
+    #[Computed]
     public function events(): array
     {
         $userId = auth()->id();
