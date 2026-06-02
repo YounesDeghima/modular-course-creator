@@ -38,12 +38,27 @@ class chaptercontroller extends Controller
             ? $lesson->blocks()->orderBy('block_number', 'asc')->get()
             : collect();
 
-        // 4. Guard: redirect back with a helpful message instead of silently
-        //    auto-creating content, which was causing phantom chapters/lessons.
-        if (!$chapter) {
-            return redirect()->route('admin.courses.index')
-                ->with('info', 'This course has no chapters yet. Create one from the editor.');
-        }
+        // 4. Guard: Create placeholder chapter and lesson if none exist
+        /*if (!$chapter) {
+            $placeholder_chapter = chapter::create([
+                'course_id' => $course->id,
+                'title' => 'Chapter 1',
+                'chapter_number' => 1,
+                'description' => 'Add your chapter description here',
+                'status' => 'draft'
+            ]);
+
+            $placeholder_chapter->lessons()->create([
+                'title' => 'Lesson 1',
+                'lesson_number' => 1,
+                'content' => 'Add your lesson content here',
+                'status' => 'draft'
+            ]);
+
+            $chapter = $placeholder_chapter;
+            $lesson = $placeholder_chapter->lessons()->first();
+            $blocks = $lesson->blocks()->orderBy('block_number', 'asc')->get();
+        }*/
 
         // 5. Other data needed by the view
         $chapter_count = $chapters->count();
@@ -91,8 +106,17 @@ class chaptercontroller extends Controller
         $validated['course_id'] = $course->id;
         $chapter = chapter::create($validated);
 
+        // Auto-create a placeholder lesson for the new chapter
+        $lesson = $chapter->lessons()->create([
+            'title' => 'Lesson 1',
+            'lesson_number' => 1,
+            'content' => 'Add your lesson content here',
+            'status' => $validated['status']
+        ]);
+
         return response()->json([
-            'chapter' => $chapter
+            'chapter' => $chapter,
+            'lesson' => $lesson
         ]);
     }
 
