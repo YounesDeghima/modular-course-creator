@@ -583,10 +583,10 @@ class blockcontroller extends Controller
             'content'      => 'nullable|string',
         ]);
 
-        if ($block->type === 'exercise') {
-            foreach ($block->solutions as $solution) {
-                $solution->content = $request->input('solution');
-                $solution->save();
+        if ($block->type === 'exercise' && $request->has('solutions')) {
+            foreach ($request->input('solutions') as $solutionId => $solContent) {
+                $sol = $block->solutions()->find($solutionId);
+                if ($sol) $sol->update(['content' => $solContent]);
             }
         }
 

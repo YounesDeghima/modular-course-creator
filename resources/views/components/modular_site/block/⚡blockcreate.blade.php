@@ -92,7 +92,7 @@ new class extends Component {
             ]),
 
             'function' => json_encode([
-                'function' => 'sin(x)',
+                'function' => 'y=x',
                 'x_min'    => -10,
                 'x_max'    => 10,
                 'y_min'    => -5,

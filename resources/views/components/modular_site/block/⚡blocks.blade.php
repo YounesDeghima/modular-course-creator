@@ -92,7 +92,7 @@ new class extends Component {
 
             $index = explode('.', $key)[0];
             $this->blocks[$index]['content'] = json_encode([
-                'function' => $this->blocks[$index]['func_expression'] ?? 'sin(x)',
+                'function' => $this->blocks[$index]['func_expression'] ?? 'y=x',
                 'x_min' => $this->blocks[$index]['x_min'] ?? -10,
                 'x_max' => $this->blocks[$index]['x_max'] ?? 10,
                 'y_min' => $this->blocks[$index]['y_min'] ?? -5,
@@ -117,7 +117,7 @@ new class extends Component {
             }
             if ($blockData['type'] === 'list') {
                 $items = array_values(array_filter(array_map('trim', explode("
-", $blockData['list_items'] ?? ''))));
+                ", $blockData['list_items'] ?? ''))));
                 $content = json_encode([
                     'style' => $blockData['list_style'] ?? 'bullet',
                     'items' => $items,
@@ -131,7 +131,7 @@ new class extends Component {
             }
             if ($blockData['type'] === 'function') {
                 $content = json_encode([
-                    'function' => $blockData['func_expression'] ?? 'sin(x)',
+                    'function' => $blockData['func_expression'] ?? 'y = x',
                     'x_min' => $blockData['x_min'] ?? -10,
                     'x_max' => $blockData['x_max'] ?? 10,
                     'y_min' => $blockData['y_min'] ?? -5,
@@ -149,8 +149,10 @@ new class extends Component {
 
             if ($blockData['type'] === 'exercise') {
                 foreach ($blockData['solutions'] ?? [] as $solution) {
-                    exercisesolution::where('id', $solution['id'])
-                        ->update(['content' => $solution['content']]);
+                    if (!empty($solution['id']) && is_numeric($solution['id'])) {
+                        exercisesolution::where('id', $solution['id'])
+                            ->update(['content' => $solution['content'] ?? '']);
+                    }
                 }
             }
             if (in_array($blockData['type'], ['photo', 'video'])) {
@@ -165,7 +167,7 @@ new class extends Component {
     {
         if ($block['type'] === 'function') {
             $data = json_decode($block['content'], true) ?? [];
-            $block['func_expression'] = $data['function'] ?? 'sin(x)';
+            $block['func_expression'] = $data['function'] ?? 'y=x';
             $block['x_min']  = $data['x_min']  ?? -10;
             $block['x_max']  = $data['x_max']  ??  10;
             $block['y_min']  = $data['y_min']  ??  -5;
@@ -245,7 +247,7 @@ new class extends Component {
             $this->blocks[$index]['content'] = json_encode(['type' => 'divider']);
         } elseif ($newType === 'function' && !is_array(json_decode($currentContent, true))) {
             $this->blocks[$index]['content'] = json_encode([
-                'function' => 'sin(x)', 'x_min' => -10, 'x_max' => 10,
+                'function' => 'y=x', 'x_min' => -10, 'x_max' => 10,
                 'y_min' => -5, 'y_max' => 5, 'color' => '#4f46e5', 'step' => 0.1,
             ]);
         } elseif ($newType === 'graph' && !is_array(json_decode($currentContent, true))) {
@@ -266,25 +268,34 @@ new class extends Component {
     public function updatedPhotos($value, $key)
     {
         $path = $this->photos[$key]->store('blocks', 'public');
-        foreach ($this->blocks as &$block) {
+        foreach ($this->blocks as $i => &$block) {
             if ($block['id'] == $key) {
                 $block['content'] = $path;
+                block::where('id', $key)->update(['content' => $path]);
                 break;
             }
         }
+        unset($block);
+        $this->dispatch('notify', message: 'Image uploaded!');
     }
+
+
 
 
 
     public function updatedVideos($value, $key)
     {
         $path = $this->videos[$key]->store('blocks', 'public');
-        foreach ($this->blocks as &$block) {
+        foreach ($this->blocks as $i => &$block) {
             if ($block['id'] == $key) {
                 $block['content'] = $path;
+                // Save immediately so the path isn't lost on re-render
+                block::where('id', $key)->update(['content' => $path]);
                 break;
             }
         }
+        unset($block);
+        $this->dispatch('notify', message: 'Video uploaded!');
     }
 
     public function addTableRow($blockId)
@@ -672,7 +683,7 @@ new class extends Component {
                         @case('function')
                             @php
                                 $funcData = json_decode($block['content'], true) ?? [
-                                    'function' => 'y = sin(x)',
+                                    'function' => 'y = x',
                                     'x_min'    => -10,
                                     'x_max'    => 10,
                                     'y_min'    => -6,
@@ -1090,7 +1101,7 @@ new class extends Component {
                             const canvas = document.getElementById('func-canvas-' + bid);
                             if (canvas) {
                                 const opts = {
-                                    equation:   editor.querySelector('input[name*="func_expression"]')?.value ?? 'y=sin(x)',
+                                    equation:   editor.querySelector('input[name*="func_expression"]')?.value ?? 'y=x',
                                     xMin:       parseFloat(editor.querySelector('input[name*="x_min"]')?.value)  || -10,
                                     xMax:       parseFloat(editor.querySelector('input[name*="x_max"]')?.value)  ||  10,
                                     yMin:       parseFloat(editor.querySelector('input[name*="y_min"]')?.value)  ||  -6,
