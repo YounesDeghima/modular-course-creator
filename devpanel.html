@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>modular-course-creator — Dev Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  --bg:#0b0b0d;--surface:#111115;--surface2:#17171c;--surface3:#1e1e25;
+  --border:#252530;--border2:#33333f;--text:#e6e6f0;--muted:#72728a;--dim:#404055;
+  --accent:#7055ff;--accent2:#9980ff;--ok:#3ecf8e;--warn:#f0a030;--err:#ff4f4f;--info:#40b8f5;
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;display:flex;flex-direction:column;height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round}
+.logo-name{font-size:13px;font-weight:800;letter-spacing:.02em}
+.logo-branch{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid;letter-spacing:.04em;white-space:nowrap}
+.pill.ok{background:rgba(62,207,142,.08);color:var(--ok);border-color:rgba(62,207,142,.25)}
+.pill.warn{background:rgba(240,160,48,.08);color:var(--warn);border-color:rgba(240,160,48,.25)}
+.pill.err{background:rgba(255,79,79,.08);color:var(--err);border-color:rgba(255,79,79,.25)}
+.pill.info{background:rgba(64,184,245,.08);color:var(--info);border-color:rgba(64,184,245,.25)}
+.pill.dim{background:rgba(64,64,85,.15);color:var(--dim);border-color:var(--border2)}
+.pill.accent{background:rgba(112,85,255,.12);color:var(--accent2);border-color:rgba(112,85,255,.3)}
+.pill.running{background:rgba(62,207,142,.08);color:var(--ok);border-color:rgba(62,207,142,.25)}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.btn{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.05em;padding:6px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--surface3);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn.danger{border-color:rgba(255,79,79,.35);color:var(--err)}
+.btn.danger:hover{background:rgba(255,79,79,.08);border-color:var(--err)}
+.btn.ok-btn{border-color:rgba(62,207,142,.35);color:var(--ok)}
+.btn.ok-btn:hover{background:rgba(62,207,142,.08);border-color:var(--ok)}
+.btn.sm{font-size:10px;padding:4px 10px}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.nav-group{padding:14px 0 4px}
+.nav-label{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--dim);padding:0 16px 6px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;border-left:2px solid transparent;transition:all .12s;font-size:12px;font-weight:600;color:var(--muted)}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--accent2);background:var(--surface2);border-left-color:var(--accent)}
+.nav-item .ni-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .2s}
+.nav-item.active .ni-dot,.nav-item:hover .ni-dot{background:var(--accent)}
+.nav-badge{margin-left:auto;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--surface3);color:var(--muted);border:1px solid var(--border)}
+.nav-badge.ok{background:rgba(62,207,142,.08);color:var(--ok);border-color:rgba(62,207,142,.2)}
+.nav-badge.warn{background:rgba(240,160,48,.08);color:var(--warn);border-color:rgba(240,160,48,.2)}
+.nav-badge.err{background:rgba(255,79,79,.08);color:var(--err);border-color:rgba(255,79,79,.2)}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.ss-row{display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);padding:3px 0;color:var(--muted)}
+.ss-val{color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-header{margin-bottom:20px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.page-header p{font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.section-label{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;margin-bottom:10px;margin-top:22px;display:flex;align-items:center;gap:10px}
+.section-label:first-child{margin-top:0}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* stats */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px 16px}
+.stat-card .sl{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.stat-card .sv{font-size:28px;font-weight:800;font-family:var(--mono);letter-spacing:-.03em;line-height:1}
+.stat-card .ss{font-size:10px;color:var(--dim);margin-top:5px;font-family:var(--mono)}
+.stat-card.ok .sv{color:var(--ok)}
+.stat-card.err .sv{color:var(--err)}
+.stat-card.warn .sv{color:var(--warn)}
+.stat-card.neutral .sv{color:var(--muted)}
+
+/* component cards */
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px 16px;position:relative;overflow:hidden;transition:border-color .15s,background .15s}
+.comp-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.comp-card.ok::before{background:var(--ok)}.comp-card.warn::before{background:var(--warn)}.comp-card.err::before{background:var(--err)}.comp-card.unknown::before{background:var(--dim)}
+.cc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.cc-name{font-size:13px;font-weight:700}
+.cc-ver{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.cc-desc{font-size:11px;color:var(--muted);line-height:1.55;margin-bottom:10px}
+.cc-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* setup items */
+.setup-list{display:flex;flex-direction:column;gap:8px}
+.setup-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;transition:border-color .2s}
+.setup-item.ok{border-color:rgba(62,207,142,.15)}.setup-item.err{border-color:rgba(255,79,79,.15)}.setup-item.warn{border-color:rgba(240,160,48,.15)}
+.si-head{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none}
+.si-head:hover{background:var(--surface2)}
+.si-num{font-family:var(--mono);font-size:10px;color:var(--dim);min-width:22px}
+.si-icon{width:30px;height:30px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.si-icon svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.setup-item.ok .si-icon{background:rgba(62,207,142,.06);border-color:rgba(62,207,142,.2)}.setup-item.ok .si-icon svg{stroke:var(--ok)}
+.setup-item.err .si-icon{background:rgba(255,79,79,.06);border-color:rgba(255,79,79,.2)}.setup-item.err .si-icon svg{stroke:var(--err)}
+.setup-item.warn .si-icon{background:rgba(240,160,48,.06);border-color:rgba(240,160,48,.2)}.setup-item.warn .si-icon svg{stroke:var(--warn)}
+.si-info{flex:1;min-width:0}
+.si-name{font-size:13px;font-weight:700}
+.si-brief{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.si-chevron{color:var(--dim);font-size:12px;transition:transform .2s}
+.setup-item.open .si-chevron{transform:rotate(90deg)}
+.si-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.setup-item.open .si-body{display:block;padding-top:14px}
+.install-note{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.os-tabs{display:flex;gap:4px;margin-bottom:8px}
+.os-tab{font-size:10px;font-family:var(--mono);font-weight:600;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .12s}
+.os-tab:hover{color:var(--text);border-color:var(--border2)}
+.os-tab.active{border-color:var(--accent);color:var(--accent2);background:rgba(112,85,255,.08)}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.9;color:#a8a8c8;overflow-x:auto;white-space:pre;margin:0 0 10px;position:relative}
+.cb-copy{position:absolute;top:8px;right:8px;font-size:9px;font-family:var(--sans);font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .12s}
+.cb-copy:hover{color:var(--text);border-color:var(--accent2)}
+.c-cmd{color:#80c4ff}.c-comment{color:var(--dim)}.c-val{color:#7edd9f}.c-key{color:var(--accent2)}.c-warn{color:var(--warn)}
+.link-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ext-link{font-size:11px;color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(153,128,255,.3);padding-bottom:1px}
+.ext-link:hover{border-color:var(--accent2)}
+.si-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+/* process control */
+.ctrl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.ctrl-header h2{font-size:18px;font-weight:800}
+.proc-list{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.proc-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;transition:border-color .15s}
+.proc-row.running{border-color:rgba(62,207,142,.15)}
+.proc-name{font-size:13px;font-weight:700;min-width:160px}
+.proc-row.running .proc-name{color:var(--text)}.proc-row.stopped .proc-name{color:var(--muted)}
+.proc-cmd{font-family:var(--mono);font-size:10px;color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proc-port{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:44px;text-align:right}
+.proc-uptime{font-family:var(--mono);font-size:10px;color:var(--ok);min-width:50px;text-align:right}
+.proc-btns{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
+.port-table{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.pt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.pt-row:last-child{border-bottom:none}
+.pt-key{color:var(--muted)}.pt-val{font-family:var(--mono);color:var(--text)}
+
+/* terminal output */
+.terminal{background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:11px;line-height:1.75;padding:14px;height:300px;overflow-y:auto;margin-bottom:12px}
+.t-line{margin-bottom:1px}
+.t-ts{color:var(--dim)}.t-ok{color:var(--ok)}.t-err{color:var(--err)}.t-warn{color:var(--warn)}.t-info{color:var(--info)}.t-sys{color:var(--accent2)}.t-muted{color:var(--muted)}
+
+/* env */
+.env-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:6px}
+.env-item.required{border-color:rgba(255,79,79,.12)}.env-item.optional{border-color:rgba(240,160,48,.08)}
+.env-status-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+
+/* action terminal overlay */
+.action-overlay{display:none;position:fixed;inset:0;background:rgba(11,11,13,.85);z-index:100;align-items:center;justify-content:center}
+.action-overlay.show{display:flex}
+.action-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:700px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.6)}
+.action-title{padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+.action-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 4px}
+.action-close:hover{color:var(--text)}
+.action-terminal{flex:1;min-height:320px;max-height:400px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.75;padding:14px;background:var(--bg);color:#a8a8c8}
+.action-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.action-status{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite;display:inline-block}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fadein{animation:fadein .2s ease}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 16 16"><polyline points="2,12 6,8 9,11 14,4"/></svg></div>
+    <div>
+      <div class="logo-name">modular-course-creator</div>
+      <div class="logo-branch">branch: maintest &nbsp;/&nbsp; dev control panel</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill accent" id="os-pill"><span class="pill-dot"></span><span id="os-label">detecting...</span></span>
+    <button class="btn" onclick="runAllChecks()" id="refresh-btn">refresh all</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="nav-group">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" data-page="overview" onclick="nav(this)"><span class="ni-dot"></span>Dashboard</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Setup</div>
+      <div class="nav-item" data-page="setup" onclick="nav(this)"><span class="ni-dot"></span>Installer<span class="nav-badge" id="nb-setup">—</span></div>
+      <div class="nav-item" data-page="env" onclick="nav(this)"><span class="ni-dot"></span>Environment<span class="nav-badge" id="nb-env">—</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Runtime</div>
+      <div class="nav-item" data-page="services" onclick="nav(this)"><span class="ni-dot"></span>Services<span class="nav-badge" id="nb-svc">—</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Diagnose</div>
+      <div class="nav-item" data-page="troubleshoot" onclick="nav(this)"><span class="ni-dot"></span>Troubleshoot</div>
+      <div class="nav-item" data-page="logs" onclick="nav(this)"><span class="ni-dot"></span>Activity log<span class="nav-badge" id="nb-logs">0</span></div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="ss-row"><span>OS</span><span class="ss-val" id="ss-os">—</span></div>
+      <div class="ss-row"><span>Panel</span><span class="ss-val" id="ss-time">—</span></div>
+      <div class="ss-row"><span>Last check</span><span class="ss-val" id="ss-last">never</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <h1>Stack Overview</h1>
+        <p id="last-check-note">Click "refresh all" to run live checks against your system</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card ok"><div class="sl">Ready</div><div class="sv" id="st-ok">—</div><div class="ss">components installed</div></div>
+        <div class="stat-card warn"><div class="sl">Issues</div><div class="sv" id="st-miss">—</div><div class="ss">need attention</div></div>
+        <div class="stat-card neutral"><div class="sl">Services up</div><div class="sv" id="st-run">—</div><div class="ss">ports listening</div></div>
+        <div class="stat-card neutral"><div class="sl">Total</div><div class="sv" style="color:var(--muted)">8</div><div class="ss">tracked components</div></div>
+      </div>
+      <div class="section-label">Components</div>
+      <div class="comp-grid" id="ov-grid"></div>
+      <div class="section-label">Quick actions</div>
+      <div style="margin-bottom:12px;background:var(--surface);border:1px solid rgba(112,85,255,.3);border-radius:9px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div>
+          <div style="font-size:13px;font-weight:700">Full Auto-Setup</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)">Installs everything missing: PHP, Composer, Node, Podman, project deps, code-runner image, MinerU. Already-installed steps are skipped.</div>
+        </div>
+        <button class="btn primary" style="white-space:nowrap;flex-shrink:0" onclick="runStreamAction('/api/install/auto-setup','Full Auto-Setup')">Run auto-setup</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="nav(null,'setup')">Installer</button>
+        <button class="btn" onclick="nav(null,'services')">Services</button>
+        <button class="btn" onclick="nav(null,'troubleshoot')">Troubleshoot</button>
+        <button class="btn" onclick="runAllChecks()">Re-check all</button>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="page" id="page-setup">
+      <div class="page-header">
+        <h1>Installer</h1>
+        <p id="setup-os-note">Checking OS...</p>
+      </div>
+      <div class="section-label">Required</div>
+      <div class="setup-list" id="sl-required"></div>
+      <div class="section-label" style="margin-top:16px">Optional</div>
+      <div class="setup-list" id="sl-optional"></div>
+    </div>
+
+    <!-- ENV -->
+    <div class="page" id="page-env">
+      <div class="page-header">
+        <h1>Environment</h1>
+        <p>Status of your .env file keys — the panel reads your actual .env</p>
+      </div>
+      <div id="env-status-area"></div>
+      <div class="section-label">Core Laravel</div>
+      <div id="env-core"></div>
+      <div class="section-label">Code editor (PTY server)</div>
+      <div id="env-pty"></div>
+      <div class="section-label">Optional</div>
+      <div id="env-optional"></div>
+      <div class="section-label">Generate PTY_SECRET</div>
+      <div class="code-block"><span class="c-comment"># Generates a cryptographic secret and writes it to .env automatically:</span></div>
+      <div style="display:flex;gap:8px;margin-top:-4px">
+        <button class="btn ok-btn" onclick="doAction('/api/action/generate-pty-secret','Generate PTY_SECRET',true)">Generate and save to .env</button>
+        <button class="btn" onclick="loadEnvStatus()">Re-check .env</button>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="page" id="page-services">
+      <div class="ctrl-header">
+        <h2>Service Control</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn ok-btn" id="start-all-btn" onclick="masterStart()">Start all</button>
+          <button class="btn danger" onclick="masterStop()">Stop all</button>
+          <button class="btn" onclick="loadServiceStatus()">Refresh status</button>
+        </div>
+      </div>
+      <div class="section-label">Live port checks</div>
+      <div class="proc-list" id="proc-list"></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.7;margin-bottom:16px">
+        <span style="color:var(--warn);font-weight:700">Windows:</span> "Start all" runs scripts\serve.bat — reads PTY_SECRET from your .env automatically.<br>
+        <span style="color:var(--text)">Linux/Mac:</span> start each process in a separate terminal (commands shown below).
+      </div>
+      <div class="section-label">Port map</div>
+      <div class="port-table">
+        <div class="pt-row"><span class="pt-key">Laravel app</span><span class="pt-val"><a class="ext-link" href="http://localhost:8000" target="_blank">localhost:8000</a></span></div>
+        <div class="pt-row"><span class="pt-key">PTY WebSocket server</span><span class="pt-val">ws://localhost:4000</span></div>
+        <div class="pt-row"><span class="pt-key">Ollama API</span><span class="pt-val"><a class="ext-link" href="http://localhost:11434" target="_blank">localhost:11434</a></span></div>
+        <div class="pt-row"><span class="pt-key">Vite dev server</span><span class="pt-val"><a class="ext-link" href="http://localhost:5173" target="_blank">localhost:5173</a></span></div>
+      </div>
+      <div class="section-label" style="margin-top:16px">Linux/Mac — start manually</div>
+      <div class="code-block"><span class="c-comment"># Run each in a separate terminal from the project root:</span>
+<span class="c-cmd">php artisan serve</span>
+<span class="c-cmd">php artisan queue:work --tries=1</span>
+<span class="c-cmd">npm run dev</span>
+<span class="c-cmd">cd pty-server && PTY_SECRET=$(grep PTY_SECRET ../.env | cut -d= -f2) node server.js</span>
+<span class="c-cmd">ollama serve</span></div>
+    </div>
+
+    <!-- TROUBLESHOOT -->
+    <div class="page" id="page-troubleshoot">
+      <div class="page-header">
+        <h1>Troubleshoot</h1>
+        <p>Common failure modes with OS-specific fixes and one-click actions</p>
+      </div>
+      <div class="setup-list" id="trouble-list"></div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <div class="page-header">
+        <h1>Activity log</h1>
+        <p>All checks and actions this session</p>
+      </div>
+      <div class="terminal" id="log-terminal"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" onclick="clearLog()">Clear</button>
+        <button class="btn sm" onclick="runAllChecks()">Re-run all checks</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ACTION TERMINAL OVERLAY -->
+<div class="action-overlay" id="action-overlay">
+  <div class="action-box">
+    <div class="action-title">
+      <span id="action-title-text">Running...</span>
+      <button class="action-close" onclick="closeActionOverlay()" id="action-close-btn" disabled>&#10005;</button>
+    </div>
+    <div class="action-terminal" id="action-terminal"></div>
+    <div class="action-footer">
+      <span class="action-status" id="action-status"><span class="spin">&#9696;</span> running...</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" id="action-done-btn" onclick="closeActionOverlay()" disabled>Close</button>
+        <button class="btn sm primary" id="action-recheck-btn" onclick="closeAndRecheck()" style="display:none">Close and re-check</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:7700';
+let detectedOS = 'linux';
+let logCount = 0;
+let actionRecheckNeeded = false;
+
+// ─── Navigation ────────────────────────────────────────────────────────────────
+function nav(el, forcePage) {
+  const page = forcePage || (el ? el.dataset.page : null);
+  if (!page) return;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navItem = el || document.querySelector(`[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+}
+
+// ─── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, lv = 'info') {
+  logCount++;
+  const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  const t = document.getElementById('log-terminal');
+  if (t) {
+    const d = document.createElement('div');
+    d.className = 'fadein';
+    const cls = { ok: 't-ok', err: 't-err', warn: 't-warn', info: 't-info', sys: 't-sys' }[lv] || 't-muted';
+    d.innerHTML = `<span class="t-ts">${ts}</span>  <span class="${cls}">${esc(msg)}</span>`;
+    t.appendChild(d);
+    t.scrollTop = t.scrollHeight;
+  }
+  document.getElementById('nb-logs').textContent = logCount;
+}
+function clearLog() {
+  document.getElementById('log-terminal').innerHTML = '';
+  logCount = 0;
+  document.getElementById('nb-logs').textContent = '0';
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ─── Component definitions (display only — checks hit the backend) ─────────────
+const COMPONENTS = [
+  { id: 'php',           name: 'PHP 8.2+',           cat: 'required', icon: 'terminal-square',
+    desc: 'Runtime for Laravel. 8.2+ required. Extensions: mbstring, xml, sqlite3, curl, zip.' },
+  { id: 'composer',      name: 'Composer 2',          cat: 'required', icon: 'package',
+    desc: 'PHP package manager. Run composer install to download all vendor dependencies.' },
+  { id: 'node',          name: 'Node.js 18+',          cat: 'required', icon: 'hexagon',
+    desc: 'Powers the Vite build pipeline and the PTY WebSocket server for code execution.' },
+  { id: 'podman',        name: 'Podman / Docker',      cat: 'required', icon: 'box',
+    desc: 'Runs sandboxed containers per code submission. Docker is a supported alternative.' },
+  { id: 'code-image',    name: 'code-runner image',    cat: 'required', icon: 'layers',
+    desc: 'Container image with Python, Node, C/C++, Java, Go, Kotlin, Ruby, PHP, Lua, Perl, Rust.' },
+  { id: 'laravel-deps',  name: 'Laravel + npm deps',   cat: 'required', icon: 'git-branch',
+    desc: 'vendor/, node_modules/, .env, APP_KEY, and database.sqlite must all exist.' },
+  { id: 'ollama',        name: 'Ollama + model',        cat: 'optional', icon: 'cpu',
+    desc: 'Local LLM for AI course generation and per-course chat. Default model: phi4.' },
+  { id: 'python-mineru', name: 'Python + MinerU',       cat: 'optional', icon: 'code',
+    desc: 'PDF extraction for AI pipeline. Venv must be at scripts/.venv (hardcoded path).' },
+];
+
+const COMP_INSTALL = {
+  php: {
+    windows: { note: 'Install XAMPP (recommended) or the standalone PHP installer. Add PHP to PATH.',
+      steps: ['# Option A: XAMPP (easiest, includes Apache)', '# Download from apachefriends.org', '', '# Option B: standalone', '# Download from php.net/downloads, check "Add to PATH"'],
+      links: [{ l: 'php.net/downloads', u: 'https://www.php.net/downloads' }, { l: 'XAMPP', u: 'https://www.apachefriends.org' }] },
+    linux: { note: 'Use Ondrej PPA for the latest PHP on Ubuntu/Debian.',
+      steps: ['sudo add-apt-repository ppa:ondrej/php -y', 'sudo apt update', 'sudo apt install php8.2 php8.2-cli php8.2-mbstring \\', '  php8.2-xml php8.2-sqlite3 php8.2-curl php8.2-zip -y', '', '# verify:', 'php -v'],
+      links: [] },
+    mac: { note: '', steps: ['brew install php', '', '# verify:', 'php -v'], links: [{ l: 'Homebrew', u: 'https://brew.sh' }] }
+  },
+  composer: {
+    windows: { note: 'Use the Windows installer — adds composer to PATH automatically.', steps: ['# Download Composer-Setup.exe:'], links: [{ l: 'getcomposer.org/download', u: 'https://getcomposer.org/download/' }] },
+    linux: { note: '', steps: ['curl -sS https://getcomposer.org/installer | php', 'sudo mv composer.phar /usr/local/bin/composer', '', '# verify:', 'composer --version'], links: [] },
+    mac: { note: '', steps: ['brew install composer', '', '# verify:', 'composer --version'], links: [] }
+  },
+  node: {
+    windows: { note: 'Download the LTS installer — includes npm.', steps: ['# Download LTS from nodejs.org/en/download'], links: [{ l: 'nodejs.org/download', u: 'https://nodejs.org/en/download/' }] },
+    linux: { note: 'Use NodeSource for a current LTS.', steps: ['curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -', 'sudo apt install -y nodejs', '', '# verify:', 'node --version && npm --version'], links: [] },
+    mac: { note: '', steps: ['brew install node', '', '# verify:', 'node --version'], links: [] }
+  },
+  podman: {
+    windows: { note: 'Podman Desktop is the recommended installer — sets up the WSL layer automatically.',
+      steps: ['# Option A: winget', 'winget install RedHat.Podman', '', '# Option B: Podman Desktop (includes GUI):'],
+      links: [{ l: 'Podman Desktop', u: 'https://podman-desktop.io/downloads' }] },
+    linux: { note: 'Docker also works as a drop-in replacement.',
+      steps: ['# Podman:', 'sudo apt install podman -y', '', '# or Docker:', 'curl -fsSL https://get.docker.com | sh', 'sudo usermod -aG docker $USER', '', '# verify:', 'podman --version  # or: docker --version'], links: [] },
+    mac: { note: 'Podman requires a VM on macOS.', steps: ['brew install podman', 'podman machine init', 'podman machine start', '', '# verify:', 'podman --version'], links: [] }
+  },
+  'code-image': {
+    windows: { note: 'Run from the project root. Takes 5-15 min on first build.', steps: ['cd pty-server', 'podman build -t localhost/code-runner:latest -f Containerfile .', '', '# verify:', 'podman images | findstr code-runner'], links: [] },
+    linux: { note: 'Run from the project root. Takes 5-15 min on first build.', steps: ['cd pty-server', 'podman build -t localhost/code-runner:latest -f Containerfile .', '', '# verify:', 'podman images | grep code-runner'], links: [] },
+    mac: { note: '', steps: ['cd pty-server', 'podman build -t localhost/code-runner:latest -f Containerfile .'], links: [] }
+  },
+  'laravel-deps': {
+    windows: { note: 'Run from project root. The setup script does everything in one shot.', steps: ['# One-shot:', 'composer run setup', '', '# or step by step:', 'composer install', 'npm install', 'copy .env.example .env', 'php artisan key:generate', 'php artisan migrate'], links: [] },
+    linux: { note: '', steps: ['# One-shot:', 'composer run setup', '', '# or step by step:', 'composer install', 'npm install', 'cp .env.example .env', 'php artisan key:generate', 'php artisan migrate'], links: [] },
+    mac: { note: '', steps: ['composer run setup'], links: [] }
+  },
+  ollama: {
+    windows: { note: 'Download OllamaSetup.exe — Ollama runs as a tray app automatically after install.', steps: ['# Download from ollama.com', '', '# Then pull the model:', 'ollama pull phi4', '', '# verify API is up:', 'curl http://localhost:11434/api/tags'], links: [{ l: 'ollama.com/download', u: 'https://ollama.com/download/windows' }] },
+    linux: { note: '', steps: ['curl -fsSL https://ollama.com/install.sh | sh', '', '# pull default model (needs ~5GB RAM):', 'ollama pull phi4', '', '# verify:', 'ollama list'], links: [] },
+    mac: { note: '', steps: ['brew install ollama', 'ollama serve &', 'ollama pull phi4'], links: [] }
+  },
+  'python-mineru': {
+    windows: { note: 'Install Python 3.12 from python.org first (check "Add to PATH"). The venv MUST be at scripts/.venv.', steps: ['cd scripts', 'python -m venv .venv', '.venv\\Scripts\\pip install mineru', '', '# verify:', '.venv\\Scripts\\python -c "import mineru; print(\'OK\')"'], links: [{ l: 'python.org/downloads', u: 'https://www.python.org/downloads/' }] },
+    linux: { note: 'The venv MUST be at scripts/.venv — path is hardcoded in mineru_extract.py.', steps: ['sudo apt install python3.12 python3.12-venv -y', '', 'cd scripts', 'python3 -m venv .venv', '.venv/bin/pip install mineru', '', '# verify:', '.venv/bin/python -c "import mineru; print(\'OK\')"'], links: [] },
+    mac: { note: '', steps: ['brew install python@3.12', '', 'cd scripts', 'python3 -m venv .venv', '.venv/bin/pip install mineru'], links: [] }
+  }
+};
+
+const TROUBLES = [
+  { title: 'PTY_SECRET not set — PTY server refuses to start', symptom: '[ERROR] PTY_SECRET env var is not set',
+    fix: { windows: 'php artisan key:generate\n# Then use the "Generate PTY_SECRET" button in Environment tab', linux: '# Add to .env:\nPTY_SECRET=$(node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))")\necho "PTY_SECRET=$PTY_SECRET" >> .env', mac: 'echo "PTY_SECRET=$(node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))")" >> .env' },
+    action: { label: 'Generate PTY_SECRET now', fn: 'doAction("/api/action/generate-pty-secret","Generate PTY_SECRET",true)' } },
+  { title: 'code-runner image not found', symptom: 'image not known  OR  localhost/code-runner:latest not found',
+    fix: { windows: 'cd pty-server\npodman build -t localhost/code-runner:latest -f Containerfile .', linux: 'cd pty-server && podman build -t localhost/code-runner:latest -f Containerfile .', mac: 'cd pty-server && podman build -t localhost/code-runner:latest -f Containerfile .' },
+    action: { label: 'Build image now', fn: 'runStreamAction("/api/action/build-image","Building code-runner image")' } },
+  { title: 'Ollama not reachable — AI panel shows 502', symptom: 'Ollama not reachable  OR  curl: connect to localhost:11434 failed',
+    fix: { windows: 'ollama serve\n# Or find Ollama in the system tray and click Open', linux: 'systemctl start ollama  # or:  ollama serve &', mac: 'ollama serve &' },
+    action: { label: 'Install Ollama + pull phi4', fn: 'runStreamAction("/api/install/ollama","Installing Ollama + phi4")' } },
+  { title: 'MinerU not installed — AI PDF jobs fail', symptom: 'ModuleNotFoundError: No module named mineru  OR  incompatible Python version',
+    fix: { windows: 'cd scripts\n# Panel auto-detects compatible Python (3.10-3.13)\n# Run the install action to fix automatically', linux: 'cd scripts && .venv/bin/pip install mineru', mac: 'cd scripts && .venv/bin/pip install mineru' },
+    action: { label: 'Auto-detect Python + install MinerU', fn: 'runStreamAction("/api/install/python","Setting up Python + MinerU (auto version detect)")' } },
+  { title: 'database/database.sqlite missing — migrate fails', symptom: 'unable to open database file  OR  No such file or directory',
+    fix: { windows: 'type nul > database\\database.sqlite\nphp artisan migrate', linux: 'touch database/database.sqlite\nphp artisan migrate', mac: 'touch database/database.sqlite && php artisan migrate' },
+    action: { label: 'Run migrate now', fn: 'runStreamAction("/api/action/migrate","Running artisan migrate")' } },
+  { title: 'APP_KEY not set — every page returns 500', symptom: 'No application encryption key has been specified',
+    fix: { windows: 'php artisan key:generate', linux: 'php artisan key:generate', mac: 'php artisan key:generate' },
+    action: { label: 'Generate key now', fn: 'runStreamAction("/api/action/key-generate","Generating APP_KEY")' } },
+  { title: 'vendor/ or node_modules/ missing — app wont load', symptom: 'Class not found  OR  Cannot find module  OR  white screen',
+    fix: { windows: 'composer install\nnpm install', linux: 'composer install && npm install', mac: 'composer install && npm install' },
+    action: { label: 'Run composer run setup', fn: 'runStreamAction("/api/action/composer-setup","Running composer run setup")' } },
+  { title: 'Queue jobs stuck at queued forever', symptom: 'AI jobs stay at status "queued" — no progress',
+    fix: { windows: '# Start the queue worker in a separate terminal:\nphp artisan queue:work --tries=1\n# serve.bat starts it automatically', linux: 'php artisan queue:work --tries=1', mac: 'php artisan queue:work --tries=1' },
+    action: null },
+  { title: 'Podman machine not started (Windows/Mac)', symptom: 'Cannot connect to Podman service  OR  connection refused',
+    fix: { windows: 'podman machine init\npodman machine start', linux: 'sudo usermod -aG podman $USER\n# then re-login', mac: 'podman machine init\npodman machine start' },
+    action: null },
+];
+
+// ─── Results cache ─────────────────────────────────────────────────────────────
+const results = {};
+
+// ─── Run all checks ────────────────────────────────────────────────────────────
+async function runAllChecks() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true; btn.textContent = 'checking...';
+  log('Starting full stack check...', 'sys');
+  document.getElementById('last-check-note').textContent = 'Checking live — running shell commands on your system...';
+
+  try {
+    const r = await fetch(`${API}/api/check/all`);
+    if (!r.ok) throw new Error('Backend unreachable');
+    const data = await r.json();
+    Object.entries(data).forEach(([id, result]) => {
+      results[id] = result;
+      updateCompCard(id, result);
+      log(`${id}: ${result.status} — ${result.detail || result.version || ''}`, result.status);
+    });
+    updateSummary();
+    updateSetupBadge();
+    document.getElementById('ss-last').textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  } catch (e) {
+    log(`Backend error: ${e.message}. Is devpanel-server.mjs running?`, 'err');
+    document.getElementById('last-check-note').textContent = 'Backend not reachable — run: node devpanel-server.mjs';
+  }
+
+  await loadServiceStatus();
+  await loadEnvStatus();
+
+  btn.disabled = false; btn.textContent = 'refresh all';
+  const ok = Object.values(results).filter(r => r.status === 'ok').length;
+  document.getElementById('last-check-note').textContent =
+    `Last check: ${new Date().toLocaleTimeString()} — ${ok}/${COMPONENTS.length} components ready`;
+  log('Check complete', 'sys');
+}
+
+async function checkOne(id) {
+  log(`Re-checking ${id}...`, 'info');
+  try {
+    const r = await fetch(`${API}/api/check/${id}`);
+    const data = await r.json();
+    results[id] = data;
+    updateCompCard(id, data);
+    updateSummary(); updateSetupBadge();
+    log(`${id}: ${data.status} — ${data.detail || data.version || ''}`, data.status);
+  } catch (e) {
+    log(`Check failed: ${e.message}`, 'err');
+  }
+}
+
+// ─── Service status ────────────────────────────────────────────────────────────
+async function loadServiceStatus() {
+  try {
+    const r = await fetch(`${API}/api/services`);
+    const data = await r.json();
+    renderProcesses(data);
+    const up = Object.values(data).filter(Boolean).length;
+    const nb = document.getElementById('nb-svc');
+    nb.textContent = `${up} up`;
+    nb.className = `nav-badge ${up >= 3 ? 'ok' : up > 0 ? 'warn' : 'err'}`;
+    document.getElementById('st-run').textContent = up;
+  } catch {}
+}
+
+function renderProcesses(statusMap) {
+  const PROCS = [
+    { id: 'laravel', name: 'Laravel server',     cmd: 'php artisan serve',               port: 8000 },
+    { id: 'queue',   name: 'Queue worker',        cmd: 'php artisan queue:work --tries=1', port: null },
+    { id: 'vite',    name: 'Vite',                cmd: 'npm run dev',                      port: 5173 },
+    { id: 'pty',     name: 'PTY node server',     cmd: 'node pty-server/server.js',        port: 4000 },
+    { id: 'ollama',  name: 'Ollama',              cmd: 'ollama serve',                     port: 11434 },
+  ];
+  const container = document.getElementById('proc-list');
+  container.innerHTML = '';
+  PROCS.forEach(proc => {
+    const up = statusMap[proc.id] || false;
+    const row = document.createElement('div');
+    row.className = `proc-row ${up ? 'running' : 'stopped'}`;
+    row.innerHTML = `
+      <div class="pill ${up ? 'ok' : 'dim'}" style="min-width:52px;justify-content:center"><span class="pill-dot"></span>${up ? 'up' : 'down'}</div>
+      <div class="proc-name">${proc.name}</div>
+      <div class="proc-cmd">${esc(proc.cmd)}</div>
+      ${proc.port ? `<div class="proc-port">:${proc.port}</div>` : '<div class="proc-port"></div>'}
+      <div class="proc-uptime">${up ? 'listening' : ''}</div>`;
+    container.appendChild(row);
+  });
+}
+
+// ─── Env status ────────────────────────────────────────────────────────────────
+const ENV_DEFS = {
+  core: [
+    { k: 'APP_KEY', note: 'Generated by php artisan key:generate', req: true },
+    { k: 'APP_ENV', val: 'local', note: 'Set to production when deploying' },
+    { k: 'APP_DEBUG', val: 'true', note: 'Set to false in production' },
+    { k: 'APP_URL', val: 'http://localhost:8000', note: 'Base URL for redirects and absolute URLs' },
+    { k: 'DB_CONNECTION', val: 'sqlite', note: 'Default SQLite — no separate DB server needed' },
+    { k: 'DB_DATABASE', val: 'database/database.sqlite', note: 'Touch this file first, then run php artisan migrate' },
+    { k: 'QUEUE_CONNECTION', val: 'database', note: 'AI jobs use the database queue' },
+  ],
+  pty: [
+    { k: 'PTY_SECRET', note: 'Required cryptographic token — must match between Laravel and PTY server.', req: true },
+    { k: 'PTY_URL', val: 'ws://127.0.0.1:4000', note: 'WebSocket address of the PTY server' },
+  ],
+  optional: [
+    { k: 'LOG_LEVEL', val: 'debug', note: 'Use error in production' },
+    { k: 'SESSION_DRIVER', val: 'database', note: 'Persists sessions across server restarts' },
+  ]
+};
+
+async function loadEnvStatus() {
+  try {
+    const r = await fetch(`${API}/api/env`);
+    const live = await r.json();
+
+    // Show top-level env health
+    const statusArea = document.getElementById('env-status-area');
+    const appKeyOk = live.APP_KEY;
+    const ptyOk = live.PTY_SECRET;
+    statusArea.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <span class="pill ${appKeyOk ? 'ok' : 'err'}"><span class="pill-dot"></span>APP_KEY ${appKeyOk ? 'set' : 'missing'}</span>
+        <span class="pill ${ptyOk ? 'ok' : 'err'}"><span class="pill-dot"></span>PTY_SECRET ${ptyOk ? 'set' : 'missing'}</span>
+        <span class="pill ${live.DB_CONNECTION ? 'ok' : 'warn'}"><span class="pill-dot"></span>DB: ${live.DB_CONNECTION || 'not set'}</span>
+        <span class="pill ${live.APP_ENV ? 'ok' : 'warn'}"><span class="pill-dot"></span>ENV: ${live.APP_ENV || 'not set'}</span>
+      </div>`;
+
+    // Update nav badge
+    const nb = document.getElementById('nb-env');
+    if (!appKeyOk || !ptyOk) { nb.textContent = 'missing keys'; nb.className = 'nav-badge err'; }
+    else { nb.textContent = 'ok'; nb.className = 'nav-badge ok'; }
+
+    // Render env items
+    Object.entries(ENV_DEFS).forEach(([grp, vars]) => {
+      const container = document.getElementById('env-' + grp);
+      if (!container) return;
+      container.innerHTML = '';
+      vars.forEach(v => {
+        const isSet = live[v.k] !== undefined ? (typeof live[v.k] === 'boolean' ? live[v.k] : !!live[v.k]) : null;
+        const item = document.createElement('div');
+        item.className = `env-item ${v.req ? 'required' : 'optional'}`;
+        const valLine = v.val
+          ? `<span class="c-key">${esc(v.k)}</span>=<span class="c-val">${esc(v.val)}</span>`
+          : `<span class="c-comment"># must be set manually</span>\n<span class="c-key">${esc(v.k)}</span>=<span class="c-warn">your_value_here</span>`;
+        item.innerHTML = `
+          <div class="si-head" onclick="this.nextElementSibling.classList.toggle('open');this.parentElement.classList.toggle('open')">
+            <div class="si-icon">${svgIcon('key')}</div>
+            <div class="si-info">
+              <div class="si-name" style="font-family:var(--mono);font-size:12px">${esc(v.k)}</div>
+              <div class="si-brief">${esc(v.note)}</div>
+            </div>
+            <div class="si-right">
+              ${isSet !== null ? `<span class="pill ${isSet ? 'ok' : 'err'}"><span class="pill-dot"></span>${isSet ? 'set' : 'missing'}</span>` : ''}
+              ${v.req ? `<span class="pill err" style="font-size:9px">required</span>` : ''}
+              <span class="si-chevron">&#9658;</span>
+            </div>
+          </div>
+          <div class="si-body">
+            <div class="code-block"><button class="cb-copy" onclick="copyText(this,'${esc(v.k + '=' + (v.val || ''))}')">copy</button>${valLine}</div>
+            <p class="install-note">${esc(v.note)}</p>
+          </div>`;
+        container.appendChild(item);
+      });
+    });
+  } catch (e) {
+    log(`Env check failed: ${e.message}`, 'err');
+  }
+}
+
+// ─── Context-aware action buttons ─────────────────────────────────────────────
+function getCardActions(id, result) {
+  const s   = result?.status || 'unknown';
+  const sub = result?.sub    || '';
+  const recheck = `<button class="btn sm" onclick="checkOne('${id}')">Re-check</button>`;
+  const guide   = `<button class="btn sm" onclick="nav(null,'setup');setTimeout(()=>openSetup('${id}'),100)">Guide</button>`;
+
+  if (s === 'ok') {
+    const upd = {
+      php:            `<button class="btn sm" onclick="runStreamAction('/api/install/php','Reinstall PHP')">Reinstall</button>`,
+      composer:       `<button class="btn sm" onclick="runStreamAction('/api/install/composer','Reinstall Composer')">Reinstall</button>`,
+      node:           `<button class="btn sm" onclick="runStreamAction('/api/install/node','Reinstall Node.js')">Reinstall</button>`,
+      podman:         `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild image</button>`,
+      'code-image':   `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuilding image')">Rebuild</button>`,
+      'laravel-deps': `<button class="btn sm" onclick="runStreamAction('/api/action/project-setup','Re-run setup')">Re-run setup</button>`,
+      ollama:         sub === 'no_model'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`
+        : `<button class="btn sm" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`,
+      'python-mineru':`<button class="btn sm" onclick="runStreamAction('/api/install/python','Reinstall MinerU')">Reinstall</button>`,
+    }[id] || '';
+    return `${upd}${recheck}`;
+  }
+
+  if (s === 'warn') {
+    const fixMap = {
+      php:            `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/php','Fix PHP')">Fix PHP</button>`,
+      composer:       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/composer','Fix Composer')">Fix Composer</button>`,
+      node:           `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/node','Fix Node.js')">Fix Node</button>`,
+      podman: (() => {
+        if (sub === 'machine_stopped') return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-start','Starting Podman machine')">Start machine</button>`;
+        if (sub === 'no_machine')      return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-init','Init + start Podman machine')">Init machine</button>`;
+        if (sub === 'daemon_stopped')  return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Start daemon</button>`;
+        return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Fix Podman</button>`;
+      })(),
+      'code-image':   `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/build-image','Building image')">Build image</button>`,
+      'laravel-deps': `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/project-setup','Project setup')">Fix setup</button>`,
+      ollama: sub === 'not_running'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/ollama-start','Starting Ollama')">Start Ollama</button>`
+        : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/ollama','Fix Ollama')">Fix Ollama</button>`,
+      'python-mineru':`<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/python','Fix Python + MinerU')">Fix MinerU</button>`,
+    };
+    const fix = fixMap[id] || guide;
+    return `${fix}${recheck}`;
+  }
+
+  // err / unknown — not installed
+  const inst = {
+    php:            `<button class="btn sm primary" onclick="runStreamAction('/api/install/php','Installing PHP 8.2+')">Install PHP</button>`,
+    composer:       `<button class="btn sm primary" onclick="runStreamAction('/api/install/composer','Installing Composer 2')">Install Composer</button>`,
+    node:           `<button class="btn sm primary" onclick="runStreamAction('/api/install/node','Installing Node.js LTS')">Install Node</button>`,
+    podman:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/podman','Installing Podman')">Install Podman</button>`,
+    'code-image':   `<button class="btn sm primary" onclick="runStreamAction('/api/action/build-image','Building code-runner image')">Build image</button>`,
+    'laravel-deps': `<button class="btn sm primary" onclick="runStreamAction('/api/action/project-setup','Running project setup')">Run setup</button>`,
+    ollama:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/ollama','Installing Ollama + phi4')">Install Ollama</button>`,
+    'python-mineru':`<button class="btn sm primary" onclick="runStreamAction('/api/install/python','Setting up Python + MinerU')">Install MinerU</button>`,
+  }[id] || guide;
+  return `${inst}${guide}${recheck}`;
+}
+
+// ─── Overview cards ────────────────────────────────────────────────────────────
+function renderOverviewGrid() {
+  const g = document.getElementById('ov-grid');
+  g.innerHTML = '';
+  COMPONENTS.forEach(comp => {
+    const card = document.createElement('div');
+    card.className = 'comp-card unknown fadein';
+    card.id = `ov-${comp.id}`;
+    card.innerHTML = `
+      <div class="cc-top">
+        <div>
+          <div class="cc-name">${esc(comp.name)}</div>
+          <div class="cc-ver" id="ov-ver-${comp.id}">not checked yet</div>
+        </div>
+        <div class="pill dim" id="ov-pill-${comp.id}"><span class="pill-dot"></span>unknown</div>
+      </div>
+      <div class="cc-desc">${esc(comp.desc)}</div>
+      <div class="cc-actions" id="ov-actions-${comp.id}">
+        <button class="btn sm" onclick="checkOne('${comp.id}')">Check</button>
+        <button class="btn sm" onclick="nav(null,'setup');setTimeout(()=>openSetup('${comp.id}'),100)">Guide</button>
+      </div>`;
+    g.appendChild(card);
+  });
+}
+
+function updateCompCard(id, result) {
+  const card = document.getElementById(`ov-${id}`);
+  if (!card) return;
+  card.className = `comp-card ${result.status} fadein`;
+  const pill = document.getElementById(`ov-pill-${id}`);
+  if (pill) { pill.className = `pill ${result.status}`; pill.innerHTML = `<span class="pill-dot"></span>${result.status}`; }
+  const ver = document.getElementById(`ov-ver-${id}`);
+  if (ver) ver.textContent = result.detail || result.version || result.status;
+  const actions = document.getElementById(`ov-actions-${id}`);
+  if (actions) actions.innerHTML = getCardActions(id, result);
+
+  const si = document.getElementById(`si-${id}`);
+  if (si) {
+    si.className = `setup-item ${result.status}${si.classList.contains('open') ? ' open' : ''}`;
+    const siPill = document.getElementById(`si-pill-${id}`);
+    if (siPill) { siPill.className = `pill ${result.status}`; siPill.innerHTML = `<span class="pill-dot"></span>${result.status}`; }
+    const siBrief = document.getElementById(`si-brief-${id}`);
+    if (siBrief) siBrief.textContent = result.detail || result.version || result.status;
+    const siAct = si.querySelector('.si-actions');
+    if (siAct) siAct.innerHTML = `${getSetupAction(id, result)}<button class="btn sm primary" onclick="checkOne('${id}')">Re-check</button>`;
+  }
+}
+
+function updateSummary() {
+  const vals = Object.values(results);
+  const ok = vals.filter(r => r.status === 'ok').length;
+  const miss = vals.filter(r => r.status !== 'ok').length;
+  document.getElementById('st-ok').textContent = ok;
+  document.getElementById('st-miss').textContent = miss;
+}
+
+function updateSetupBadge() {
+  const errs = Object.values(results).filter(r => r.status === 'err').length;
+  const warns = Object.values(results).filter(r => r.status === 'warn').length;
+  const nb = document.getElementById('nb-setup');
+  nb.textContent = errs + warns > 0 ? `${errs + warns} issues` : 'all good';
+  nb.className = `nav-badge ${errs > 0 ? 'err' : warns > 0 ? 'warn' : 'ok'}`;
+}
+
+// ─── Setup list ────────────────────────────────────────────────────────────────
+function renderSetupList() {
+  ['required', 'optional'].forEach(cat => {
+    const container = document.getElementById(`sl-${cat}`);
+    container.innerHTML = '';
+    COMPONENTS.filter(c => c.cat === cat).forEach((comp, idx) => {
+      const item = document.createElement('div');
+      item.className = 'setup-item unknown';
+      item.id = `si-${comp.id}`;
+      const d = COMP_INSTALL[comp.id];
+      const osD = d[detectedOS] || d.linux;
+      item.innerHTML = buildSetupItemHTML(comp, idx, osD);
+      container.appendChild(item);
+    });
+  });
+}
+
+function buildSetupItemHTML(comp, idx, osD) {
+  const links = (osD.links || []).map(l => `<a class="ext-link" href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.l)}</a>`).join('');
+  const actionBtn = getSetupAction(comp.id);
+  return `
+    <div class="si-head" onclick="document.getElementById('si-${comp.id}').classList.toggle('open')">
+      <div class="si-num">${String(idx + 1).padStart(2, '0')}</div>
+      <div class="si-icon">${svgIcon(comp.icon)}</div>
+      <div class="si-info">
+        <div class="si-name">${esc(comp.name)}</div>
+        <div class="si-brief" id="si-brief-${comp.id}">not checked yet</div>
+      </div>
+      <div class="si-right">
+        <span class="pill dim" id="si-pill-${comp.id}"><span class="pill-dot"></span>unknown</span>
+        <span class="si-chevron">&#9658;</span>
+      </div>
+    </div>
+    <div class="si-body" id="sb-${comp.id}">
+      ${osD.note ? `<p class="install-note">${esc(osD.note)}</p>` : ''}
+      <div class="os-tabs" id="ost-${comp.id}">
+        <div class="os-tab ${detectedOS === 'windows' ? 'active' : ''}" onclick="switchOsTab('${comp.id}','windows')">Windows</div>
+        <div class="os-tab ${detectedOS === 'linux' ? 'active' : ''}" onclick="switchOsTab('${comp.id}','linux')">Linux</div>
+        <div class="os-tab ${detectedOS === 'mac' ? 'active' : ''}" onclick="switchOsTab('${comp.id}','mac')">macOS</div>
+      </div>
+      <div class="code-block" id="cb-${comp.id}"><button class="cb-copy" onclick="copyCode('cb-${comp.id}',this)">copy</button>${buildCodeHtml(osD.steps)}</div>
+      ${links ? `<div class="link-row">${links}</div>` : ''}
+      <div class="si-actions">
+        <button class="btn sm primary" onclick="checkOne('${comp.id}')">Re-check</button>
+        ${actionBtn}
+      </div>
+    </div>`;
+}
+
+function getSetupAction(id, result) {
+  // result is optional — when called from setup list before check, show default install button
+  const s   = result?.status || 'err';
+  const sub = result?.sub    || '';
+
+  if (s === 'ok') {
+    return {
+      podman:        `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild image</button>`,
+      'code-image':  `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild</button>`,
+      'laravel-deps':`<button class="btn sm" onclick="runStreamAction('/api/action/project-setup','Re-run setup')">Re-run setup</button>`,
+      ollama:        `<button class="btn sm" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`,
+      'python-mineru':`<button class="btn sm" onclick="runStreamAction('/api/install/python','Reinstall MinerU')">Reinstall</button>`,
+    }[id] || '';
+  }
+
+  if (s === 'warn') {
+    return {
+      php:            `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/php','Fix PHP')">Fix PHP</button>`,
+      composer:       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/composer','Fix Composer')">Fix Composer</button>`,
+      node:           `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/node','Fix Node.js')">Fix Node</button>`,
+      podman: sub === 'machine_stopped'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-start','Starting Podman machine')">Start machine</button>`
+        : sub === 'no_machine'
+          ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-init','Init Podman machine')">Init machine</button>`
+          : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Fix Podman</button>`,
+      'code-image':   `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/build-image','Build image')">Build image</button>`,
+      'laravel-deps': `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/project-setup','Fix setup')">Fix setup</button>`,
+      ollama: sub === 'not_running'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/ollama-start','Starting Ollama')">Start Ollama</button>`
+        : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/ollama','Fix Ollama')">Fix Ollama</button>`,
+      'python-mineru':`<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/python','Fix Python + MinerU')">Fix MinerU</button>`,
+    }[id] || '';
+  }
+
+  // err / unknown — install
+  return {
+    php:            `<button class="btn sm primary" onclick="runStreamAction('/api/install/php','Installing PHP 8.2+')">Install PHP</button>`,
+    composer:       `<button class="btn sm primary" onclick="runStreamAction('/api/install/composer','Installing Composer 2')">Install Composer</button>`,
+    node:           `<button class="btn sm primary" onclick="runStreamAction('/api/install/node','Installing Node.js LTS')">Install Node</button>`,
+    podman:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/podman','Installing Podman')">Install Podman</button>`,
+    'code-image':   `<button class="btn sm primary" onclick="runStreamAction('/api/action/build-image','Build code-runner image')">Build image</button>`,
+    'laravel-deps': `<button class="btn sm primary" onclick="runStreamAction('/api/action/project-setup','Project setup')">Run setup</button>`,
+    ollama:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/ollama','Installing Ollama + phi4')">Install Ollama</button>`,
+    'python-mineru':`<button class="btn sm primary" onclick="runStreamAction('/api/install/python','Setup Python + MinerU')">Install MinerU</button>`,
+  }[id] || '';
+}
+
+function switchOsTab(compId, os) {
+  const comp = COMPONENTS.find(c => c.id === compId);
+  if (!comp) return;
+  const d = COMP_INSTALL[compId];
+  const osD = d[os] || d.linux;
+  document.querySelectorAll(`#ost-${compId} .os-tab`).forEach((t, i) => {
+    t.classList.toggle('active', ['windows', 'linux', 'mac'][i] === os);
+  });
+  const cb = document.getElementById(`cb-${compId}`);
+  if (cb) cb.innerHTML = `<button class="cb-copy" onclick="copyCode('cb-${compId}',this)">copy</button>${buildCodeHtml(osD.steps)}`;
+}
+
+function buildCodeHtml(steps) {
+  return (steps || []).map(l => {
+    if (!l && l !== 0) return '';
+    if (String(l).startsWith('#')) return `<span class="c-comment">${esc(l)}</span>`;
+    return `<span class="c-cmd">${esc(l)}</span>`;
+  }).join('\n');
+}
+
+function openSetup(id) {
+  const el = document.getElementById(`si-${id}`);
+  if (el) { el.classList.add('open'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+// ─── Troubleshoot ─────────────────────────────────────────────────────────────
+function renderTroubles() {
+  const container = document.getElementById('trouble-list');
+  container.innerHTML = '';
+  TROUBLES.forEach((t, idx) => {
+    const item = document.createElement('div');
+    item.className = 'setup-item warn';
+    const fixLines = (t.fix[detectedOS] || t.fix.linux).split('\n').map(l => {
+      if (!l.trim()) return '';
+      if (l.startsWith('#')) return `<span class="c-comment">${esc(l)}</span>`;
+      return `<span class="c-cmd">${esc(l)}</span>`;
+    }).join('\n');
+    const actionBtn = t.action
+      ? `<button class="btn sm ok-btn" onclick="${t.action.fn}">${esc(t.action.label)}</button>`
+      : '';
+    item.innerHTML = `
+      <div class="si-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="si-num">${String(idx + 1).padStart(2, '0')}</div>
+        <div class="si-icon">${svgIcon('alert-triangle')}</div>
+        <div class="si-info">
+          <div class="si-name">${esc(t.title)}</div>
+          <div class="si-brief" style="font-family:var(--mono)">${esc(t.symptom)}</div>
+        </div>
+        <div class="si-right"><span class="si-chevron">&#9658;</span></div>
+      </div>
+      <div class="si-body">
+        <div class="os-tabs" id="tt-ost-${idx}">
+          <div class="os-tab ${detectedOS === 'windows' ? 'active' : ''}" onclick="setTroubleOs(${idx},'windows')">Windows</div>
+          <div class="os-tab ${detectedOS === 'linux' ? 'active' : ''}" onclick="setTroubleOs(${idx},'linux')">Linux</div>
+          <div class="os-tab ${detectedOS === 'mac' ? 'active' : ''}" onclick="setTroubleOs(${idx},'mac')">macOS</div>
+        </div>
+        <div class="code-block" id="tt-cb-${idx}"><button class="cb-copy" onclick="copyCode('tt-cb-${idx}',this)">copy</button>${fixLines}</div>
+        <div class="si-actions">${actionBtn}</div>
+      </div>`;
+    container.appendChild(item);
+  });
+}
+
+function setTroubleOs(idx, os) {
+  const t = TROUBLES[idx];
+  document.querySelectorAll(`#tt-ost-${idx} .os-tab`).forEach((tab, i) => {
+    tab.classList.toggle('active', ['windows', 'linux', 'mac'][i] === os);
+  });
+  const fixLines = (t.fix[os] || t.fix.linux).split('\n').map(l => {
+    if (!l.trim()) return '';
+    if (l.startsWith('#')) return `<span class="c-comment">${esc(l)}</span>`;
+    return `<span class="c-cmd">${esc(l)}</span>`;
+  }).join('\n');
+  const cb = document.getElementById(`tt-cb-${idx}`);
+  if (cb) cb.innerHTML = `<button class="cb-copy" onclick="copyCode('tt-cb-${idx}',this)">copy</button>${fixLines}`;
+}
+
+// ─── Action overlay (SSE stream) ───────────────────────────────────────────────
+function runStreamAction(endpoint, title) {
+  openActionOverlay(title);
+  const term = document.getElementById('action-terminal');
+  const status = document.getElementById('action-status');
+  const closeBtn = document.getElementById('action-close-btn');
+  const doneBtn = document.getElementById('action-done-btn');
+  const recheckBtn = document.getElementById('action-recheck-btn');
+
+  actionRecheckNeeded = true;
+  term.innerHTML = '';
+
+  const es = new EventSource(`${API}${endpoint}`);
+  es.onmessage = e => {
+    const data = JSON.parse(e.data);
+    const line = data.line || '';
+    const d = document.createElement('div');
+    if (line.startsWith('[panel]')) {
+      d.innerHTML = `<span style="color:var(--accent2)">${esc(line)}</span>`;
+    } else if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+      d.innerHTML = `<span style="color:var(--err)">${esc(line)}</span>`;
+    } else if (line.toLowerCase().includes('success') || line.toLowerCase().includes('complete') || line.toLowerCase().includes('ok')) {
+      d.innerHTML = `<span style="color:var(--ok)">${esc(line)}</span>`;
+    } else {
+      d.innerHTML = `<span style="color:#a8a8c8">${esc(line)}</span>`;
+    }
+    term.appendChild(d);
+    term.scrollTop = term.scrollHeight;
+
+    if (line.includes('[panel] EXIT:')) {
+      const code = parseInt(line.split(':')[1]);
+      es.close();
+      status.innerHTML = code === 0
+        ? `<span style="color:var(--ok)">Done — exited successfully</span>`
+        : `<span style="color:var(--err)">Done — exited with code ${code}</span>`;
+      closeBtn.disabled = false;
+      doneBtn.disabled = false;
+      recheckBtn.style.display = 'inline-flex';
+      log(`Action "${title}" finished with exit code ${code}`, code === 0 ? 'ok' : 'err');
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    status.innerHTML = `<span style="color:var(--err)">Connection error</span>`;
+    closeBtn.disabled = false; doneBtn.disabled = false;
+  };
+}
+
+async function doAction(endpoint, title, isJson) {
+  if (isJson) {
+    openActionOverlay(title);
+    const term = document.getElementById('action-terminal');
+    const status = document.getElementById('action-status');
+    const closeBtn = document.getElementById('action-close-btn');
+    const doneBtn = document.getElementById('action-done-btn');
+    const recheckBtn = document.getElementById('action-recheck-btn');
+    term.innerHTML = '';
+    actionRecheckNeeded = true;
+    try {
+      const r = await fetch(`${API}${endpoint}`);
+      const data = await r.json();
+      const d = document.createElement('div');
+      d.innerHTML = `<span style="color:${data.ok ? 'var(--ok)' : 'var(--warn)'}">${esc(data.message)}</span>`;
+      if (data.secret) {
+        const s = document.createElement('div');
+        s.innerHTML = `\n<span style="color:var(--muted)">Generated secret:</span>\n<span style="color:var(--accent2)">${esc(data.secret)}</span>`;
+        term.appendChild(s);
+      }
+      term.appendChild(d);
+      status.innerHTML = data.ok
+        ? `<span style="color:var(--ok)">Done</span>`
+        : `<span style="color:var(--warn)">Done with warning</span>`;
+      closeBtn.disabled = false; doneBtn.disabled = false;
+      recheckBtn.style.display = 'inline-flex';
+      log(`${title}: ${data.message}`, data.ok ? 'ok' : 'warn');
+    } catch (e) {
+      status.innerHTML = `<span style="color:var(--err)">Error: ${esc(e.message)}</span>`;
+      closeBtn.disabled = false; doneBtn.disabled = false;
+    }
+    return;
+  }
+  runStreamAction(endpoint, title);
+}
+
+function openActionOverlay(title) {
+  document.getElementById('action-title-text').textContent = title;
+  document.getElementById('action-terminal').innerHTML = '';
+  document.getElementById('action-status').innerHTML = `<span class="spin">&#9696;</span> running...`;
+  document.getElementById('action-close-btn').disabled = true;
+  document.getElementById('action-done-btn').disabled = true;
+  document.getElementById('action-recheck-btn').style.display = 'none';
+  document.getElementById('action-overlay').classList.add('show');
+}
+
+function closeActionOverlay() {
+  document.getElementById('action-overlay').classList.remove('show');
+}
+
+async function closeAndRecheck() {
+  closeActionOverlay();
+  await runAllChecks();
+}
+
+// ─── Service start/stop ────────────────────────────────────────────────────────
+async function masterStart() {
+  const btn = document.getElementById('start-all-btn');
+  btn.disabled = true; btn.textContent = 'starting...';
+  log('Sending start-all signal...', 'info');
+  try {
+    const r = await fetch(`${API}/api/action/start-all`);
+    const data = await r.json();
+    log(data.message, data.ok ? 'ok' : 'warn');
+    if (!data.ok) alert(data.message);
+    setTimeout(loadServiceStatus, 2000);
+    setTimeout(loadServiceStatus, 5000);
+  } catch (e) { log(`Start failed: ${e.message}`, 'err'); }
+  btn.disabled = false; btn.textContent = 'Start all';
+}
+
+async function masterStop() {
+  log('Sending stop-all signal...', 'warn');
+  try {
+    const r = await fetch(`${API}/api/action/stop-all`);
+    const data = await r.json();
+    log(data.message, data.ok ? 'ok' : 'warn');
+    setTimeout(loadServiceStatus, 2000);
+  } catch (e) { log(`Stop failed: ${e.message}`, 'err'); }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function copyCode(id, btn) {
+  const cb = document.getElementById(id);
+  if (!cb) return;
+  const text = [...cb.querySelectorAll('.c-cmd')].map(e => e.textContent).filter(l => l.trim()).join('\n');
+  navigator.clipboard.writeText(text).then(() => { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 1800); });
+}
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 1800); });
+}
+
+function svgIcon(name) {
+  const p = {
+    'terminal-square': '<path d="M7 9l4 4-4 4M13 17h4M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+    package: '<path d="M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4A2 2 0 012 16.77V7.24a2 2 0 011.11-1.8l8-4a2 2 0 011.78.01z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/>',
+    hexagon: '<polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>',
+    box: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>',
+    layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    'git-branch': '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/>',
+    cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
+    code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    key: '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.78 7.78 5.5 5.5 0 017.77-7.77zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+    'alert-triangle': '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p[name] || ''}</svg>`;
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  document.getElementById('ss-time').textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+
+  // Detect OS from backend
+  try {
+    const r = await fetch(`${API}/api/os`);
+    const data = await r.json();
+    detectedOS = data.os;
+    document.getElementById('os-label').textContent = detectedOS;
+    document.getElementById('os-pill').className = 'pill accent';
+    document.getElementById('ss-os').textContent = detectedOS;
+    document.getElementById('setup-os-note').textContent =
+      `Detected OS: ${detectedOS === 'windows' ? 'Windows' : detectedOS === 'mac' ? 'macOS' : 'Linux'} — install commands shown for your OS. Switch with the tabs.`;
+  } catch {
+    document.getElementById('os-label').textContent = 'backend offline';
+    document.getElementById('os-pill').className = 'pill err';
+    document.getElementById('last-check-note').textContent =
+      'Backend server not running. Start it with: node devpanel-server.mjs';
+    log('Backend not reachable. Run: node devpanel-server.mjs from the project root.', 'err');
+  }
+
+  renderOverviewGrid();
+  renderSetupList();
+  renderTroubles();
+  await loadEnvStatus();
+
+  log('Panel loaded. OS: ' + detectedOS, 'sys');
+  await runAllChecks();
+
+  // Poll services every 10s
+  setInterval(loadServiceStatus, 10000);
+})();
+</script>
+</body>
+</html>

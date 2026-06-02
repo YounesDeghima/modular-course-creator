@@ -101,7 +101,7 @@
 @section('main')
 
     @fragment('main-content')
-        <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>
+{{--        <livewire:modular_site.navigation.navigation :course="$course" :chapter="$chapter" :lesson="$lesson"/>--}}
         <livewire:modular_site.block.blocks :course="$course" :chapter="$chapter" :lesson="$lesson" :blocks="$blocks"
                                             lazy/>
 
