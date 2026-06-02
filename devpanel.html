@@ -662,6 +662,65 @@ async function loadEnvStatus() {
   }
 }
 
+// ─── Context-aware action buttons ─────────────────────────────────────────────
+function getCardActions(id, result) {
+  const s   = result?.status || 'unknown';
+  const sub = result?.sub    || '';
+  const recheck = `<button class="btn sm" onclick="checkOne('${id}')">Re-check</button>`;
+  const guide   = `<button class="btn sm" onclick="nav(null,'setup');setTimeout(()=>openSetup('${id}'),100)">Guide</button>`;
+
+  if (s === 'ok') {
+    const upd = {
+      php:            `<button class="btn sm" onclick="runStreamAction('/api/install/php','Reinstall PHP')">Reinstall</button>`,
+      composer:       `<button class="btn sm" onclick="runStreamAction('/api/install/composer','Reinstall Composer')">Reinstall</button>`,
+      node:           `<button class="btn sm" onclick="runStreamAction('/api/install/node','Reinstall Node.js')">Reinstall</button>`,
+      podman:         `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild image</button>`,
+      'code-image':   `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuilding image')">Rebuild</button>`,
+      'laravel-deps': `<button class="btn sm" onclick="runStreamAction('/api/action/project-setup','Re-run setup')">Re-run setup</button>`,
+      ollama:         sub === 'no_model'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`
+        : `<button class="btn sm" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`,
+      'python-mineru':`<button class="btn sm" onclick="runStreamAction('/api/install/python','Reinstall MinerU')">Reinstall</button>`,
+    }[id] || '';
+    return `${upd}${recheck}`;
+  }
+
+  if (s === 'warn') {
+    const fixMap = {
+      php:            `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/php','Fix PHP')">Fix PHP</button>`,
+      composer:       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/composer','Fix Composer')">Fix Composer</button>`,
+      node:           `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/node','Fix Node.js')">Fix Node</button>`,
+      podman: (() => {
+        if (sub === 'machine_stopped') return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-start','Starting Podman machine')">Start machine</button>`;
+        if (sub === 'no_machine')      return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-init','Init + start Podman machine')">Init machine</button>`;
+        if (sub === 'daemon_stopped')  return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Start daemon</button>`;
+        return `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Fix Podman</button>`;
+      })(),
+      'code-image':   `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/build-image','Building image')">Build image</button>`,
+      'laravel-deps': `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/project-setup','Project setup')">Fix setup</button>`,
+      ollama: sub === 'not_running'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/ollama-start','Starting Ollama')">Start Ollama</button>`
+        : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/ollama','Fix Ollama')">Fix Ollama</button>`,
+      'python-mineru':`<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/python','Fix Python + MinerU')">Fix MinerU</button>`,
+    };
+    const fix = fixMap[id] || guide;
+    return `${fix}${recheck}`;
+  }
+
+  // err / unknown — not installed
+  const inst = {
+    php:            `<button class="btn sm primary" onclick="runStreamAction('/api/install/php','Installing PHP 8.2+')">Install PHP</button>`,
+    composer:       `<button class="btn sm primary" onclick="runStreamAction('/api/install/composer','Installing Composer 2')">Install Composer</button>`,
+    node:           `<button class="btn sm primary" onclick="runStreamAction('/api/install/node','Installing Node.js LTS')">Install Node</button>`,
+    podman:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/podman','Installing Podman')">Install Podman</button>`,
+    'code-image':   `<button class="btn sm primary" onclick="runStreamAction('/api/action/build-image','Building code-runner image')">Build image</button>`,
+    'laravel-deps': `<button class="btn sm primary" onclick="runStreamAction('/api/action/project-setup','Running project setup')">Run setup</button>`,
+    ollama:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/ollama','Installing Ollama + phi4')">Install Ollama</button>`,
+    'python-mineru':`<button class="btn sm primary" onclick="runStreamAction('/api/install/python','Setting up Python + MinerU')">Install MinerU</button>`,
+  }[id] || guide;
+  return `${inst}${guide}${recheck}`;
+}
+
 // ─── Overview cards ────────────────────────────────────────────────────────────
 function renderOverviewGrid() {
   const g = document.getElementById('ov-grid');
@@ -674,12 +733,12 @@ function renderOverviewGrid() {
       <div class="cc-top">
         <div>
           <div class="cc-name">${esc(comp.name)}</div>
-          <div class="cc-ver" id="ov-ver-${comp.id}">not checked</div>
+          <div class="cc-ver" id="ov-ver-${comp.id}">not checked yet</div>
         </div>
         <div class="pill dim" id="ov-pill-${comp.id}"><span class="pill-dot"></span>unknown</div>
       </div>
       <div class="cc-desc">${esc(comp.desc)}</div>
-      <div class="cc-actions">
+      <div class="cc-actions" id="ov-actions-${comp.id}">
         <button class="btn sm" onclick="checkOne('${comp.id}')">Check</button>
         <button class="btn sm" onclick="nav(null,'setup');setTimeout(()=>openSetup('${comp.id}'),100)">Guide</button>
       </div>`;
@@ -695,8 +754,9 @@ function updateCompCard(id, result) {
   if (pill) { pill.className = `pill ${result.status}`; pill.innerHTML = `<span class="pill-dot"></span>${result.status}`; }
   const ver = document.getElementById(`ov-ver-${id}`);
   if (ver) ver.textContent = result.detail || result.version || result.status;
+  const actions = document.getElementById(`ov-actions-${id}`);
+  if (actions) actions.innerHTML = getCardActions(id, result);
 
-  // Update setup item if rendered
   const si = document.getElementById(`si-${id}`);
   if (si) {
     si.className = `setup-item ${result.status}${si.classList.contains('open') ? ' open' : ''}`;
@@ -704,6 +764,8 @@ function updateCompCard(id, result) {
     if (siPill) { siPill.className = `pill ${result.status}`; siPill.innerHTML = `<span class="pill-dot"></span>${result.status}`; }
     const siBrief = document.getElementById(`si-brief-${id}`);
     if (siBrief) siBrief.textContent = result.detail || result.version || result.status;
+    const siAct = si.querySelector('.si-actions');
+    if (siAct) siAct.innerHTML = `${getSetupAction(id, result)}<button class="btn sm primary" onclick="checkOne('${id}')">Re-check</button>`;
   }
 }
 
@@ -772,18 +834,51 @@ function buildSetupItemHTML(comp, idx, osD) {
     </div>`;
 }
 
-function getSetupAction(id) {
-  const actions = {
-    'php':          `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/php','Installing PHP 8.2+')">Install PHP</button>`,
-    'composer':     `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/composer','Installing Composer 2')">Install Composer</button>`,
-    'node':         `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/node','Installing Node.js LTS')">Install Node</button>`,
-    'podman':       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/podman','Installing Podman')">Install Podman</button>`,
-    'code-image':   `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/build-image','Building code-runner image')">Build image</button>`,
-    'laravel-deps': `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/project-setup','Running project setup')">Run setup</button>`,
-    'ollama':       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/ollama','Installing Ollama + phi4')">Install Ollama</button>`,
-    'python-mineru':`<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/python','Setting up Python + MinerU (auto version detect)')">Install MinerU</button>`,
-  };
-  return actions[id] || '';
+function getSetupAction(id, result) {
+  // result is optional — when called from setup list before check, show default install button
+  const s   = result?.status || 'err';
+  const sub = result?.sub    || '';
+
+  if (s === 'ok') {
+    return {
+      podman:        `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild image</button>`,
+      'code-image':  `<button class="btn sm" onclick="runStreamAction('/api/action/build-image','Rebuild image')">Rebuild</button>`,
+      'laravel-deps':`<button class="btn sm" onclick="runStreamAction('/api/action/project-setup','Re-run setup')">Re-run setup</button>`,
+      ollama:        `<button class="btn sm" onclick="runStreamAction('/api/action/pull-model/phi4','Pulling phi4')">Pull phi4</button>`,
+      'python-mineru':`<button class="btn sm" onclick="runStreamAction('/api/install/python','Reinstall MinerU')">Reinstall</button>`,
+    }[id] || '';
+  }
+
+  if (s === 'warn') {
+    return {
+      php:            `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/php','Fix PHP')">Fix PHP</button>`,
+      composer:       `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/composer','Fix Composer')">Fix Composer</button>`,
+      node:           `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/node','Fix Node.js')">Fix Node</button>`,
+      podman: sub === 'machine_stopped'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-start','Starting Podman machine')">Start machine</button>`
+        : sub === 'no_machine'
+          ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-machine-init','Init Podman machine')">Init machine</button>`
+          : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/podman-fix','Fix Podman')">Fix Podman</button>`,
+      'code-image':   `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/build-image','Build image')">Build image</button>`,
+      'laravel-deps': `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/project-setup','Fix setup')">Fix setup</button>`,
+      ollama: sub === 'not_running'
+        ? `<button class="btn sm ok-btn" onclick="runStreamAction('/api/action/ollama-start','Starting Ollama')">Start Ollama</button>`
+        : `<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/ollama','Fix Ollama')">Fix Ollama</button>`,
+      'python-mineru':`<button class="btn sm ok-btn" onclick="runStreamAction('/api/install/python','Fix Python + MinerU')">Fix MinerU</button>`,
+    }[id] || '';
+  }
+
+  // err / unknown — install
+  return {
+    php:            `<button class="btn sm primary" onclick="runStreamAction('/api/install/php','Installing PHP 8.2+')">Install PHP</button>`,
+    composer:       `<button class="btn sm primary" onclick="runStreamAction('/api/install/composer','Installing Composer 2')">Install Composer</button>`,
+    node:           `<button class="btn sm primary" onclick="runStreamAction('/api/install/node','Installing Node.js LTS')">Install Node</button>`,
+    podman:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/podman','Installing Podman')">Install Podman</button>`,
+    'code-image':   `<button class="btn sm primary" onclick="runStreamAction('/api/action/build-image','Build code-runner image')">Build image</button>`,
+    'laravel-deps': `<button class="btn sm primary" onclick="runStreamAction('/api/action/project-setup','Project setup')">Run setup</button>`,
+    ollama:         `<button class="btn sm primary" onclick="runStreamAction('/api/install/ollama','Installing Ollama + phi4')">Install Ollama</button>`,
+    'python-mineru':`<button class="btn sm primary" onclick="runStreamAction('/api/install/python','Setup Python + MinerU')">Install MinerU</button>`,
+  }[id] || '';
 }
 
 function switchOsTab(compId, os) {

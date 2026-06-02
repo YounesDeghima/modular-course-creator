@@ -383,26 +383,28 @@ async function checkPodman() {
   const pr = await sh('podman --version 2>&1');
   if (pr.ok && pr.stdout) {
     const v = parseVer(pr.stdout);
-    if (!IS_WIN && !IS_MAC) return { status: 'ok', version: v?.str, detail: `Podman ${v?.str}`, bin: 'podman' };
+    // Linux: podman is rootless, no machine needed
+    if (!IS_WIN && !IS_MAC) return { status: 'ok', version: v?.str, detail: `Podman ${v?.str}`, bin: 'podman', sub: 'ok' };
+    // Windows/Mac: need a running machine
     const ml = await sh('podman machine list --format json 2>&1');
     if (ml.ok) {
       try {
         const ms = JSON.parse(ml.stdout || '[]');
         const running = ms.some(m => m.Running || m.State === 'running');
-        if (!running && ms.length > 0) return { status: 'warn', version: v?.str, detail: 'Podman installed — machine not running. Run: podman machine start', bin: 'podman' };
-        if (ms.length === 0) return { status: 'warn', version: v?.str, detail: 'Podman installed — no machine yet. Run: podman machine init', bin: 'podman' };
+        if (!running && ms.length > 0) return { status: 'warn', version: v?.str, detail: `Podman ${v?.str} installed — machine exists but not running`, bin: 'podman', sub: 'machine_stopped' };
+        if (ms.length === 0)           return { status: 'warn', version: v?.str, detail: `Podman ${v?.str} installed — no machine created yet`, bin: 'podman', sub: 'no_machine' };
       } catch {}
     }
-    return { status: 'ok', version: v?.str, detail: `Podman ${v?.str}`, bin: 'podman' };
+    return { status: 'ok', version: v?.str, detail: `Podman ${v?.str} running`, bin: 'podman', sub: 'ok' };
   }
   const dr = await sh('docker --version 2>&1');
   if (dr.ok && dr.stdout) {
     const v = parseVer(dr.stdout);
     const di = await sh('docker info 2>&1');
-    if (!di.ok) return { status: 'warn', version: v?.str, detail: 'Docker installed — daemon not running', bin: 'docker' };
-    return { status: 'ok', version: v?.str, detail: `Docker ${v?.str}`, bin: 'docker' };
+    if (!di.ok) return { status: 'warn', version: v?.str, detail: `Docker ${v?.str} installed — daemon not running`, bin: 'docker', sub: 'daemon_stopped' };
+    return { status: 'ok', version: v?.str, detail: `Docker ${v?.str} running`, bin: 'docker', sub: 'ok' };
   }
-  return { status: 'err', version: null, detail: 'Neither podman nor docker found in PATH' };
+  return { status: 'err', version: null, detail: 'Neither podman nor docker found in PATH', sub: 'not_installed' };
 }
 
 async function checkCodeImage() {
@@ -440,16 +442,17 @@ async function checkLaravelDeps() {
 
 async function checkOllama() {
   const w = await sh(IS_WIN ? 'where ollama 2>&1' : 'which ollama 2>&1');
-  if (!w.ok) return { status: 'err', version: null, detail: 'ollama not found in PATH' };
+  if (!w.ok) return { status: 'err', version: null, detail: 'ollama not found in PATH', sub: 'not_installed' };
   const api = await sh('curl -s --max-time 3 http://localhost:11434/api/tags 2>&1');
   if (!api.ok || !api.stdout.trim())
-    return { status: 'warn', version: 'installed', detail: 'Ollama installed but not running on :11434 — run: ollama serve' };
+    return { status: 'warn', version: 'installed', detail: 'Ollama installed but not running on :11434', sub: 'not_running' };
   try {
     const data = JSON.parse(api.stdout);
     const models = (data.models || []).map(m => m.name || m.model).join(', ') || 'none pulled yet';
-    return { status: 'ok', version: 'running', detail: `Ollama running — models: ${models}` };
+    const hasPhi4 = models.includes('phi4');
+    return { status: 'ok', version: 'running', detail: `Ollama running — models: ${models}`, sub: hasPhi4 ? 'ok' : 'no_model', models };
   } catch {
-    return { status: 'ok', version: 'running', detail: 'Ollama API responding on :11434' };
+    return { status: 'ok', version: 'running', detail: 'Ollama API responding on :11434', sub: 'ok' };
   }
 }
 
@@ -612,6 +615,83 @@ async function installPythonMineru(res) {
   sse.sys('[panel] Setting up Python + MinerU...');
   const code = await setupMineruVenv(sse);
   sse.done(code);
+}
+
+async function podmanMachineStart(res) {
+  const sse = sseStream(res);
+  sse.sys('[panel] Starting Podman machine...');
+  const code = await spawnStream(sse, 'podman', ['machine', 'start'], {});
+  if (code === 0) {
+    sse.ok('[panel] Podman machine started.');
+    // Verify
+    const check = await checkPodman();
+    sse.line(`[panel] Status: ${check.detail}`, check.status === 'ok' ? 'ok' : 'warn');
+  } else {
+    sse.err('[panel] podman machine start failed.');
+    sse.warn('[panel] Try initializing first: click "Init machine"');
+  }
+  sse.done(code);
+}
+
+async function podmanMachineInit(res) {
+  const sse = sseStream(res);
+  sse.sys('[panel] Initializing Podman machine...');
+  const initCode = await spawnStream(sse, 'podman', ['machine', 'init'], {});
+  if (initCode !== 0) { sse.err('[panel] Init failed.'); sse.done(initCode); return; }
+  sse.sys('[panel] Starting Podman machine...');
+  const startCode = await spawnStream(sse, 'podman', ['machine', 'start'], {});
+  sse.line(startCode === 0 ? '[panel] Podman machine initialized and started.' : '[panel] Start failed after init.', startCode === 0 ? 'ok' : 'err');
+  sse.done(startCode);
+}
+
+async function ollamaStart(res) {
+  const sse = sseStream(res);
+  sse.sys('[panel] Starting Ollama...');
+  // Check if already running
+  const api = await sh('curl -s --max-time 2 http://localhost:11434/api/tags 2>&1');
+  if (api.ok && api.stdout.trim()) { sse.ok('[panel] Ollama is already running on :11434.'); sse.done(0); return; }
+  spawn('ollama', ['serve'], { detached: true, stdio: 'ignore' }).unref();
+  sse.line('[panel] ollama serve launched in background. Waiting for API...');
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    const ping = await sh('curl -s --max-time 1 http://localhost:11434/api/tags 2>&1');
+    if (ping.ok && ping.stdout.trim()) { sse.ok(`[panel] Ollama API up after ${i+1}s.`); sse.done(0); return; }
+    sse.line(`[panel] Waiting... (${i+1}/10)`, 'info');
+  }
+  sse.warn('[panel] Ollama may still be starting. Re-check in a moment.');
+  sse.done(0);
+}
+
+async function fixPodman(res) {
+  // Smart fix: detect what's wrong and fix it
+  const sse = sseStream(res);
+  sse.sys('[panel] Running Podman fix...');
+  const check = await checkPodman();
+  sse.line(`[panel] Current state: ${check.detail}`, 'info');
+  if (check.sub === 'not_installed') {
+    sse.sys('[panel] Podman not installed — installing...');
+    await installPodman(res); return;
+  }
+  if (check.sub === 'no_machine') {
+    sse.sys('[panel] No machine found — running podman machine init + start...');
+    await spawnStream(sse, 'podman', ['machine', 'init'], {});
+    const c = await spawnStream(sse, 'podman', ['machine', 'start'], {});
+    sse.line(c === 0 ? '[panel] Machine initialized and started.' : '[panel] Failed.', c === 0 ? 'ok' : 'err');
+    sse.done(c); return;
+  }
+  if (check.sub === 'machine_stopped') {
+    sse.sys('[panel] Machine exists but stopped — running podman machine start...');
+    const c = await spawnStream(sse, 'podman', ['machine', 'start'], {});
+    sse.line(c === 0 ? '[panel] Machine started.' : '[panel] Start failed — try podman machine init', c === 0 ? 'ok' : 'err');
+    sse.done(c); return;
+  }
+  if (check.sub === 'daemon_stopped') {
+    sse.warn('[panel] Docker daemon not running.');
+    sse.info('[panel] On Windows/Mac: open Docker Desktop. On Linux: sudo systemctl start docker');
+    sse.done(0); return;
+  }
+  sse.ok('[panel] Podman appears to be working fine.');
+  sse.done(0);
 }
 
 async function buildCodeImage(res) {
@@ -988,6 +1068,11 @@ const server = createServer(async (req, res) => {
     });
     return;
   }
+
+  if (path === '/api/action/podman-machine-start') { await podmanMachineStart(res); return; }
+  if (path === '/api/action/podman-machine-init')  { await podmanMachineInit(res);  return; }
+  if (path === '/api/action/podman-fix')           { await fixPodman(res);          return; }
+  if (path === '/api/action/ollama-start')         { await ollamaStart(res);        return; }
 
   // Install actions
   if (path === '/api/install/php')         { await installPhp(res);           return; }
