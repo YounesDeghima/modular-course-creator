@@ -236,6 +236,9 @@
 
 @section('js')
 
+
+
+
     <script src="{{ asset('vendors/chart.js') }}"></script>
     <script src="{{ asset('vendors/katex/katex.min.js') }}"></script>
     <script src="{{ asset('vendors/katex/contrib/auto-render.min.js') }}"></script>
@@ -244,7 +247,30 @@
 
 
     <script>
-        // BUG FIX #11: legacy modal notifies Livewire after block creation
+        window._activeLessonId    = {{ $lesson->id ?? 'null' }};
+        window._activeChapterId   = {{ $chapter->id ?? 'null' }};
+
+        document.addEventListener('livewire:navigating', () => {
+            sessionStorage.setItem('scrollPos', window.scrollY);
+        });
+
+        document.addEventListener('livewire:navigated', () => {
+            const pos = sessionStorage.getItem('scrollPos');
+            if (pos) window.scrollTo(0, parseInt(pos));
+        });
+
+        // For non-navigate updates (saves, mutations)
+        document.addEventListener('livewire:commit', () => {
+            sessionStorage.setItem('scrollPos', window.scrollY);
+        });
+
+        document.addEventListener('livewire:update', () => {
+            const pos = sessionStorage.getItem('scrollPos');
+            if (pos) window.scrollTo({ top: parseInt(pos), behavior: 'instant' });
+        });
+
+
+
         async function legacyBlockFormSubmit(e) {
             e.preventDefault();
             const form = e.target;
@@ -336,20 +362,25 @@
     </script>
 
 
-    <script>
-        /* ── Load marked.js (local vendor file or CDN fallback) ── */
-    </script>
+
     <script src="{{ asset('vendors/marked.min.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
           '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
-    {{-- MathJax removed: using KaTeX only --}}
+
 
     <script>
         // ── Convert panel ─────────────────────────────────────────────────────────────
         let _convertBlockId = null;
         let _convertRawContent = '';
+
+        document.addEventListener('livewire:dispatch', (e) => {
+            if (e.detail?.name === 'LessonChanged' && e.detail?.params?.id) {
+                window._activeLessonId  = e.detail.params.id;
+                window._activeChapterId = e.detail.params.chapterId ?? window._activeChapterId;
+            }
+        });
 
         function openConvertPanel(blockId, rawContent) {
             _convertBlockId = blockId;
@@ -426,7 +457,16 @@
                                 chapterId: null
                             });
                         }
-                        setTimeout(() => window.location.reload(), 600);
+                        setTimeout(() => {
+                            if (window.Livewire && window._activeLessonId) {
+                                Livewire.dispatch('LessonChanged', {
+                                    id: window._activeLessonId,
+                                    chapterId: window._activeChapterId
+                                });
+                            }
+                        }, 600);
+
+
                     }, 700);
                 } else {
                     statusEl.style.color = '#dc2626';
@@ -477,8 +517,13 @@
                 });
                 var data = await res.json();
                 if (res.ok && data.success) {
-                    // Reload page so Livewire re-fetches blocks fresh (avoids 404 on dispatch)
-                    window.location.reload();
+
+                    if (window.Livewire && window._activeLessonId) {
+                        Livewire.dispatch('LessonChanged', {
+                            id: window._activeLessonId,
+                            chapterId: window._activeChapterId
+                        });
+                    }
                 } else {
                     alert('Explode failed: ' + (data.error || 'Unknown error'));
                     btn.textContent = orig;

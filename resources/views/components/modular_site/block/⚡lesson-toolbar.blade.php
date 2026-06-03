@@ -11,6 +11,8 @@
                 :lesson="$lesson" :course="$course"
                 :chapter="$chapter" :blocks="$blocks" />
 --}}
+
+{{--TODO fix lesons merging its broken and deltes after merge and errors  in f12--}}
 <?php
 use Livewire\Component;
 use App\Models\block;
@@ -63,6 +65,7 @@ new class extends Component {
     }
 
     public function moveBlock(int $fromIndex, int $toIndex): void
+
     {
         if (
             $fromIndex < 0 || $fromIndex >= count($this->blocks) ||
@@ -143,8 +146,9 @@ new class extends Component {
         $this->refreshBlocks();
         $count = count($blockIds);
         $verb  = $mode === 'copy' ? 'Copied' : 'Moved';
-        $this->dispatch('notify', message: "{$verb} {$count} block(s) to {$targetLesson->title}!");
-        $this->dispatch('BlockCreated', id: 0);
+        $this->dispatch('notify', message: "{$verb} {$sourceLesson->title} into this lesson!");
+        $this->dispatch('LessonChanged', id: $this->lesson->id, chapterId: $this->lesson->chapter_id);
+
     }
 
     public function mergeLesson(int $sourceLessonId, string $mode = 'move'): void
@@ -172,10 +176,11 @@ new class extends Component {
             }
         }
 
+        $count = $sourceBlocks->count();
         $this->refreshBlocks();
         $verb = $mode === 'copy' ? 'Copied' : 'Merged';
-        $this->dispatch('notify', message: "{$verb} {$sourceLesson->title} into this lesson!");
-        $this->dispatch('BlockCreated', id: 0);
+        $this->dispatch('notify', message: "{$verb} {$count} block(s) from {$sourceLesson->title}!");
+        $this->dispatch('LessonChanged', id: $this->lesson->id, chapterId: $this->lesson->chapter_id);
     }
 };
 ?>
