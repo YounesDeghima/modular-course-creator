@@ -54,6 +54,10 @@ new class extends Component {
             ->assignedsections()
             ->pluck('section_id')
             ->toArray();
+        if($this->isAdmin){
+            $this->f_sectionIds = section::pluck('id')->toArray();
+        }
+
 
 
 
