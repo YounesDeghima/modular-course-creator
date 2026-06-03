@@ -137,17 +137,52 @@ new class extends Component
         </div>
     @endforeach
 
-    <div class="save-container">
+    <div class="save-container" style="padding-bottom:20px;gap: 10px">
         <button class="btn-save-all" wire:click="submit">
             Submit Quiz
         </button>
+
+            <a class="sb-nav-btn "
+               href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">
+                Back to course ›
+            </a>
+
     </div>
 
 
     @if($submitted)
+
+
         <div class="score-box">
-            Score: {{ $score }} / {{ $total }}
+            Score: {{ 20*$score/$total}} / 20
         </div>
     @endif
 
 </div>
+<style>
+    .sb-nav-btn {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--border, #e5e7eb);
+        border-radius: 6px;
+        background: var(--bg, #fff);
+        color: var(--text, #000);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-align: center;
+    }
+
+    .sb-nav-btn:hover:not(.disabled) {
+        background: var(--bg-hover, #f3f4f6);
+        border-color: #9ca3af;
+    }
+
+    .sb-nav-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        color: var(--text-muted, #9ca3af);
+    }
+</style>

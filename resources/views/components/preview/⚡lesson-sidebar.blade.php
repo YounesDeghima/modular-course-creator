@@ -284,8 +284,8 @@ new class extends Component {
             </a>
         @else
             <a class="sb-nav-btn"
-               href="{{ route('admin.preview.chapters', ['course'=>$course]) }}">
-                Back to course ›
+               href="{{ route('admin.preview.courses.quiz', ['course'=>$course]) }}">
+                take quiz ›
             </a>
         @endif
     </div>

@@ -50,10 +50,12 @@ new class extends Component {
         $this->isAdmin = auth::user()->role == 'admin' ?? false;
         $this->isTeacher = auth::user()->role == 'teacher' ?? false;
 
-        $this->f_sectionids = user::findOrFail(auth::user()->id)
+        $this->f_sectionIds = user::findOrFail(auth::user()->id)
             ->assignedsections()
             ->pluck('section_id')
             ->toArray();
+
+
 
 
 
