@@ -25,13 +25,12 @@
     <nav style="justify-content: space-between">
         <div class="nav-left">
             <img src="{{asset('images/logo/logo.png')}}" class="logo" alt="logo">
-            <a href='{{route('admin.main')}}' data-item='Home'>Home</a>
-            <a href='{{route('admin.dashboard')}}' data-item='About'>Users</a>
-            <a href='{{route('admin.courses.index')}}' data-item='Projects'>Modular site</a>
-            <a href="{{route('admin.preview.courses')}}" data-item='preview'>Preview</a>
-            <a href="{{route('admin.ai.panel')}}" data-item='AI Panel' >AI Generator</a>
-            <a href="{{ route('admin.code.editor') }}" data-item="Editor">Code Editor</a>
-
+            <a href='{{route('admin.main')}}'          @class(['active' => request()->routeIs('admin.main')])>Home</a>
+            <a href='{{route('admin.dashboard')}}'     @class(['active' => request()->routeIs('admin.dashboard')])>Users</a>
+            <a href='{{route('admin.courses.index')}}' @class(['active' => request()->routeIs('admin.courses.*')])>Modular site</a>
+            <a href="{{route('admin.preview.courses')}}" @class(['active' => request()->routeIs('admin.preview.*')])>Preview</a>
+            <a href="{{route('admin.ai.panel')}}"      @class(['active' => request()->routeIs('admin.ai.*')])>AI Generator</a>
+            <a href="{{ route('admin.code.editor') }}" @class(['active' => request()->routeIs('admin.code.*')])>Code Editor</a>
         </div>
 
         <div class="nav-right">
