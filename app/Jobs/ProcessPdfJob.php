@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
@@ -43,8 +44,11 @@ class ProcessPdfJob implements ShouldQueue
             return;
         }
 
-        $model   = $this->recutModel ?? $aiJob->model ?? 'phi4';
-        $attempt = ($aiJob->attempt ?? 0) + 1;
+        $model = $this->recutModel ?? $aiJob->model ?? 'phi4';
+
+        // For a pure Ollama recut we don't count it as a new "attempt"
+        $isRecut = $this->recutSnapshotId !== null;
+        $attempt = $isRecut ? ($aiJob->attempt ?? 1) : ($aiJob->attempt ?? 0) + 1;
 
         $aiJob->update([
             'status'     => 'processing',
@@ -52,7 +56,8 @@ class ProcessPdfJob implements ShouldQueue
             'started_at' => now(),
         ]);
 
-        $aiJob->log("═══ Attempt {$attempt}/{$aiJob->max_attempts} | model={$model} ═══", 'info');
+        $modeLabel = $isRecut ? 'RECUT' : "Attempt {$attempt}/{$aiJob->max_attempts}";
+        $aiJob->log("═══ {$modeLabel} | model={$model} ═══", 'info');
 
         $startTime = microtime(true);
 
@@ -115,7 +120,8 @@ class ProcessPdfJob implements ShouldQueue
             $aiJob->log('FAILED — ' . $e->getMessage(), 'error');
             $aiJob->log('At: ' . basename($e->getFile()) . ':' . $e->getLine(), 'error');
 
-            $willRetry = $attempt < ($aiJob->max_attempts ?? 3);
+            // Recut failures are not auto-retried (they are manual operations)
+            $willRetry = !$isRecut && ($attempt < ($aiJob->max_attempts ?? 3));
 
             $aiJob->update([
                 'status'           => 'failed',
@@ -129,7 +135,7 @@ class ProcessPdfJob implements ShouldQueue
                 $aiJob->log("Will auto-retry in {$delay}s (attempt {$attempt}/{$aiJob->max_attempts}).", 'warn');
                 self::dispatch($aiJob->id)->delay(now()->addSeconds($delay));
             } else {
-                $aiJob->log("Max attempts ({$aiJob->max_attempts}) reached.", 'error');
+                $aiJob->log($isRecut ? "Recut failed — retry it manually." : "Max attempts ({$aiJob->max_attempts}) reached.", 'error');
             }
         }
     }
@@ -207,7 +213,7 @@ class ProcessPdfJob implements ShouldQueue
     ): void {
         $aiJob->log("STEP 3 — Creating course structure and exploding lesson blocks…", 'info');
 
-        \DB::beginTransaction();
+        DB::beginTransaction();
         try {
             $t = fn($s, $max = 255) => mb_substr((string)($s ?? ''), 0, $max);
 
@@ -283,14 +289,14 @@ class ProcessPdfJob implements ShouldQueue
             }
 
             $aiJob->update(['status' => 'done', 'finished_at' => now(), 'duration_seconds' => (int)(microtime(true) - $startTime), 'error_message' => null]);
-            \DB::commit();
+            DB::commit();
 
             $summary = "STEP 3 — Done. Lessons:{$lessonTotal}" . ($lessonFailed > 0 ? " ({$lessonFailed} saved as raw markdown — explode manually)." : " all exploded OK.");
             $aiJob->log($summary, $lessonFailed > 0 ? 'warn' : 'ok');
             $aiJob->log("Course id={$courseRecord->id} created as draft.", 'ok');
 
         } catch (\Throwable $e) {
-            \DB::rollBack();
+            DB::rollBack();
             $aiJob->log("STEP 3 — Course creation transaction failed: " . $e->getMessage(), 'error');
             throw $e;
         }

@@ -11,6 +11,7 @@ use App\Models\course;
 use App\Models\lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -195,6 +196,10 @@ class AIController extends Controller
     {
         $aiJob = AiJob::findOrFail($id);
 
+        if ($aiJob->status === 'processing' || $aiJob->status === 'queued') {
+            return response()->json(['error' => 'Job is already queued or processing.'], 422);
+        }
+
         $aiJob->log('Retry MinerU triggered by ' . (Auth::user()?->name ?? 'admin') . '.', 'info');
         $aiJob->update(['status' => 'queued', 'error_message' => null]);
 
@@ -288,7 +293,7 @@ class AIController extends Controller
         if ($request->snapshot_id && $request->result_index) {
             $snapshot = AiJobSnapshot::findOrFail($request->snapshot_id);
             $results  = $snapshot->results ?? [];
-            $entry    = collect($results)->firstWhere('index', $request->result_index);
+            $entry    = collect($results)->firstWhere('index', (int) $request->result_index);
             if ($entry && $entry['status'] === 'done') {
                 $resultJson = $entry['result_json'];
             }
@@ -311,7 +316,7 @@ class AIController extends Controller
         $imageUrls = $latestSnapshot?->image_urls ?? [];
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
             $t = fn($s, $max = 255) => mb_substr((string)($s ?? ''), 0, $max);
 
@@ -391,11 +396,11 @@ class AIController extends Controller
             $aiJob->update(['status' => 'saved']);
             $aiJob->log('Manually saved as course ID ' . $courseRecord->id . '.', 'ok');
 
-            \DB::commit();
+            DB::commit();
             return response()->json(['success' => true, 'course_id' => $courseRecord->id, 'message' => 'Course saved as draft.']);
 
         } catch (\Throwable $e) {
-            \DB::rollBack();
+            DB::rollBack();
             \Log::error('AI store failed: ' . $e->getMessage(), ['job_id' => $aiJob->id, 'file' => $e->getFile(), 'line' => $e->getLine()]);
             return response()->json(['error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()], 500);
         }
