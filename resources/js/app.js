@@ -14,7 +14,7 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 
 // 4. From @codemirror/language
-import { indentOnInput, bracketMatching, foldGutter } from '@codemirror/language';
+import { indentOnInput, bracketMatching, foldGutter, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 
 // 5. From @codemirror/autocomplete
 import { autocompletion } from '@codemirror/autocomplete';
@@ -29,6 +29,8 @@ import { javascript } from '@codemirror/lang-javascript';
 import { cpp } from '@codemirror/lang-cpp';
 import { java } from '@codemirror/lang-java';
 import { rust } from '@codemirror/lang-rust';
+import { go } from '@codemirror/lang-go';
+import { php } from '@codemirror/lang-php';
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -81,6 +83,8 @@ const CM_LANG = {
     c:          cpp(),
     java:       java(),
     rust:       rust(),
+    go:         go(),
+    php:        php(),
 };
 
 const STARTERS = {
@@ -148,6 +152,7 @@ function initEditor(code = '// Start coding...\n', langName = 'python') {
         parent: host,
     });
     updateEditorStats(view);
+    window.ceEditor = view; // keep in sync for pre-fill handler
 }
 
 function updateEditorStats(v) {
@@ -400,6 +405,7 @@ window.ceDeleteFile = function (fileId, event) {
 function renderFileList() {
     const list    = document.getElementById('sb-list');
     const countEl = document.getElementById('sb-count');
+    if (!list || !countEl) return;
     countEl.textContent = files.length;
 
     if (!files.length) {
@@ -533,7 +539,7 @@ window.ceSendInput = function () {
     inp.value = '';
 };
 
-document.getElementById('ce-live-input').addEventListener('keydown', e => {
+document.getElementById('ce-live-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') window.ceSendInput();
 });
 
@@ -629,7 +635,7 @@ function onLangChange(langName) {
     }
 }
 
-document.getElementById('ce-lang-select').addEventListener('change', e => onLangChange(e.target.value));
+document.getElementById('ce-lang-select')?.addEventListener('change', e => onLangChange(e.target.value));
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -720,6 +726,7 @@ window.ceToast = function (msg) {
 (function () {
     const handle = document.getElementById('ce-resize-handle');
     const panel  = document.getElementById('ce-right-panel');
+    if (!handle || !panel) return;
     let dragging = false, startX, startW;
     handle.addEventListener('mousedown', e => {
         dragging = true; startX = e.clientX; startW = panel.offsetWidth;
@@ -747,6 +754,7 @@ window.ceToast = function (msg) {
 // ═══════════════════════════════════════════════════════════════
 
 document.addEventListener('keydown', e => {
+    if (!document.getElementById('ce-codemirror')) return;
     if (e.ctrlKey || e.metaKey) {
         if (e.key === 'Enter') { e.preventDefault(); window.ceRun(); }
         if (e.key === 's')     { e.preventDefault(); window.ceFileSave(); }
@@ -754,30 +762,102 @@ document.addEventListener('keydown', e => {
         if (e.key === 'l')     { e.preventDefault(); window.ceClearTerminal(); }
         if (e.key === 'k')     { e.preventDefault(); window.ceFormatCode(); }
     }
-    if (e.key === 'Escape') document.getElementById('ce-save-modal').style.display = 'none';
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('ce-save-modal');
+        if (modal) modal.style.display = 'none';
+    }
 });
 
 // Enter key confirms the save modal
-document.getElementById('ce-file-name-input').addEventListener('keydown', e => {
+document.getElementById('ce-file-name-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') window.ceConfirmFileSave();
 });
 
 
 // ═══════════════════════════════════════════════════════════════
-//  BOOT
-//  On page load: restore saved files, start with a fresh unnamed
-//  buffer (just like opening a new empty editor), no auto-open.
+//  BOOT — only runs on the code editor page
 // ═══════════════════════════════════════════════════════════════
 
-loadFilesFromStorage();
-renderFileList();
+if (document.getElementById('ce-codemirror')) {
+    loadFilesFromStorage();
+    renderFileList();
 
-// Start with a blank Python buffer — no file selected
-const _bootLang = 'python';
-activeFileId = null;
-initEditor(getStarter(_bootLang), _bootLang);
-document.getElementById('ce-lang-select').value = _bootLang;
-document.getElementById('ce-filename').textContent = `untitled.${getExt(_bootLang)}`;
-markDirty(); // new buffer is always "unsaved" until the user saves
+    const _bootLang = 'python';
+    activeFileId = null;
+    initEditor(getStarter(_bootLang), _bootLang);
+    document.getElementById('ce-lang-select').value = _bootLang;
+    document.getElementById('ce-filename').textContent = `untitled.${getExt(_bootLang)}`;
+    markDirty();
 
-checkPtyServer();
+    checkPtyServer();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  WINDOW HELPERS — used by code-block editor/preview scripts
+// ═══════════════════════════════════════════════════════════════
+
+const _bcbLangMap = {
+    python:     () => python(),
+    javascript: () => javascript(),
+    typescript: () => javascript({ typescript: true }),
+    c:          () => cpp(),
+    cpp:        () => cpp(),
+    java:       () => java(),
+    rust:       () => rust(),
+    go:         () => go(),
+    php:        () => php(),
+    ruby: null, lua: null, perl: null, kotlin: null, bash: null, swift: null,
+};
+
+function _bcbGetLangExt(lang) {
+    const fn = _bcbLangMap[lang];
+    if (!fn) return [];
+    try { return [fn()]; } catch (_) { return []; }
+}
+
+window.__ce_createEditor = function (host, initialCode, lang, onChange) {
+    const langCompartment = new Compartment();
+    const extensions = [
+        lineNumbers(), highlightActiveLine(), history(),
+        drawSelection(), indentOnInput(), bracketMatching(),
+        foldGutter(), autocompletion(), highlightSelectionMatches(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+        oneDark,
+        langCompartment.of(_bcbGetLangExt(lang)),
+        EditorView.updateListener.of(update => {
+            if (update.docChanged && typeof onChange === 'function') {
+                onChange(update.state.doc.toString());
+            }
+        }),
+    ];
+    const editorView = new EditorView({
+        state: EditorState.create({ doc: initialCode, extensions }),
+        parent: host,
+    });
+    // Store compartment on the view so __ce_setLanguage can find it
+    editorView.__langCompartment = langCompartment;
+    return editorView;
+};
+
+window.__ce_setLanguage = function (editorView, lang) {
+    const compartment = editorView.__langCompartment;
+    if (!compartment) return;
+    editorView.dispatch({
+        effects: compartment.reconfigure(_bcbGetLangExt(lang)),
+    });
+};
+
+window.__ce_getCode = function (editorView) {
+    return editorView.state.doc.toString();
+};
+
+window.__ce_setCode = function (editorView, code, lang) {
+    editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: code },
+    });
+    if (lang && window.__ce_setLanguage) {
+        window.__ce_setLanguage(editorView, lang);
+    }
+};

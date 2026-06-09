@@ -491,20 +491,103 @@ new class extends Component {
                             @break
 
                         @case('code')
-                            <div class="be-code-wrap">
-                                <div class="be-code-header">
-                                    <span class="be-code-dots"><span></span><span></span><span></span></span>
-                                    <span class="be-code-lang">Code</span>
+                            @php
+                                /* Parse stored JSON; fall back to plain string (legacy blocks) */
+                                $codeJson   = json_decode($block['content'] ?? '{}', true);
+                                $codeLang   = $codeJson['language'] ?? 'python';
+                                $codeText   = $codeJson['code']     ?? ($block['content'] ?? '');
+                                /* If stored as plain text (no JSON), use the raw string */
+                                if (!is_array($codeJson)) {
+                                    $codeLang = 'python';
+                                    $codeText = $block['content'] ?? '';
+                                }
+                                /* Strip literal \n escapes that may have come from the default seed */
+                                $codeText = str_replace('\n', "\n", $codeText);
+                            @endphp
+                            <div class="bcb-editor-wrap" data-block-id="{{ $block['id'] }}" wire:ignore>
+
+                                {{-- ── Top bar: traffic lights · language select · action buttons ── --}}
+                                <div class="bcb-header">
+                                    <div class="bcb-dots"><span></span><span></span><span></span></div>
+
+                                    <select class="bcb-lang-select" data-bid="{{ $block['id'] }}"
+                                            onchange="bcbOnLangChange({{ $block['id'] }}, this.value)">
+                                        @foreach([
+                                            'python','javascript','typescript','c','cpp','java',
+                                            'rust','go','ruby','php','lua','perl','kotlin','bash','swift'
+                                        ] as $lang)
+                                            <option value="{{ $lang }}" {{ $lang === $codeLang ? 'selected' : '' }}>
+                                                {{ ucfirst($lang) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <div style="flex:1"></div>
+
+                                    <button type="button" class="bcb-btn bcb-btn-ghost bcb-copy-btn"
+                                            onclick="bcbCopy({{ $block['id'] }})" title="Copy code">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                    <button type="button" class="bcb-btn bcb-btn-run"
+                                            onclick="bcbRun({{ $block['id'] }})" id="bcb-run-{{ $block['id'] }}">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        Run
+                                    </button>
+                                    <button type="button" class="bcb-btn bcb-btn-kill" style="display:none"
+                                            onclick="bcbKill({{ $block['id'] }})" id="bcb-kill-{{ $block['id'] }}">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                        Kill
+                                    </button>
                                 </div>
+
+                                {{-- ── CodeMirror host ── --}}
+                                <div class="bcb-cm-host" id="bcb-cm-{{ $block['id'] }}"></div>
+
+                                {{-- Hidden textarea — Livewire reads this on saveAll() ──
+                                     We update its value + dispatch 'input' whenever the editor changes,
+                                     so wire:model on blocks.N.content stays in sync.              --}}
                                 <textarea
-                                    class="be-input be-input-code be-input-dark"
-                                    name="blocks[{{ $block['id'] }}][content]"
-                                    placeholder="// Paste your code here..."
+                                    class="bcb-hidden-content"
+                                    id="bcb-content-{{ $block['id'] }}"
                                     wire:model="blocks.{{ $loop->index }}.content"
-                                    oninput="autoResize(this)"
-                                    rows="4"
+                                    style="display:none"
                                 ></textarea>
+
+                                {{-- ── Terminal panel (hidden until first Run) ── --}}
+                                <div class="bcb-term-panel" id="bcb-term-{{ $block['id'] }}" style="display:none">
+                                    <div class="bcb-term-topbar">
+                                    <span class="bcb-term-title">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                                        </svg>
+                                        Output
+                                    </span>
+                                        <span class="bcb-exit-badge" id="bcb-exit-{{ $block['id'] }}" style="display:none"></span>
+                                        <span class="bcb-run-time"   id="bcb-time-{{ $block['id'] }}" style="display:none"></span>
+                                        <button type="button" class="bcb-term-btn" onclick="bcbClearTerm({{ $block['id'] }})">Clear</button>
+                                        <button type="button" class="bcb-term-btn bcb-collapse-btn"
+                                                id="bcb-collapse-{{ $block['id'] }}"
+                                                onclick="bcbToggleTerm({{ $block['id'] }})">▾ Hide</button>
+                                    </div>
+                                    <div class="bcb-terminal" id="bcb-out-{{ $block['id'] }}">
+                                        <div class="bcb-term-welcome">Press <strong>Run</strong> to execute your code.</div>
+                                    </div>
+                                    <div class="bcb-stdin-row" id="bcb-stdin-{{ $block['id'] }}" style="display:none">
+                                        <span class="bcb-prompt">❯</span>
+                                        <input type="text" class="bcb-stdin-input" id="bcb-stdin-input-{{ $block['id'] }}"
+                                               placeholder="Type input and press Enter…" autocomplete="off" spellcheck="false"
+                                               onkeydown="if(event.key==='Enter'){bcbSendInput({{ $block['id'] }});event.preventDefault()}">
+                                        <button type="button" class="bcb-term-btn" onclick="bcbSendInput({{ $block['id'] }})">Send ↵</button>
+                                    </div>
+                                </div>
+
                             </div>
+
                             @break
 
                         @case('exercise')
@@ -1562,4 +1645,465 @@ new class extends Component {
     .be-save-btn:hover { background:var(--accent-hover); }
     .be-save-btn:disabled { opacity:.6;cursor:not-allowed; }
     .be-spin { animation:be-spin .7s linear infinite; }
+
+    /* ── Code Block — Editor ─────────────────────────────────────── */
+    .bcb-editor-wrap {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #30363d;
+        background: #0d1117;
+        margin: 2px 0;
+    }
+
+    /* Header */
+    .bcb-header {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 12px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+    }
+    .bcb-dots { display: flex; gap: 5px; }
+    .bcb-dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .bcb-dots span:nth-child(1) { background: #ff5f57; }
+    .bcb-dots span:nth-child(2) { background: #febc2e; }
+    .bcb-dots span:nth-child(3) { background: #28c840; }
+
+    .bcb-lang-select {
+        padding: 3px 7px; border-radius: 5px;
+        border: 1px solid #30363d; background: #0d1117;
+        color: #8b949e; font-size: 11px; font-family: inherit;
+        cursor: pointer; outline: none;
+    }
+    .bcb-lang-select:focus { border-color: #58a6ff; }
+
+    .bcb-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 5px;
+        font-size: 11px; font-weight: 600; font-family: inherit;
+        border: 1px solid; cursor: pointer; transition: all .13s; white-space: nowrap;
+    }
+    .bcb-btn-run  { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .bcb-btn-run:hover  { background: #4338ca; }
+    .bcb-btn-kill { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+    .bcb-btn-kill:hover { background: #991b1b; }
+    .bcb-btn-ghost { background: #21262d; color: #8b949e; border-color: #30363d; }
+    .bcb-btn-ghost:hover { background: #30363d; color: #e6edf3; }
+
+    /* CodeMirror host */
+    .bcb-cm-host {
+        min-height: 80px;
+        max-height: 420px;
+        overflow-y: auto;
+        font-size: 13px;
+        line-height: 1.65;
+    }
+    /* Make the CM editor expand to fill its host */
+    .bcb-cm-host .cm-editor   { min-height: 80px; }
+    .bcb-cm-host .cm-scroller { overflow: auto; max-height: 420px; }
+    .bcb-cm-host .cm-content  { padding: 10px 14px; }
+
+    /* Terminal panel */
+    .bcb-term-panel {
+        border-top: 1px solid #21262d;
+        background: #0c0e12;
+        display: flex; flex-direction: column;
+    }
+    .bcb-term-topbar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 12px;
+        background: #161b22; border-bottom: 1px solid #21262d;
+        flex-shrink: 0;
+    }
+    .bcb-term-title {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .07em; color: #4d5566;
+    }
+    .bcb-exit-badge {
+        font-size: 10px; font-weight: 700; padding: 1px 7px;
+        border-radius: 20px; font-family: monospace;
+    }
+    .bcb-exit-badge.ok   { background: #0d4429; color: #3fb950; }
+    .bcb-exit-badge.fail { background: #3d0f0e; color: #f85149; }
+    .bcb-run-time { font-size: 10px; color: #4d5566; font-family: 'JetBrains Mono', monospace; }
+    .bcb-term-btn {
+        padding: 2px 8px; font-size: 10px; font-family: inherit;
+        border: 1px solid #30363d; border-radius: 4px;
+        background: #0d1117; color: #4d5566; cursor: pointer; transition: background .12s;
+    }
+    .bcb-term-btn:hover { background: #21262d; color: #8b949e; }
+    .bcb-collapse-btn  { margin-left: auto; }
+
+    .bcb-terminal {
+        padding: 10px 14px;
+        min-height: 80px; max-height: 260px;
+        overflow-y: auto;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 12.5px; line-height: 1.75;
+        color: #c9d1d9; white-space: pre-wrap; word-break: break-all;
+    }
+    .bcb-terminal::-webkit-scrollbar { width: 5px; }
+    .bcb-terminal::-webkit-scrollbar-track { background: #0c0e12; }
+    .bcb-terminal::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+
+    .bcb-out-stdout     { color: #c9d1d9; }
+    .bcb-out-stderr     { color: #f85149; }
+    .bcb-out-system     { color: #58a6ff; font-style: italic; }
+    .bcb-out-success    { color: #3fb950; }
+    .bcb-out-stdin-echo { color: #7c3aed; }
+
+    .bcb-term-welcome { color: #30363d; font-size: 12px; padding: 4px 0; }
+
+    .bcb-stdin-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 12px; border-top: 1px solid #21262d;
+        background: #0c0e12; flex-shrink: 0;
+    }
+    .bcb-prompt { font-size: 14px; color: #4ade80; font-family: 'JetBrains Mono', monospace; }
+    .bcb-stdin-input {
+        flex: 1; background: none; border: none; outline: none;
+        color: #c9d1d9; font-family: 'JetBrains Mono', monospace;
+        font-size: 12px; caret-color: #58a6ff;
+    }
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    window.__PTY_BASE__  = window.__PTY_BASE__  || "{{ config('services.pty.url') }}";
+    window.__PTY_TOKEN__ = window.__PTY_TOKEN__ || "{{ config('services.pty.secret') }}";
+</script>
+
+<script>
+    /*
+     * ── Block Code Editor (BCB) ──────────────────────────────────────────────
+     *
+     * One per code block. Each block gets its own CodeMirror 6 instance and
+     * its own PTY WebSocket connection (opened on first Run, closed on Kill/done).
+     *
+     * State is stored in window.__bcb keyed by block ID.
+     */
+    (function () {
+        // ── Only define once (Livewire morphs may re-execute scripts) ──
+        if (window.__bcbInit) return;
+        window.__bcbInit = true;
+
+        // State map: blockId → { ws, editor, running, startTime }
+        window.__bcb = window.__bcb || {};
+
+        // ── CodeMirror 6 lazy loader ─────────────────────────────────
+        // We reuse the same CM build the standalone editor uses (loaded via app.js / Vite).
+        // If CM is not yet ready when the first block loads we poll briefly.
+        function waitForCM(cb, tries = 0) {
+            if (window.__ce_createEditor && window.__ce_setLanguage) {
+                cb();
+            } else if (tries < 40) {
+                setTimeout(() => waitForCM(cb, tries + 1), 100);
+            } else {
+                console.warn('BCB: CodeMirror 6 helpers not found — did Vite bundle app.js?');
+            }
+        }
+
+        // ── Init one block editor ────────────────────────────────────
+        window.bcbInit = function (bid) {
+            if (window.__bcb[bid]) return; // already initialised
+
+            const host      = document.getElementById('bcb-cm-' + bid);
+            const hiddenTA  = document.getElementById('bcb-content-' + bid);
+            const wrap      = host?.closest('.bcb-editor-wrap');
+            if (!host || !hiddenTA || !wrap) return;
+
+            // Decode current content from the hidden textarea (Livewire already populated it)
+            let initialCode = '';
+            try {
+                const parsed = JSON.parse(hiddenTA.value || '{}');
+                initialCode  = parsed.code ?? hiddenTA.value ?? '';
+            } catch (_) {
+                initialCode = hiddenTA.value ?? '';
+            }
+            initialCode = initialCode.replace(/\\n/g, '\n');
+
+            const langSelect = wrap.querySelector('.bcb-lang-select');
+            const lang       = langSelect?.value ?? 'python';
+
+            waitForCM(() => {
+                // __ce_createEditor is exported by app.js (see integration note below)
+                const editor = window.__ce_createEditor(host, initialCode, lang, (newCode) => {
+                    // Sync back to Livewire hidden field on every change
+                    bcbSyncContent(bid, newCode);
+                });
+
+                window.__bcb[bid] = { ws: null, editor, running: false, startTime: null };
+            });
+        };
+
+        // ── Sync code+language back to Livewire hidden field ─────────
+        window.bcbSyncContent = function (bid, code) {
+            const hiddenTA  = document.getElementById('bcb-content-' + bid);
+            const wrap      = document.querySelector('.bcb-editor-wrap[data-block-id="' + bid + '"]');
+            if (!hiddenTA || !wrap) return;
+
+            const lang = wrap.querySelector('.bcb-lang-select')?.value ?? 'python';
+
+            const payload = JSON.stringify({
+                mode:       'free',
+                language:   lang,
+                version:    '',
+                code:       code,
+                problem:    '',
+                test_cases: [],
+            });
+
+            hiddenTA.value = payload;
+            // Dispatch native 'input' so Livewire wire:model picks it up
+            hiddenTA.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
+        // ── Language change handler ───────────────────────────────────
+        window.bcbOnLangChange = function (bid, lang) {
+            const state = window.__bcb[bid];
+            if (state?.editor && window.__ce_setLanguage) {
+                window.__ce_setLanguage(state.editor, lang);
+            }
+            // Re-sync so the JSON payload includes the new language
+            const code = state?.editor
+                ? (window.__ce_getCode ? window.__ce_getCode(state.editor) : '')
+                : '';
+            bcbSyncContent(bid, code);
+        };
+
+        // ── Copy code to clipboard ────────────────────────────────────
+        window.bcbCopy = function (bid) {
+            const state = window.__bcb[bid];
+            const code  = state?.editor && window.__ce_getCode
+                ? window.__ce_getCode(state.editor)
+                : (document.getElementById('bcb-content-' + bid)?.value ?? '');
+
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector(
+                    '.bcb-editor-wrap[data-block-id="' + bid + '"] .bcb-copy-btn'
+                );
+                if (btn) {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`;
+                    }, 2000);
+                }
+            });
+        };
+
+        // ── Run ──────────────────────────────────────────────────────
+        window.bcbRun = function (bid) {
+            // Lazy-init if CodeMirror wasn't ready on page load
+            if (!window.__bcb[bid]) {
+                bcbInit(bid);
+                // bcbInit is async (waitForCM), so retry after a tick
+                setTimeout(() => bcbRun(bid), 150);
+                return;
+            }
+            const state = window.__bcb[bid];
+            if (state.running) return;
+
+            const wrap     = document.querySelector('.bcb-editor-wrap[data-block-id="' + bid + '"]');
+            const langSel  = wrap?.querySelector('.bcb-lang-select');
+            const lang     = langSel?.value ?? 'python';
+            const code     = state.editor && window.__ce_getCode
+                ? window.__ce_getCode(state.editor)
+                : (document.getElementById('bcb-content-' + bid)?.value ?? '');
+
+            // Show terminal panel
+            const termPanel = document.getElementById('bcb-term-' + bid);
+            if (termPanel) termPanel.style.display = 'flex';
+
+            // Reset output area
+            bcbClearTerm(bid, false);
+            bcbAppend(bid, `▶ Running ${lang}…\n`, 'system');
+
+            // Toggle buttons
+            document.getElementById('bcb-run-' + bid).style.display  = 'none';
+            document.getElementById('bcb-kill-' + bid).style.display = 'inline-flex';
+
+            // Exit badge & time
+            const exitBadge = document.getElementById('bcb-exit-' + bid);
+            const runTime   = document.getElementById('bcb-time-' + bid);
+            if (exitBadge) exitBadge.style.display = 'none';
+            if (runTime)   runTime.style.display   = 'none';
+
+            state.running   = true;
+            state.startTime = Date.now();
+
+            // ── Open PTY WebSocket ────────────────────────────────────
+            const base  = (window.__PTY_BASE__  || 'ws://127.0.0.1:4000').replace(/\/$/, '');
+            const token = window.__PTY_TOKEN__  || '';
+            const wsUrl = `${base}?token=${encodeURIComponent(token)}`;
+
+            const ws = new WebSocket(wsUrl);
+            state.ws = ws;
+
+            ws.onopen = () => {
+                // Send runner bootstrap: tell the PTY server what to run
+                ws.send(JSON.stringify({
+                    type: 'run',
+                    language: lang,
+                    code:     code,
+                }));
+                // Show stdin row
+                const stdinRow = document.getElementById('bcb-stdin-' + bid);
+                if (stdinRow) stdinRow.style.display = 'flex';
+            };
+
+            ws.onmessage = (evt) => {
+                let msg;
+                try   { msg = JSON.parse(evt.data); }
+                catch (_) { bcbAppend(bid, evt.data, 'stdout'); return; }
+
+                switch (msg.type) {
+                    case 'stdout': bcbAppend(bid, msg.data, 'stdout'); break;
+                    case 'stderr': bcbAppend(bid, msg.data, 'stderr'); break;
+                    case 'exit':
+                    case 'done':
+                        bcbDone(bid, msg.code ?? msg.exit_code ?? 0);
+                        break;
+                    case 'error':
+                        bcbAppend(bid, `\nError: ${msg.message}\n`, 'stderr');
+                        bcbDone(bid, 1);
+                        break;
+                }
+            };
+
+            ws.onerror = () => {
+                bcbAppend(bid, '\n⚠ Could not connect to PTY server.\n', 'stderr');
+                bcbDone(bid, 1);
+            };
+
+            ws.onclose = () => {
+                if (state.running) bcbDone(bid, 0);
+            };
+        };
+
+        // ── Kill running process ──────────────────────────────────────
+        window.bcbKill = function (bid) {
+            const state = window.__bcb[bid];
+            if (!state) return;
+            state.ws?.send(JSON.stringify({ type: 'kill' }));
+            state.ws?.close();
+            bcbAppend(bid, '\n⚡ Killed.\n', 'system');
+            bcbDone(bid, -1);
+        };
+
+        // ── Called when execution finishes ───────────────────────────
+        function bcbDone(bid, exitCode) {
+            const state = window.__bcb[bid];
+            if (!state) return;
+            state.running = false;
+            state.ws      = null;
+
+            document.getElementById('bcb-run-' + bid).style.display  = 'inline-flex';
+            document.getElementById('bcb-kill-' + bid).style.display = 'none';
+
+            const stdinRow = document.getElementById('bcb-stdin-' + bid);
+            if (stdinRow) stdinRow.style.display = 'none';
+
+            const elapsed = state.startTime ? ((Date.now() - state.startTime) / 1000).toFixed(2) : null;
+
+            const exitBadge = document.getElementById('bcb-exit-' + bid);
+            if (exitBadge && exitCode !== -1) {
+                exitBadge.textContent = exitCode === 0 ? `exit 0` : `exit ${exitCode}`;
+                exitBadge.className   = 'bcb-exit-badge ' + (exitCode === 0 ? 'ok' : 'fail');
+                exitBadge.style.display = 'inline-block';
+            }
+
+            const runTime = document.getElementById('bcb-time-' + bid);
+            if (runTime && elapsed) {
+                runTime.textContent = elapsed + 's';
+                runTime.style.display = 'inline';
+            }
+        }
+
+        // ── Append text to the terminal output ───────────────────────
+        function bcbAppend(bid, text, cls) {
+            const out = document.getElementById('bcb-out-' + bid);
+            if (!out) return;
+
+            // Remove welcome message on first real output
+            const welcome = out.querySelector('.bcb-term-welcome');
+            if (welcome) welcome.remove();
+
+            const span = document.createElement('span');
+            span.className = 'bcb-out-' + cls;
+            span.textContent = text;
+            out.appendChild(span);
+            out.scrollTop = out.scrollHeight;
+        }
+
+        // ── Clear terminal ────────────────────────────────────────────
+        window.bcbClearTerm = function (bid, showWelcome = true) {
+            const out = document.getElementById('bcb-out-' + bid);
+            if (!out) return;
+            out.innerHTML = '';
+            if (showWelcome) {
+                out.innerHTML = '<div class="bcb-term-welcome">Press <strong>Run</strong> to execute your code.</div>';
+            }
+            const badge = document.getElementById('bcb-exit-' + bid);
+            const time  = document.getElementById('bcb-time-' + bid);
+            if (badge) badge.style.display = 'none';
+            if (time)  time.style.display  = 'none';
+        };
+
+        // ── Send stdin input ─────────────────────────────────────────
+        window.bcbSendInput = function (bid) {
+            const input = document.getElementById('bcb-stdin-input-' + bid);
+            const state = window.__bcb[bid];
+            if (!input || !state?.ws) return;
+            const val = input.value;
+            state.ws.send(JSON.stringify({ type: 'stdin', data: val + '\n' }));
+            bcbAppend(bid, val + '\n', 'stdin-echo');
+            input.value = '';
+        };
+
+        // ── Toggle terminal panel ─────────────────────────────────────
+        window.bcbToggleTerm = function (bid) {
+            const out       = document.getElementById('bcb-out-' + bid);
+            const stdinRow  = document.getElementById('bcb-stdin-' + bid);
+            const collapseBtn = document.getElementById('bcb-collapse-' + bid);
+            if (!out) return;
+
+            const hidden = out.style.display === 'none';
+            out.style.display      = hidden ? '' : 'none';
+            if (stdinRow) stdinRow.style.display = hidden ? (window.__bcb[bid]?.running ? 'flex' : 'none') : 'none';
+            if (collapseBtn) collapseBtn.textContent = hidden ? '▾ Hide' : '▸ Show';
+        };
+
+        // ── Bootstrap all .bcb-editor-wrap elements ──────────────────
+        function bcbBootstrapAll() {
+            document.querySelectorAll('.bcb-editor-wrap').forEach(wrap => {
+                const bid = parseInt(wrap.dataset.blockId);
+                if (bid && !window.__bcb[bid]) bcbInit(bid);
+            });
+        }
+
+        // Run on initial load and after Livewire navigations / morphs
+        // FIXED
+        document.addEventListener('DOMContentLoaded', () => setTimeout(bcbBootstrapAll, 200));
+        document.addEventListener('livewire:navigated', bcbBootstrapAll);
+        document.addEventListener('livewire:load', () => setTimeout(bcbBootstrapAll, 100));
+
+// This is the key addition — fires after Livewire finishes the initial mount
+        document.addEventListener('livewire:initialized', () => setTimeout(bcbBootstrapAll, 50));
+
+        if (window.Livewire) {
+            Livewire.hook('commit', ({ succeed }) => {
+                succeed(() => setTimeout(bcbBootstrapAll, 100));
+            });
+        }
+    })();
+</script>

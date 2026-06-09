@@ -1,23 +1,3 @@
-{{--
-    pages/admin/preview/blocks.blade.php
-    ─────────────────────────────────────
-    FIXES applied in this version:
-      1.  renderAllMarkdownBlocks() DOMContentLoaded call was commented out → restored
-      2.  MathJax 404 dead-script removed (project uses KaTeX only)
-      3.  progress-form is a <div> not a <form> → replaced .submit() with Livewire dispatch
-      4.  window._funcBlocks not re-rendered after livewire:navigated → added listener
-      5.  toggle-solution / copy-code querySelectorAll ran before DOM ready → wrapped
-      6.  KaTeX triple-init race → single canonical init path via runKatex()
-      7.  AI assistant 419 CSRF → CSRF token is already passed in header (no change needed,
-          but the dead MathJax script that blocked rendering is removed)
-      8.  .note block had no CSS → added inline style callout
-      9.  exercise solutions rendered as plain text → wrapped in markdown renderer
-     10.  code block had no language label or copy button (copy button was added after DOM ready
-          but querySelectorAll ran too early) → moved to DOMContentLoaded
-     11.  function block KaTeX .katex-eq re-render after livewire:navigated was not triggered
-          → added to livewire:navigated handler
-     12.  scroll progress null-dereference on progress-form submit → fixed with Livewire dispatch
---}}
 
 @extends('layouts.edditor')
 
@@ -140,51 +120,79 @@
         }
         .block-table tbody tr:nth-child(even) td { background: var(--bg-alt, #fafafa); }
 
-        /* ── Code block ── FIX #10 ── */
-        .block-code-wrap {
+        /* ── Code block (pv) ── */
+        .pv-code-wrap {
             margin: 1.2rem 0;
-            background: #0d1117;
             border-radius: 10px;
             overflow: hidden;
-            position: relative;
+            border: 1px solid #30363d;
+            background: #0d1117;
         }
-        .block-code-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .pv-code-header {
+            display: flex; align-items: center; gap: 8px;
             padding: 7px 12px;
             background: #161b22;
             border-bottom: 1px solid #30363d;
+            flex-wrap: wrap; row-gap: 6px;
         }
-        .block-code-dots { display: flex; gap: 5px; }
-        .block-code-dots span { width: 10px; height: 10px; border-radius: 50%; }
-        .block-code-dots span:nth-child(1) { background: #ff5f57; }
-        .block-code-dots span:nth-child(2) { background: #febc2e; }
-        .block-code-dots span:nth-child(3) { background: #28c840; }
-        .block-code-body {
-            padding: 14px 16px;
-            overflow-x: auto;
+        .pv-code-dots { display: flex; gap: 5px; }
+        .pv-code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+        .pv-code-dots span:nth-child(1) { background: #ff5f57; }
+        .pv-code-dots span:nth-child(2) { background: #febc2e; }
+        .pv-code-dots span:nth-child(3) { background: #28c840; }
+        .pv-lang-badge {
+            font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+            padding: 2px 8px; border-radius: 20px;
+            background: #21262d; color: #8b949e;
+            text-transform: uppercase; letter-spacing: .06em;
+            border: 1px solid #30363d;
+        }
+        .pv-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; font-family: inherit;
+            border: 1px solid; cursor: pointer;
+            transition: all .13s; white-space: nowrap;
+        }
+        .pv-btn-run  { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+        .pv-btn-run:hover  { background: #4338ca; }
+        .pv-btn-kill { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+        .pv-btn-kill:hover { background: #991b1b; }
+        .pv-btn-ghost { background: #21262d; color: #8b949e; border-color: #30363d; }
+        .pv-btn-ghost:hover { background: #30363d; color: #e6edf3; }
+        .pv-btn-try { background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; border-color: transparent; }
+        .pv-btn-try:hover { opacity: .88; }
+        .pv-code-body {
+            padding: 14px 16px; overflow-x: auto;
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 13px;
-            line-height: 1.7;
-            color: #e2e8f0;
-            white-space: pre;
+            font-size: 13px; line-height: 1.7; color: #e2e8f0;
+            white-space: pre; user-select: text; cursor: text; tab-size: 4;
         }
-        .copy-code-btn {
-            position: absolute;
-            top: 7px;
-            right: 10px;
-            padding: 3px 9px;
-            font-size: 11px;
-            background: #30363d;
-            color: #8b949e;
-            border: 1px solid #444c56;
-            border-radius: 5px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background .15s, color .15s;
+        .pv-term-panel { border-top: 1px solid #21262d; background: #0c0e12; display: flex; flex-direction: column; }
+        .pv-term-topbar {
+            display: flex; align-items: center; gap: 8px; padding: 5px 12px;
+            background: #161b22; border-bottom: 1px solid #21262d; flex-shrink: 0;
         }
-        .copy-code-btn:hover { background: #444c56; color: #e6edf3; }
+        .pv-term-title { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4d5566; }
+        .pv-exit-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; font-family: monospace; }
+        .pv-exit-badge.ok   { background: #0d4429; color: #3fb950; }
+        .pv-exit-badge.fail { background: #3d0f0e; color: #f85149; }
+        .pv-run-time { font-size: 10px; color: #4d5566; font-family: 'JetBrains Mono', monospace; }
+        .pv-term-btn { padding: 2px 8px; font-size: 10px; font-family: inherit; border: 1px solid #30363d; border-radius: 4px; background: #0d1117; color: #4d5566; cursor: pointer; transition: background .12s; }
+        .pv-term-btn:hover { background: #21262d; color: #8b949e; }
+        .pv-collapse-btn { margin-left: auto; }
+        .pv-terminal { padding: 10px 14px; min-height: 80px; max-height: 260px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12.5px; line-height: 1.75; color: #c9d1d9; white-space: pre-wrap; word-break: break-all; }
+        .pv-terminal::-webkit-scrollbar { width: 5px; }
+        .pv-terminal::-webkit-scrollbar-track { background: #0c0e12; }
+        .pv-terminal::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+        .pv-out-stdout { color: #c9d1d9; }
+        .pv-out-stderr { color: #f85149; }
+        .pv-out-system { color: #58a6ff; font-style: italic; }
+        .pv-out-stdin-echo { color: #7c3aed; }
+        .pv-term-welcome { color: #30363d; font-size: 12px; padding: 4px 0; }
+        .pv-stdin-row { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-top: 1px solid #21262d; background: #0c0e12; flex-shrink: 0; }
+        .pv-prompt { font-size: 14px; color: #4ade80; font-family: 'JetBrains Mono', monospace; }
+        .pv-stdin-input { flex: 1; background: none; border: none; outline: none; color: #c9d1d9; font-family: 'JetBrains Mono', monospace; font-size: 12px; caret-color: #58a6ff; }
 
         /* ── Exercise block ── */
         .block-exercise {
@@ -405,16 +413,92 @@
                             </div>
                             @break
 
-                            {{-- ── CODE ── FIX #10: dark code box with language label + copy button --}}
+                            {{-- ── CODE ── pv code block with run/copy/try-it-yourself ── --}}
                         @case('code')
-                            <div class="block-code-wrap" id="code-wrap-{{ $block->id }}">
-                                <div class="block-code-header">
-                                    <div class="block-code-dots">
-                                        <span></span><span></span><span></span>
+                            @php
+                                $codeJson   = json_decode($block->content ?? '{}', true);
+                                $codeLang   = $codeJson['language'] ?? 'python';
+                                $codeText   = $codeJson['code']     ?? ($block->content ?? '');
+                                if (!is_array($codeJson)) {
+                                    $codeLang = 'python';
+                                    $codeText = $block->content ?? '';
+                                }
+                                $codeText = str_replace('\n', "\n", $codeText);
+                                $langLabels = [
+                                    'python'=>'Python','javascript'=>'JavaScript','typescript'=>'TypeScript',
+                                    'c'=>'C','cpp'=>'C++','java'=>'Java','rust'=>'Rust','go'=>'Go',
+                                    'ruby'=>'Ruby','php'=>'PHP','lua'=>'Lua','perl'=>'Perl',
+                                    'kotlin'=>'Kotlin','bash'=>'Bash','swift'=>'Swift',
+                                ];
+                                $langLabel = $langLabels[$codeLang] ?? ucfirst($codeLang);
+                                $editorRoute = auth()->check()
+                                    ? (auth()->user()->role === 'admin' ? route('admin.editor') : route('user.editor'))
+                                    : route('user.editor');
+                            @endphp
+                            <div class="pv-code-wrap" data-block-id="{{ $block->id }}"
+                                 data-lang="{{ $codeLang }}"
+                                 data-code="{{ e($codeText) }}"
+                                 data-editor-url="{{ $editorRoute }}">
+                                <div class="pv-code-header">
+                                    <div class="pv-code-dots"><span></span><span></span><span></span></div>
+                                    <span class="pv-lang-badge">{{ $langLabel }}</span>
+                                    <div style="flex:1"></div>
+                                    <button type="button" class="pv-btn pv-btn-try"
+                                            onclick="pvTryItYourself({{ $block->id }})" title="Open in standalone editor">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                                            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                        </svg>
+                                        Try it yourself
+                                    </button>
+                                    <button type="button" class="pv-btn pv-btn-ghost pv-copy-btn"
+                                            onclick="pvCopy({{ $block->id }})" title="Copy code">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                    <button type="button" class="pv-btn pv-btn-run"
+                                            onclick="pvRun({{ $block->id }})" id="pv-run-{{ $block->id }}">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        Run
+                                    </button>
+                                    <button type="button" class="pv-btn pv-btn-kill" style="display:none"
+                                            onclick="pvKill({{ $block->id }})" id="pv-kill-{{ $block->id }}">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                        Kill
+                                    </button>
+                                </div>
+                                <div class="pv-code-body" id="pv-body-{{ $block->id }}">{{ $codeText }}</div>
+                                <div class="pv-term-panel" id="pv-term-{{ $block->id }}" style="display:none">
+                                    <div class="pv-term-topbar">
+                                    <span class="pv-term-title">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                                        </svg>
+                                        Output
+                                    </span>
+                                        <span class="pv-exit-badge" id="pv-exit-{{ $block->id }}" style="display:none"></span>
+                                        <span class="pv-run-time"   id="pv-time-{{ $block->id }}" style="display:none"></span>
+                                        <button type="button" class="pv-term-btn" onclick="pvClearTerm({{ $block->id }})">Clear</button>
+                                        <button type="button" class="pv-term-btn pv-collapse-btn"
+                                                id="pv-collapse-{{ $block->id }}"
+                                                onclick="pvToggleTerm({{ $block->id }})">▾ Hide</button>
+                                    </div>
+                                    <div class="pv-terminal" id="pv-out-{{ $block->id }}">
+                                        <div class="pv-term-welcome">Press <strong>Run</strong> to execute this code.</div>
+                                    </div>
+                                    <div class="pv-stdin-row" id="pv-stdin-{{ $block->id }}" style="display:none">
+                                        <span class="pv-prompt">❯</span>
+                                        <input type="text" class="pv-stdin-input" id="pv-stdin-input-{{ $block->id }}"
+                                               placeholder="Type input and press Enter…" autocomplete="off" spellcheck="false"
+                                               onkeydown="if(event.key==='Enter'){pvSendInput({{ $block->id }});event.preventDefault()}">
+                                        <button type="button" class="pv-term-btn" onclick="pvSendInput({{ $block->id }})">Send ↵</button>
                                     </div>
                                 </div>
-                                <button class="copy-code-btn" data-target="code-body-{{ $block->id }}">Copy</button>
-                                <div class="block-code-body" id="code-body-{{ $block->id }}">{{ $block->content }}</div>
                             </div>
                             @break
 
@@ -764,19 +848,6 @@
                     if (hidden) renderAllMarkdownBlocks();
                 });
             });
-
-            // Copy code buttons
-            document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const targetId = btn.dataset.target;
-                    const body     = document.getElementById(targetId);
-                    if (!body) return;
-                    navigator.clipboard.writeText(body.innerText).then(() => {
-                        btn.textContent = 'Copied!';
-                        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-                    });
-                });
-            });
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -870,5 +941,147 @@
 
     {{-- AI Assistant: included here so <meta csrf-token> and all scripts are loaded first --}}
     @include('components.ai-assistant')
+
+    <script>
+        window.__PTY_BASE__  = "{{ config('services.pty.url') }}";
+        window.__PTY_TOKEN__ = "{{ config('services.pty.secret') }}";
+    </script>
+
+    <script>
+        (function () {
+            if (window.__pvInit) return;
+            window.__pvInit = true;
+            window.__pv = window.__pv || {};
+
+            function pvGetWrap(bid) { return document.querySelector('.pv-code-wrap[data-block-id="' + bid + '"]'); }
+
+            function pvGetCode(bid) {
+                const w = pvGetWrap(bid);
+                if (!w) return '';
+                // dataset.code comes from an HTML-encoded attribute; decode entities
+                const raw = w.dataset.code ?? '';
+                const txt = document.createElement('textarea');
+                txt.innerHTML = raw;
+                return txt.value;
+            }
+            function pvGetLang(bid) { const w = pvGetWrap(bid); return w ? (w.dataset.lang ?? 'python') : 'python'; }
+
+            function pvAppend(bid, text, cls) {
+                const out = document.getElementById('pv-out-' + bid);
+                if (!out) return;
+                out.querySelector('.pv-term-welcome')?.remove();
+                const span = document.createElement('span');
+                span.className = 'pv-out-' + cls;
+                span.textContent = text;
+                out.appendChild(span);
+                out.scrollTop = out.scrollHeight;
+            }
+
+            function pvSetDone(bid, exitCode) {
+                const state = window.__pv[bid];
+                if (!state) return;
+                state.running = false; state.ws = null;
+                document.getElementById('pv-run-' + bid).style.display  = 'inline-flex';
+                document.getElementById('pv-kill-' + bid).style.display = 'none';
+                const stdinRow = document.getElementById('pv-stdin-' + bid);
+                if (stdinRow) stdinRow.style.display = 'none';
+                const elapsed = state.startTime ? ((Date.now() - state.startTime) / 1000).toFixed(2) : null;
+                const exitBadge = document.getElementById('pv-exit-' + bid);
+                if (exitBadge && exitCode !== -1) {
+                    exitBadge.textContent   = exitCode === 0 ? 'exit 0' : `exit ${exitCode}`;
+                    exitBadge.className     = 'pv-exit-badge ' + (exitCode === 0 ? 'ok' : 'fail');
+                    exitBadge.style.display = 'inline-block';
+                }
+                const runTime = document.getElementById('pv-time-' + bid);
+                if (runTime && elapsed) { runTime.textContent = elapsed + 's'; runTime.style.display = 'inline'; }
+            }
+
+            window.pvRun = function (bid) {
+                if (window.__pv[bid]?.running) return;
+                const code = pvGetCode(bid), lang = pvGetLang(bid);
+                window.__pv[bid] = window.__pv[bid] || {};
+                const state = window.__pv[bid];
+                const termPanel = document.getElementById('pv-term-' + bid);
+                if (termPanel) termPanel.style.display = 'flex';
+                pvClearTerm(bid, false);
+                pvAppend(bid, `▶ Running ${lang}…\n`, 'system');
+                document.getElementById('pv-run-' + bid).style.display  = 'none';
+                document.getElementById('pv-kill-' + bid).style.display = 'inline-flex';
+                const exitBadge = document.getElementById('pv-exit-' + bid);
+                const runTime   = document.getElementById('pv-time-' + bid);
+                if (exitBadge) exitBadge.style.display = 'none';
+                if (runTime)   runTime.style.display   = 'none';
+                state.running = true; state.startTime = Date.now();
+                const base  = (window.__PTY_BASE__  || 'ws://127.0.0.1:4000').replace(/\/$/, '');
+                const token = window.__PTY_TOKEN__ || '';
+                const ws = new WebSocket(`${base}?token=${encodeURIComponent(token)}`);
+                state.ws = ws;
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: 'run', language: lang, code }));
+                    const stdinRow = document.getElementById('pv-stdin-' + bid);
+                    if (stdinRow) stdinRow.style.display = 'flex';
+                };
+                ws.onmessage = (evt) => {
+                    let msg; try { msg = JSON.parse(evt.data); } catch (_) { pvAppend(bid, evt.data, 'stdout'); return; }
+                    switch (msg.type) {
+                        case 'stdout': pvAppend(bid, msg.data, 'stdout'); break;
+                        case 'stderr': pvAppend(bid, msg.data, 'stderr'); break;
+                        case 'exit': case 'done': pvSetDone(bid, msg.code ?? msg.exit_code ?? 0); break;
+                        case 'error': pvAppend(bid, `\nError: ${msg.message}\n`, 'stderr'); pvSetDone(bid, 1); break;
+                    }
+                };
+                ws.onerror = () => { pvAppend(bid, '\n⚠ Could not connect to PTY server.\n', 'stderr'); pvSetDone(bid, 1); };
+                ws.onclose = () => { if (window.__pv[bid]?.running) pvSetDone(bid, 0); };
+            };
+
+            window.pvKill = function (bid) {
+                const state = window.__pv[bid]; if (!state) return;
+                state.ws?.send(JSON.stringify({ type: 'kill' })); state.ws?.close();
+                pvAppend(bid, '\n⚡ Killed.\n', 'system'); pvSetDone(bid, -1);
+            };
+
+            window.pvCopy = function (bid) {
+                navigator.clipboard.writeText(pvGetCode(bid)).then(() => {
+                    const btn = pvGetWrap(bid)?.querySelector('.pv-copy-btn');
+                    if (!btn) return;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`; }, 2000);
+                });
+            };
+
+            window.pvClearTerm = function (bid, showWelcome = true) {
+                const out = document.getElementById('pv-out-' + bid); if (!out) return;
+                out.innerHTML = '';
+                if (showWelcome) out.innerHTML = '<div class="pv-term-welcome">Press <strong>Run</strong> to execute this code.</div>';
+                const badge = document.getElementById('pv-exit-' + bid); const time = document.getElementById('pv-time-' + bid);
+                if (badge) badge.style.display = 'none'; if (time) time.style.display = 'none';
+            };
+
+            window.pvToggleTerm = function (bid) {
+                const out = document.getElementById('pv-out-' + bid); if (!out) return;
+                const stdinRow = document.getElementById('pv-stdin-' + bid);
+                const collapseBtn = document.getElementById('pv-collapse-' + bid);
+                const hidden = out.style.display === 'none';
+                out.style.display = hidden ? '' : 'none';
+                if (stdinRow) stdinRow.style.display = hidden ? (window.__pv[bid]?.running ? 'flex' : 'none') : 'none';
+                if (collapseBtn) collapseBtn.textContent = hidden ? '▾ Hide' : '▸ Show';
+            };
+
+            window.pvSendInput = function (bid) {
+                const input = document.getElementById('pv-stdin-input-' + bid); const state = window.__pv[bid];
+                if (!input || !state?.ws) return;
+                const val = input.value;
+                state.ws.send(JSON.stringify({ type: 'stdin', data: val + '\n' }));
+                pvAppend(bid, val + '\n', 'stdin-echo'); input.value = '';
+            };
+
+            window.pvTryItYourself = function (bid) {
+                const wrap = pvGetWrap(bid);
+                const editorUrl = wrap?.dataset.editorUrl ?? '/user/editor';
+                try { localStorage.setItem('bcb_prefill', JSON.stringify({ code: pvGetCode(bid), language: pvGetLang(bid) })); } catch (_) {}
+                window.open(editorUrl, '_blank');
+            };
+        })();
+    </script>
 
 @endsection

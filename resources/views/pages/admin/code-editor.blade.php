@@ -572,4 +572,28 @@
         window.__PTY_BASE__  = "{{ $ptyUrl }}";
         window.__PTY_TOKEN__ = "{{ $ptyToken }}";
     </script>
+    <script>
+        // Pre-fill from code block "Try it yourself"
+        document.addEventListener('DOMContentLoaded', function () {
+            const raw = localStorage.getItem('bcb_prefill');
+            if (!raw) return;
+            localStorage.removeItem('bcb_prefill');
+            try {
+                const { code, language } = JSON.parse(raw);
+                // FIXED — poll until ceEditor is ready (it's set by initEditor which runs async)
+                function applyPrefill(code, language, tries = 0) {
+                    if (window.ceEditor && window.__ce_setCode) {
+                        if (language) {
+                            const sel = document.getElementById('ce-lang-select');
+                            if (sel) { sel.value = language; sel.dispatchEvent(new Event('change')); }
+                        }
+                        window.__ce_setCode(window.ceEditor, code, language);
+                    } else if (tries < 20) {
+                        setTimeout(() => applyPrefill(code, language, tries + 1), 100);
+                    }
+                }
+                applyPrefill(code, language);
+            } catch (_) {}
+        });
+    </script>
 @endsection
