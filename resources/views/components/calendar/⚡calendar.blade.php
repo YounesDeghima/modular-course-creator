@@ -54,6 +54,10 @@ new class extends Component {
             ->assignedsections()
             ->pluck('section_id')
             ->toArray();
+        if($this->isAdmin){
+            $this->f_sectionIds = section::pluck('id')->toArray();
+        }
+
 
 
 
@@ -350,6 +354,7 @@ new class extends Component {
         if (!$this->editingId) return;
         $event = Event::findOrFail($this->editingId);
         if (!$this->isAdmin && $event->user_id !== auth()->id()) return;
+        $event->sections()->detach();
         $event->delete();
         $this->closeModal();
     }
