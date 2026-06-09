@@ -47,7 +47,7 @@ class usercontroller extends Controller
     public function home()
     {
         $user   = Auth::user();
-        $courses = Course::where('status', 'published')->get();
+        $courses = $user->enrolledCourses()->where('status', 'published')->get();
 
         // Count courses with any progress
         $inProgress = 0;

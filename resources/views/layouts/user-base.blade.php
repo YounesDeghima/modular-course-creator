@@ -30,6 +30,8 @@
 
 
             <a href='{{route('user.home')}}' data-item='Home'>Home</a>
+            <a href='{{route('user.preview.courses')}}' data-item='Courses'>My Courses</a>
+            <a href='{{route('user.courses.browse')}}' data-item='Browse'>Browse Courses</a>
         </div>
 
         <div class="nav-right">

@@ -148,11 +148,14 @@ class previewcontroller extends Controller
 
     public function user_loadcourses(Request $request)
     {
+        $user = Auth::user();
         ['id' => $id, 'name' => $name, 'email' => $email] = $this->authUser();
 
-        $courses = course::where('status', 'published')
+        $courses = $user->enrolledCourses()
+            ->where('status', 'published')
             ->when($request->branch, fn($q) => $q->where('branch', $request->branch))
             ->when($request->year,   fn($q) => $q->where('year',   $request->year))
+            ->withPivot('forced')
             ->get();
 
         $branch = $request->branch;

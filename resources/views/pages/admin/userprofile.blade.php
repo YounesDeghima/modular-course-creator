@@ -714,7 +714,7 @@
 
 @section('sidebar-elements')
     @php
-        $sbCourses      = \App\Models\course::where('status','published')->get();
+        $sbCourses      = $user->enrolledCourses()->where('status','published')->get();
         $sbTotal        = $sbCourses->count();
         $sbProgressList = $sbCourses->map(fn($c) => $c->progressForUser($user->id));
         $sbAvg          = $sbTotal > 0 ? round($sbProgressList->sum() / $sbTotal) : 0;
@@ -868,12 +868,12 @@
 
         {{-- ── Stats ── --}}
         @php
-            $courses = \App\Models\course::where('status','published')->get();
-            $totalCourses  = $courses->count();
-            $progressList  = $courses->map(fn($c) => $c->progressForUser($user->id));
+            $courses = $user->enrolledCourses()->where('status', 'published')->withPivot('forced')->get();
+            $totalCourses   = $courses->count();
+            $progressList   = $courses->map(fn($c) => $c->progressForUser($user->id));
             $completedCount = $progressList->filter(fn($p) => $p >= 100)->count();
             $inProgressCount= $progressList->filter(fn($p) => $p > 0 && $p < 100)->count();
-            $avgProgress   = $totalCourses > 0 ? round($progressList->sum() / $totalCourses) : 0;
+            $avgProgress    = $totalCourses > 0 ? round($progressList->sum() / $totalCourses) : 0;
         @endphp
 
         <div class="stats-grid">
@@ -955,33 +955,37 @@
 
 
 
-        {{-- ── Course progress ── --}}
+        {{-- ── Enrolled Courses ── --}}
         <div>
             <div class="section-header">
-                <span class="section-title">Course progress</span>
-                @if($totalCourses > 0)
-                    <button class="btn btn-danger" onclick="confirmResetAll()">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
-                        Reset all progress
-                    </button>
-                @endif
+                <span class="section-title">Enrolled Courses</span>
+                <a href="{{ route('admin.users.courses.browse', $user->id) }}" class="btn btn-primary" style="font-size:12px;padding:6px 12px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Course
+                </a>
             </div>
 
             @if($totalCourses === 0)
-                <div class="empty-state">No published courses found.</div>
+                <div class="empty-state">This user is not enrolled in any courses.</div>
             @else
                 <div class="courses-grid">
                     @foreach($courses as $course)
-                        @php $pct = $course->progressForUser($user->id); @endphp
+                        @php $pct = $course->progressForUser($user->id); $forced = $course->pivot->forced ?? false; @endphp
                         <div class="course-card" id="course-card-{{ $course->id }}">
                             <div class="course-top">
                                 <div>
                                     <div class="course-name">{{ $course->title }}</div>
-                                    <div class="course-meta">{{ $course->year ?? '—' }} · {{ $course->branch ?? '—' }}</div>
+                                    <div class="course-meta">Y{{ $course->year }} · {{ strtoupper($course->branch) }}
+                                        @if($forced)
+                                            &nbsp;·&nbsp;<span style="color:var(--accent);font-weight:600;">Assigned</span>
+                                        @else
+                                            &nbsp;·&nbsp;<span style="color:#16a34a;font-weight:600;">Self-enrolled</span>
+                                        @endif
+                                    </div>
                                 </div>
                                 <span class="pct-badge {{ $pct >= 100 ? 'done' : ($pct === 0 ? 'zero' : '') }}" id="pct-{{ $course->id }}">
-                            {{ $pct }}%
-                        </span>
+                                    {{ $pct }}%
+                                </span>
                             </div>
                             <div class="prog-track">
                                 <div class="prog-fill {{ $pct >= 100 ? 'done' : '' }}"
@@ -990,18 +994,22 @@
                                 </div>
                             </div>
                             <div class="course-footer">
-                        <span class="chapters-count">
-                            {{ $course->chapters()->where('status','published')->count() }}
-                            chapter{{ $course->chapters()->where('status','published')->count() === 1 ? '' : 's' }}
-                        </span>
-                                @if($pct > 0)
-                                    <button class="reset-btn" onclick="resetCourse({{ $course->id }}, '{{ addslashes($course->title) }}')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
-                                        Reset
+                                <span class="chapters-count">
+                                    {{ $course->chapters()->where('status','published')->count() }}
+                                    chapter{{ $course->chapters()->where('status','published')->count() === 1 ? '' : 's' }}
+                                </span>
+                                <div style="display:flex;gap:6px;">
+                                    @if($pct > 0)
+                                        <button class="reset-btn" onclick="resetCourse({{ $course->id }}, '{{ addslashes($course->title) }}')">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
+                                            Reset
+                                        </button>
+                                    @endif
+                                    <button class="reset-btn" style="color:#e53e3e;border-color:#fee2e2;" onclick="removeEnrollment({{ $course->id }}, '{{ addslashes($course->title) }}')">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        Remove
                                     </button>
-                                @else
-                                    <span style="font-size:12px;color:var(--text-faint)">Not started</span>
-                                @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -1086,6 +1094,27 @@
         function confirmDelete() {
             if (!confirm('Delete {{ addslashes($user->name) }}?\n\nThis permanently removes the account and cannot be undone.')) return;
             document.getElementById('form-delete').submit();
+        }
+
+        function removeEnrollment(courseId, title) {
+            const userName = '{{ addslashes($user->name) }}';
+            if (!confirm(`Remove "${title}" from ${userName}?\n\nThe user will lose access to this course.`)) return;
+
+            fetch(`/admin/users/{{ $user->id }}/courses/${courseId}/enroll`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    const card = document.getElementById('course-card-' + courseId);
+                    if (card) card.remove();
+                    showToast(`"${title}" removed from ${userName}`);
+                } else {
+                    showToast('Something went wrong.');
+                }
+            })
+            .catch(() => showToast('Something went wrong.'));
         }
     </script>
 @endsection

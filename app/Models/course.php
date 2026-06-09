@@ -23,6 +23,18 @@ class course extends Model
         return $this->hasMany(Chapter::class);
     }
 
+    public function enrollments()
+    {
+        return $this->hasMany(CourseEnrollment::class);
+    }
+
+    public function enrolledUsers()
+    {
+        return $this->belongsToMany(user::class, 'course_enrollments', 'course_id', 'user_id')
+                    ->withPivot('forced')
+                    ->withTimestamps();
+    }
+
     public function progressForUser($userId)
     {
         $chapter_ids = $this->chapters()->where('status', 'published')->pluck('id');

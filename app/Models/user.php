@@ -52,9 +52,18 @@ class user extends Authenticatable
 
     public function assignedsections()
     {
-        // Ensure the pivot table name aligns with 'assignedsections'
         return $this->belongsToMany(Section::class, 'assignedsections', 'user_id', 'section_id');
     }
 
+    public function enrolledCourses()
+    {
+        return $this->belongsToMany(course::class, 'course_enrollments', 'user_id', 'course_id')
+                    ->withPivot('forced')
+                    ->withTimestamps();
+    }
 
+    public function isEnrolledIn($courseId): bool
+    {
+        return $this->enrolledCourses()->where('course_id', $courseId)->exists();
+    }
 }

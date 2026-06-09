@@ -18,6 +18,7 @@ use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\eventcontroller;
 use App\Http\Middleware\updateLastSeen;
+use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AIController;
 use App\Http\Controllers\CodeEditorController;
 
@@ -129,6 +130,9 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
             Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
             Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
             Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
+            Route::get('/users/{user}/courses/browse', [EnrollmentController::class, 'adminBrowser'])->name('users.courses.browse');
+            Route::post('/users/{user}/courses/{course}/enroll', [EnrollmentController::class, 'adminStore'])->name('users.courses.enroll');
+            Route::delete('/users/{user}/courses/{course}/enroll', [EnrollmentController::class, 'adminDestroy'])->name('users.courses.unenroll');
             Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
             Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
@@ -198,6 +202,10 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
             Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 
             Route::get('/home', [usercontroller::class, 'home'])->name('home');
+
+            Route::get('/courses/browse', [EnrollmentController::class, 'browser'])->name('courses.browse');
+            Route::post('/courses/{course}/enroll', [EnrollmentController::class, 'store'])->name('courses.enroll');
+            Route::delete('/courses/{course}/enroll', [EnrollmentController::class, 'destroy'])->name('courses.unenroll');
 
             Route::get('/main',[usercontroller::class,'main'])->name('main');
 
