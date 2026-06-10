@@ -21,6 +21,6 @@ class userprofilecontroller extends Controller
         }
 
 
-        return view('pages.admin.userprofile',compact('teacherId','actualuser','user','name','email','id'));
+        return view('pages.admin.users.userprofile',compact('teacherId','actualuser','user','name','email','id'));
     }
 }

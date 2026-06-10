@@ -23,7 +23,7 @@ class chapterscontroller extends Controller
 
         $chapter_count = $chapters->count();
 
-        return view('pages.admin.chapters', compact('chapters', 'course', 'chapter_count'));
+        return view('pages.shared.editor.chapters', compact('chapters', 'course', 'chapter_count'));
     }
 
 

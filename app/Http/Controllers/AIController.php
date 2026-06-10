@@ -21,7 +21,7 @@ class AIController extends Controller
     public function panel()
     {
         $user = Auth::user();
-        return view('pages.admin.ai-panel', [
+        return view('pages.admin.system.ai-panel', [
             'name'  => $user?->name ?? 'Guest',
             'email' => $user?->email ?? '',
             'id'    => $user?->id ?? null,

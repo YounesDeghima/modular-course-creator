@@ -54,7 +54,7 @@ class previewcontroller extends Controller
         $branch = $request->branch;
         $year   = $request->year;
 
-        return view('pages.admin.preview.courses', compact('courses', 'branch', 'name', 'email', 'id'));
+        return view('pages.shared.preview.courses', compact('courses', 'branch', 'name', 'email', 'id') + ['routePrefix' => 'admin']);
     }
 
     public function loadchapters(course $course)
@@ -70,8 +70,8 @@ class previewcontroller extends Controller
             $course->chapters->avg(fn($ch) => $ch->progressForUser($id)) ?? 0
         );
 
-        return view('pages.admin.preview.chapters',
-            compact('course', 'chapters', 'name', 'email', 'id', 'overallProgress'));
+        return view('pages.shared.preview.chapters',
+            compact('course', 'chapters', 'name', 'email', 'id', 'overallProgress') + ['routePrefix' => 'admin']);
     }
 
     public function loadlessons(course $course, chapter $chapter)
@@ -83,8 +83,8 @@ class previewcontroller extends Controller
             ->orderBy('lesson_number', 'asc')
             ->get();
 
-        return view('pages.admin.preview.lessons',
-            compact('course', 'chapter', 'lessons', 'name', 'email', 'id'));
+        return view('pages.shared.preview.lessons',
+            compact('course', 'chapter', 'lessons', 'name', 'email', 'id') + ['routePrefix' => 'admin']);
     }
 
     public function loadblocks(course $course, chapter $chapter, lesson $lesson)
@@ -127,11 +127,11 @@ class previewcontroller extends Controller
             ->orderBy('chapter_number', 'asc')
             ->first();
 
-        return view('pages.admin.preview.blocks', compact(
+        return view('pages.shared.preview.blocks', compact(
             'course', 'chapter', 'lesson',
             'prevlesson', 'nextlesson', 'prevchapter', 'nextchapter',
             'blocks', 'name', 'email', 'id', 'lesson_progress'
-        ));
+        ) + ['routePrefix' => 'admin']);
     }
 
     public function loadquiz(course $course)
@@ -140,8 +140,8 @@ class previewcontroller extends Controller
 
         $questions = coursequestion::where('course_id', $course->id)->get();
 
-        return view('pages.admin.preview.coursequiz',
-            compact('course', 'questions', 'name', 'email', 'id'));
+        return view('pages.shared.preview.coursequiz',
+            compact('course', 'questions', 'name', 'email', 'id') + ['routePrefix' => 'admin']);
     }
 
     // ─── Student (user) routes ────────────────────────────────────────────────
@@ -161,7 +161,7 @@ class previewcontroller extends Controller
         $branch = $request->branch;
         $year   = $request->year;
 
-        return view('pages.user.courses', compact('courses', 'branch', 'name', 'email', 'id'));
+        return view('pages.shared.preview.courses', compact('courses', 'branch', 'name', 'email', 'id') + ['routePrefix' => 'user']);
     }
 
     public function user_loadchapters(course $course)
@@ -172,8 +172,8 @@ class previewcontroller extends Controller
             ->where('course_id', $course->id)
             ->get();
 
-        return view('pages.user.chapters',
-            compact('course', 'chapters', 'name', 'email', 'id'));
+        return view('pages.shared.preview.chapters',
+            compact('course', 'chapters', 'name', 'email', 'id') + ['routePrefix' => 'user']);
     }
 
     public function user_loadlessons(course $course, chapter $chapter)
@@ -188,8 +188,8 @@ class previewcontroller extends Controller
             ->orderBy('lesson_number', 'asc')
             ->get();
 
-        return view('pages.user.lessons',
-            compact('course', 'chapter', 'lessons', 'name', 'email', 'id'));
+        return view('pages.shared.preview.lessons',
+            compact('course', 'chapter', 'lessons', 'name', 'email', 'id') + ['routePrefix' => 'user']);
     }
 
     public function user_loadblocks(course $course, chapter $chapter, lesson $lesson)
@@ -231,10 +231,10 @@ class previewcontroller extends Controller
             ->orderBy('chapter_number', 'asc')
             ->first();
 
-        return view('pages.user.blocks', compact(
+        return view('pages.shared.preview.blocks', compact(
             'course', 'chapter', 'lesson', 'prevlesson',
             'nextlesson', 'prevchapter', 'nextchapter', 'blocks',
             'name', 'email', 'id', 'lesson_progress'
-        ));
+        ) + ['routePrefix' => 'user']);
     }
 }

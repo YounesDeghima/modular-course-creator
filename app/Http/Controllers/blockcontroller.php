@@ -32,14 +32,14 @@ class blockcontroller extends Controller
         $email = $admin->email;
 
         if (request()->ajax()) {
-            return view('pages.admin.chapters', compact(
+            return view('pages.shared.editor.chapters', compact(
                 'blocks', 'course', 'chapter', 'lesson',
                 'block_count', 'chapters', 'chapter_count',
                 'id', 'name', 'email'
             ))->fragment('main-content');
         }
 
-        return view('pages.admin.chapters', compact(
+        return view('pages.shared.editor.chapters', compact(
             'blocks', 'block_count', 'course', 'chapter', 'lesson',
             'chapters', 'chapter_count', 'admin', 'id', 'name', 'email'
         ));

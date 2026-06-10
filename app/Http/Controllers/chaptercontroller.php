@@ -69,7 +69,7 @@ class chaptercontroller extends Controller
 
 
 
-        return view('pages.admin.chapters', compact(
+        return view('pages.shared.editor.chapters', compact(
             'chapters',
             'course',
             'chapter', // Fixed: Added singular $chapter

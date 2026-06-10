@@ -33,7 +33,7 @@ class usercontroller extends Controller
             $name = $user->name;
             $email = $user->email;
 
-            return view('pages.admin.main',compact( 'name', 'email','id'));}
+            return view('pages.shared.editor.home', compact('name', 'email', 'id'));}
             else{
                 return redirect()->back();
             }
@@ -93,7 +93,7 @@ class usercontroller extends Controller
 
 //        return view('homepage', compact('currentEvents', 'upcomingEvents'));
 
-        return view('pages.user.homepage', [
+        return view('pages.student.home', [
             'name'           => $user->name,
             'last_name'      => $user->last_name,
             'email'          => $user->email,

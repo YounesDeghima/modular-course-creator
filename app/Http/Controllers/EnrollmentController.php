@@ -98,7 +98,7 @@ class EnrollmentController extends Controller
 
         $enrolledIds = $user->enrolledCourses()->pluck('course_id')->toArray();
 
-        return view('pages.admin.enrollment-browser', [
+        return view('pages.admin.users.enrollment-browser', [
             'targetUser'  => $user,
             'courses'     => $courses,
             'enrolledIds' => $enrolledIds,
@@ -120,7 +120,7 @@ class EnrollmentController extends Controller
             ->get()
             ->keyBy('id');
 
-        return view('pages.user.course-browser', [
+        return view('pages.student.course-browser', [
             'courses'     => $courses,
             'enrolledMap' => $enrolledMap,
             'name'        => $user->name,

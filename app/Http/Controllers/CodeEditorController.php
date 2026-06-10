@@ -58,7 +58,7 @@ class CodeEditorController extends Controller
     public function adminEditor()
     {
         $user = Auth::user();
-        return view('pages.admin.code-editor', [
+        return view('pages.shared.code-editor', [
             'name'     => $user?->name  ?? 'Guest',
             'email'    => $user?->email ?? '',
             'id'       => $user?->id    ?? null,
@@ -71,7 +71,7 @@ class CodeEditorController extends Controller
     public function userEditor()
     {
         $user = Auth::user();
-        return view('pages.user.code-editor', [
+        return view('pages.shared.code-editor', [
             'name'     => $user?->name  ?? 'Guest',
             'email'    => $user?->email ?? '',
             'id'       => $user?->id    ?? null,

@@ -15,7 +15,7 @@ class admincontroller extends Controller
 //        $user = Auth::user();
 //        $users = User::all();
 //
-//        return view('pages.admin.dashboard', [
+//        return view('pages.admin.users.index', [
 //            'users' => $users,
 //            'name'  => $user->name,
 //            'email' => $user->email,
@@ -30,7 +30,7 @@ class admincontroller extends Controller
 
         $courses = Course::all();
 
-        return view('pages.admin.main', [
+        return view('pages.shared.editor.home', [
             'user'=>$user,
             'name'         => $user->name,
             'email'        => $user->email,
@@ -49,7 +49,7 @@ class admincontroller extends Controller
         $user = Auth::user();
         $users = User::orderBy('created_at', 'desc')->get();
 
-        return view('pages.admin.dashboard', [
+        return view('pages.admin.users.index', [
             'user'=>$user,
             'users'      => $users,
             'name'       => $user->name,
