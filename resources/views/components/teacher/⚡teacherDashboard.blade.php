@@ -326,7 +326,7 @@ new class extends Component
         <div class="td-eyebrow">Your sections</div>
         <div class="td-sections">
             @foreach($this->assignedSections as $section)
-                <a href="#" class="td-section-row">
+                <a href="{{ route('teacher.section', $section->id) }}" class="td-section-row">
                     <div class="td-section-icon">📚</div>
                     <span class="td-section-name">Section {{ $section->section_number }}</span>
                     <span class="td-section-pill">{{ $section->students->count() }} students</span>

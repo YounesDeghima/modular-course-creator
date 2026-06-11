@@ -12,6 +12,8 @@ use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\quizcontroller;
 use App\Http\Controllers\signupcontroller;
+use App\Http\Controllers\Teacher\TeacherController;
+
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
 use App\Http\Controllers\userprofilecontroller;
@@ -230,3 +232,10 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 
 
         });});
+
+
+Route::middleware(['auth', 'verified']) // add your teacher middleware if you have one
+->group(function () {
+    Route::get('/teacher/section/{section}', [teachercontroller::class, 'section'])
+        ->name('teacher.section');
+});

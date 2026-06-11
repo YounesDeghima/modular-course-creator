@@ -28,14 +28,17 @@ new class extends Component
         'atRisk'      => 0,
     ];
 
-    public function mount($user)
+    public function mount($user, $initialSection = null)
     {
         $this->user     = $user;
         $this->sections = $this->user->assignedsections()->get()
             ->map(fn($s) => ['id' => $s->id, 'section_number' => $s->section_number, 'student_count' => $s->student_count()])
             ->toArray();
 
-        if (! empty($this->sections)) {
+        // Use the passed section if given, otherwise fall back to first
+        if ($initialSection && collect($this->sections)->firstWhere('id', $initialSection)) {
+            $this->selectedSection = $initialSection;
+        } elseif (! empty($this->sections)) {
             $this->selectedSection = $this->sections[0]['id'];
         }
 
