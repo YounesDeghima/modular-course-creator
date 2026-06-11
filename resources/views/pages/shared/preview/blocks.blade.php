@@ -355,12 +355,13 @@
 {{-- ── Main content ─────────────────────────────────────────────── --}}
 @section('main')
 
-    <div class="pdf-download-button">
+    <div class="pdf-download-button" >
+
         {{-- NOTE: uses user.lessons.pdf — ensure admin users can access or duplicate route for admin.preview --}}
         <a target="_blank"
            style="height:40px;width:120px;padding:10px;position:absolute;bottom:20px;right:20px;display:flex;text-align:center"
            href="{{ route('user.lessons.pdf', ['id'=>$lesson->id]) }}">
-            download as pdf
+
         </a>
     </div>
 
@@ -716,34 +717,27 @@
             <div class="nav-button" style="visibility:hidden;"><a>›</a></div>
         @endif
 
-    </div>{{-- /lesson-wrapper --}}
+    </div>
 
-    {{-- FIX #3: Progress form is a <div> (Livewire component), not a <form>.
-         The scroll listener uses Livewire dispatch instead of .submit() --}}
+
     <livewire:preview.progress-form :lesson="$lesson" :lesson_progress="$lesson_progress"/>
 
-    @if(auth()->user()?->role !== 'user')<div id="ai-inline-anchor"></div>@endif
+   <div id="ai-inline-anchor"></div>
 @endsection
 
-{{-- ══════════════════════════════════════════════════════════════════════
-     SCRIPTS
-══════════════════════════════════════════════════════════════════════ --}}
 @section('js')
 
-    {{-- marked.js for markdown rendering --}}
+
     <script src="{{ asset('vendors/marked.min.js') }}"
             onerror="document.head.insertAdjacentHTML('beforeend',
               '<script src=\'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js\'><\/script>')">
     </script>
 
-    {{-- function.js contains MathParser + ImplicitPlotter + setupPreviewPlots --}}
+
     <script src="{{ asset('js/function.js') }}"></script>
 
     <script>
-        // ═══════════════════════════════════════════════════════════════════
-        // FIX #6: Single canonical KaTeX runner — called once after DOM ready
-        //         and after every Livewire navigation.
-        // ═══════════════════════════════════════════════════════════════════
+
         function runKatex() {
             if (typeof renderMathInElement === 'function') {
                 renderMathInElement(document.body, {
@@ -771,9 +765,8 @@
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // FIX #1: renderAllMarkdownBlocks — was commented out on DOMContentLoaded
-        // ═══════════════════════════════════════════════════════════════════
+
+
         function renderAllMarkdownBlocks() {
             document.querySelectorAll('.block-markdown-view[data-md]').forEach(el => {
                 const raw = el.getAttribute('data-md') || '';
@@ -788,9 +781,7 @@
             runKatex();
         }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Chart.js: init / re-init on every navigation
-        // ═══════════════════════════════════════════════════════════════════
+
         function initAllCharts() {
             document.querySelectorAll('canvas[data-chart-config]').forEach(canvas => {
                 // FIX #7: destroy old instance by checking the Chart.js registry
@@ -940,9 +931,9 @@
     </script>
 
     {{-- AI Assistant: admin and teacher only --}}
-    @if(auth()->user()?->role !== 'user')
+
     @include('components.ai-assistant')
-    @endif
+
 
     <script>
         window.__PTY_BASE__  = "{{ config('services.pty.url') }}";

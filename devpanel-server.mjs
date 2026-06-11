@@ -64,8 +64,17 @@ function spawnStream(sse, cmd, args, opts = {}) {
           .forEach(l => sse.line(l, type));
     proc.stdout.on('data', d => emit(d, 'out'));
     proc.stderr.on('data', d => emit(d, 'err'));
-    proc.on('close', code => resolve(code ?? 0));
-    proc.on('error', err  => { sse.err(`[error] ${err.message}`); resolve(1); });
+    proc.on('close', code => {
+      if (code !== 0 && code !== null) {
+        sse.err(`[panel] Process exited with code ${code}`);
+      }
+      resolve(code ?? 0);
+    });
+    proc.on('error', err => {
+      sse.err(`[panel] Failed to start process: ${err.message}`);
+      sse.warn(`[panel] Command was: ${cmd} ${args.join(' ')}`);
+      resolve(1);
+    });
   });
 }
 
@@ -694,23 +703,216 @@ async function fixPodman(res) {
   sse.done(0);
 }
 
+// ─── CONTAINER ENGINE SELF-HEALER ─────────────────────────────────────────────
+// Detects connection/schema errors from podman/docker and attempts automatic fixes.
+// Returns { bin, fixed } or null if unrecoverable.
+// Returns true if the error text looks like a Podman socket/connection problem
+function isPodmanConnectionError(text) {
+  const t = String(text || '').toLowerCase();
+  return t.includes('npipe') || t.includes('not a supported schema') ||
+         t.includes('unable to create connection') || t.includes('connection refused') ||
+         t.includes('error: unable to connect') || t.includes('failed to connect');
+}
+
+async function tryDockerFallback(sse) {
+  const dv = await sh('docker --version 2>&1');
+  if (!dv.ok) { sse.warn('[panel] Docker not found either.'); return null; }
+  sse.sys('[panel] Checking Docker daemon...');
+  const di = await sh('docker info 2>&1');
+  if (!di.ok) {
+    sse.err('[panel] Docker installed but daemon not running.');
+    sse.info('[panel] Open Docker Desktop, wait for it to finish starting, then click Retry.');
+    return null;
+  }
+  sse.ok('[panel] Docker daemon is running — switching to docker.');
+  return { bin: 'docker', fixed: true };
+}
+
+// Extract the actual socket path from `podman machine inspect`
+async function getPodmanSocketPath() {
+  const r = await sh('podman machine inspect podman-machine-default 2>&1');
+  if (!r.ok) return null;
+  try {
+    const info = JSON.parse(r.stdout);
+    const entry = Array.isArray(info) ? info[0] : info;
+    return entry?.ConnectionInfo?.PodmanSocket?.Path || null;
+  } catch { return null; }
+}
+
+async function tryFixContainerEngine(sse, errorOutput) {
+  const out = String(errorOutput || '').toLowerCase();
+
+  if (!isPodmanConnectionError(out)) {
+    if (out.includes('cannot connect to the docker daemon') ||
+        out.includes('docker daemon') || out.includes('is the docker daemon running')) {
+      sse.warn('[panel] Docker daemon not running — attempting to start...');
+      if (!IS_WIN && !IS_MAC) {
+        const c = await spawnStream(sse, 'sudo', ['systemctl', 'start', 'docker'], {});
+        if (c === 0) { await new Promise(r => setTimeout(r, 2000)); return { bin: 'docker', fixed: true }; }
+      }
+      sse.info('[panel] Open Docker Desktop, wait for it to finish starting, then retry.');
+      return null;
+    }
+    sse.warn('[panel] Could not automatically resolve this error.');
+    sse.info('[panel] Try: podman machine start  or open Docker Desktop, then retry.');
+    return null;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // Root cause on Windows: Node.js child processes don't inherit the
+  // CONTAINER_HOST / DOCKER_HOST env vars that Podman Desktop sets in the
+  // interactive shell. Podman falls back to the wrong npipe:// default.
+  //
+  // Fix: get the real socket path from `podman machine inspect`, build the
+  // correct unix:// URL, and pass it as CONTAINER_HOST to the build process.
+  // ════════════════════════════════════════════════════════════════════════════
+  sse.warn('[panel] Podman npipe error — Node.js process likely missing CONTAINER_HOST env var.');
+  sse.sys('[panel] Probing Podman machine for correct socket path...');
+
+  const pv = await sh('podman --version 2>&1');
+  if (!pv.ok) {
+    sse.warn('[panel] Podman binary not found — trying Docker...');
+    return tryDockerFallback(sse);
+  }
+
+  // ── Try to get the socket and build CONTAINER_HOST ────────────────────────
+  const socketPath = await getPodmanSocketPath();
+  if (socketPath) {
+    // Convert Windows path to unix:// URL usable by the Podman client
+    // e.g. C:\Users\...\podman-machine-default-api.sock
+    //   → unix:////Users/.../podman-machine-default-api.sock  (WSL-style)
+    // Podman on Windows also accepts the raw path via CONTAINER_HOST
+    const containerHost = socketPath.startsWith('/')
+      ? `unix://${socketPath}`                              // already unix path
+      : `unix://${socketPath.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '/$1')}`;
+
+    sse.sys(`[panel] Socket found: ${socketPath}`);
+    sse.sys(`[panel] Setting CONTAINER_HOST=${containerHost}`);
+    sse.ok('[panel] Will retry build with explicit socket — this should fix the npipe error.');
+    return { bin: 'podman', fixed: true, env: { CONTAINER_HOST: containerHost, DOCKER_HOST: containerHost } };
+  }
+
+  // ── No socket from inspect — machine may be stopped ──────────────────────
+  sse.sys('[panel] Could not read socket from inspect. Checking machine state...');
+  const listTxt = await sh('podman machine list 2>&1');
+  const listOut = (listTxt.stdout + listTxt.stderr).toLowerCase();
+  const isRunning = listOut.includes('currently running') || /\*\s+podman/.test(listOut);
+
+  if (!isRunning) {
+    sse.sys('[panel] Machine appears stopped — starting it...');
+    const startCode = await spawnStream(sse, 'podman', ['machine', 'start'], {});
+    if (startCode !== 0 && !listOut.includes('already running')) {
+      // Might not exist yet
+      sse.sys('[panel] Start failed — trying podman machine init...');
+      const initCode = await spawnStream(sse, 'podman', ['machine', 'init'], {});
+      if (initCode === 0) await spawnStream(sse, 'podman', ['machine', 'start'], {});
+    }
+    await new Promise(r => setTimeout(r, 4000));
+    // Try reading socket again after start
+    const socketPath2 = await getPodmanSocketPath();
+    if (socketPath2) {
+      const containerHost2 = socketPath2.startsWith('/')
+        ? `unix://${socketPath2}`
+        : `unix://${socketPath2.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '/$1')}`;
+      sse.ok(`[panel] Machine started. Retrying with CONTAINER_HOST=${containerHost2}`);
+      return { bin: 'podman', fixed: true, env: { CONTAINER_HOST: containerHost2, DOCKER_HOST: containerHost2 } };
+    }
+  }
+
+  // ── All Podman attempts exhausted → Docker ────────────────────────────────
+  sse.warn('[panel] Could not determine Podman socket path — trying Docker...');
+  return tryDockerFallback(sse);
+}
+
 async function buildCodeImage(res) {
   const sse = sseStream(res);
   sse.sys('[panel] Building code-runner container image...');
   sse.warn('[panel] First build: 5-15 min (downloads Rust, Go, Java, etc.)');
+
+  // ── Select container engine ───────────────────────────────────────────────
   const pr = await sh('podman --version 2>&1');
-  const bin = pr.ok ? 'podman' : 'docker';
-  const ok  = pr.ok || (await sh('docker --version 2>&1')).ok;
-  if (!ok) { sse.err('[panel] Neither podman nor docker found. Install one first.'); sse.done(1); return; }
+  let bin = pr.ok ? 'podman' : 'docker';
+  const engineOk = pr.ok || (await sh('docker --version 2>&1')).ok;
+  if (!engineOk) {
+    sse.err('[panel] Neither podman nor docker found. Install one first.');
+    sse.done(1); return;
+  }
   sse.sys(`[panel] Using: ${bin}`);
-  const ptyDir = join(__dir, 'pty-server');
-  const code = await spawnStream(sse, bin,
-    ['build', '-t', 'localhost/code-runner:latest', '-f', 'Containerfile', '.'],
-    { cwd: ptyDir });
+
+  const ptyDir    = join(__dir, 'pty-server');
+  const buildArgs = ['build', '-t', 'localhost/code-runner:latest', '-f', 'Containerfile', '.'];
+
+  // Helper: run build, capture all output, inject optional extra env vars
+  const runBuild = async (b, extraEnv = {}) => {
+    const buf = [];
+    const cap = {
+      out:  (m) => { buf.push(m); sse.out(m); },
+      ok:   (m) => { buf.push(m); sse.ok(m); },
+      err:  (m) => { buf.push(m); sse.err(m); },
+      warn: (m) => { buf.push(m); sse.warn(m); },
+      sys:  (m) => { buf.push(m); sse.sys(m); },
+      info: (m) => { buf.push(m); sse.info(m); },
+      line: (m, t) => { buf.push(m); sse.line(m, t); },
+      done: (c) => sse.done(c),
+    };
+    const spawnOpts = { cwd: ptyDir };
+    if (Object.keys(extraEnv).length > 0) {
+      spawnOpts.env = { ...process.env, ...extraEnv };
+    }
+    const code = await spawnStream(cap, b, buildArgs, spawnOpts);
+    return { code, captured: buf.join('\n') };
+  };
+
+  // ── Attempt 1: normal build ───────────────────────────────────────────────
+  let { code, captured } = await runBuild(bin);
   if (code === 0) {
-    sse.ok('[panel] Image built.');
+    sse.ok('[panel] Image built successfully.');
     const test = await sh(`${bin} run --rm localhost/code-runner:latest python3 -c "print('smoke OK')" 2>&1`);
     sse.line(`[panel] Smoke test: ${test.ok ? test.stdout : test.stderr}`, test.ok ? 'ok' : 'warn');
+    sse.done(0); return;
+  }
+
+  // ── Attempt 2: diagnose → fix → retry with fix's env ─────────────────────
+  sse.warn(`[panel] Build failed (exit ${code}). Diagnosing and attempting auto-fix...`);
+  const fix = await tryFixContainerEngine(sse, captured);
+
+  if (!fix) {
+    sse.err('[panel] Cannot auto-resolve. Build aborted.');
+    sse.done(code); return;
+  }
+
+  bin = fix.bin;
+  const fixEnv = fix.env || {};
+  if (Object.keys(fixEnv).length > 0) {
+    sse.sys(`[panel] Retrying with ${bin} + explicit socket env...`);
+  } else {
+    sse.sys(`[panel] Retrying build with: ${bin}`);
+  }
+  ({ code, captured } = await runBuild(bin, fixEnv));
+
+  if (code === 0) {
+    sse.ok('[panel] Image built successfully.');
+    const test = await sh(`${bin} run --rm localhost/code-runner:latest python3 -c "print('smoke OK')" 2>&1`);
+    sse.line(`[panel] Smoke test: ${test.ok ? test.stdout : test.stderr}`, test.ok ? 'ok' : 'warn');
+    sse.done(0); return;
+  }
+
+  // ── Attempt 3: one final pass ─────────────────────────────────────────────
+  sse.warn(`[panel] Retry also failed (exit ${code}). One final fix attempt...`);
+  const fix2 = await tryFixContainerEngine(sse, captured);
+  if (fix2) {
+    bin = fix2.bin;
+    ({ code } = await runBuild(bin, fix2.env || {}));
+  }
+
+  if (code === 0) {
+    sse.ok('[panel] Image built successfully.');
+    const test = await sh(`${bin} run --rm localhost/code-runner:latest python3 -c "print('smoke OK')" 2>&1`);
+    sse.line(`[panel] Smoke test: ${test.ok ? test.stdout : test.stderr}`, test.ok ? 'ok' : 'warn');
+  } else {
+    sse.err(`[panel] Image build failed after all recovery attempts (exit ${code}).`);
+    sse.info('[panel] Run this manually in a terminal to see the full error:');
+    sse.info(`[panel]   cd pty-server && ${bin} build -t localhost/code-runner:latest -f Containerfile .`);
   }
   sse.done(code);
 }
@@ -912,15 +1114,27 @@ async function autoSetup(res) {
 
   // ── 6. code-runner image ──────────────────────────────────────────────────
   if ((await checkCodeImage()).status !== 'ok') {
-    if (podmanOk) {
-      await step('code-runner container image (5-15 min)', async () => {
-        const bin = (await sh('podman --version 2>&1')).ok ? 'podman' : 'docker';
-        const c = await spawnStream(sse, bin,
-          ['build', '-t', 'localhost/code-runner:latest', '-f', 'Containerfile', '.'],
-          { cwd: join(__dir, 'pty-server') });
-        sse.line(c === 0 ? '[panel] Image built.' : '[panel] Image build failed.', c === 0 ? 'ok' : 'err');
-      });
-    } else sse.warn('── code-runner image: skipped (Podman not ready)');
+    await step('code-runner container image (5-15 min, with auto-fix)', async () => {
+      const bin = (await sh('podman --version 2>&1')).ok ? 'podman' : 'docker';
+      const buildArgs = ['build', '-t', 'localhost/code-runner:latest', '-f', 'Containerfile', '.'];
+      const ptyDir = join(__dir, 'pty-server');
+      let errorBuffer = [];
+      const captureSse = {
+        ...sse,
+        err:  (msg) => { errorBuffer.push(msg); sse.err(msg); },
+        line: (msg, type) => { if (type === 'err') errorBuffer.push(msg); sse.line(msg, type); },
+      };
+      let c = await spawnStream(captureSse, bin, buildArgs, { cwd: ptyDir });
+      if (c !== 0) {
+        sse.warn('[panel] Build failed — running auto-fix...');
+        const fix = await tryFixContainerEngine(sse, errorBuffer.join('\n'));
+        if (fix) {
+          errorBuffer = [];
+          c = await spawnStream(sse, fix.bin, buildArgs, { cwd: ptyDir });
+        }
+      }
+      sse.line(c === 0 ? '[panel] Image built.' : '[panel] Image build failed — see output above.', c === 0 ? 'ok' : 'err');
+    });
   } else sse.ok('── code-runner image: exists — skip');
 
   // ── 7. Python + MinerU (smart, version-aware) ─────────────────────────────
