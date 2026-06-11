@@ -512,13 +512,15 @@
                                     ▶ Show solution
                                 </button>
                                 @if(count($block->solutions) === 0)
-                                    <div class="solution-block solution-{{ $block->id }}">
-                                        No solution added yet.
+                                    <div class="solution-block" data-solution-for="{{ $block->id }}">
+
+                                    No solution added yet.
                                     </div>
                                 @else
                                     @foreach($block->solutions as $solution)
-                                        <div class="solution-block solution-{{ $block->id }}">
-                                            {{-- FIX #9: solutions may contain markdown --}}
+                                        <div class="solution-block" data-solution-for="{{ $block->id }}">
+
+                                        {{-- FIX #9: solutions may contain markdown --}}
                                             <div class="block-markdown-view" data-md="{{ e($solution->content) }}"></div>
                                         </div>
                                     @endforeach
@@ -824,22 +826,42 @@
         // FIX #5: Solution toggles + copy buttons — wrapped in DOMContentLoaded
         // ═══════════════════════════════════════════════════════════════════
         function initInteractiveBlocks() {
-            // Solution toggles
-            document.querySelectorAll('.toggle-solution').forEach(btn => {
-                const blockId   = btn.dataset.blockid;
-                const solutions = document.querySelectorAll(`.solution-${blockId}`);
-                solutions.forEach(s => { s.style.display = 'none'; });
+            // Always reset state (important after Livewire updates)
+            document.querySelectorAll('.solution-block').forEach(s => {
+                s.style.display = 'none';
+            });
 
-                btn.addEventListener('click', () => {
-                    const hidden = solutions[0]?.style.display === 'none';
-                    solutions.forEach(s => { s.style.display = hidden ? 'block' : 'none'; });
-                    btn.textContent   = hidden ? '▼ Hide solution' : '▶ Show solution';
-                    btn.classList.toggle('revealed', hidden);
-                    // FIX #9: if solution contains markdown, render it now
-                    if (hidden) renderAllMarkdownBlocks();
-                });
+            document.querySelectorAll('.toggle-solution').forEach(btn => {
+                btn.textContent = '▶ Show solution';
+                btn.classList.remove('revealed');
             });
         }
+
+        // delegated click handler (IMPORTANT FIX)
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.toggle-solution');
+            if (!btn) return;
+
+            const blockId = btn.dataset.blockid;
+
+            const solutions = document.querySelectorAll(
+                `.solution-block[data-solution-for="${blockId}"]`
+            );
+
+            const isHidden = solutions[0]?.style.display === 'none';
+
+            solutions.forEach(s => {
+                s.style.display = isHidden ? 'block' : 'none';
+            });
+
+            btn.textContent = isHidden ? '▼ Hide solution' : '▶ Show solution';
+            btn.classList.toggle('revealed', isHidden);
+
+            // re-run markdown if needed
+            if (isHidden && typeof renderAllMarkdownBlocks === 'function') {
+                renderAllMarkdownBlocks();
+            }
+        });
 
         // ═══════════════════════════════════════════════════════════════════
         // FIX #3: Scroll progress + lesson completion

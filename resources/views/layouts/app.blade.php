@@ -60,10 +60,7 @@
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
                     </button>
-                    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
-                        <span class="icon-moon">🌙</span>
-                        <span class="icon-sun">☀️</span>
-                    </button>
+
                     <form action="" method="post">
                         <input type="submit" value="Delete user" name="delete-user" id="delete-user">
                     </form>
