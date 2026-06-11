@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Teacher;
 
 use App\Models\User;
 use App\Models\Course;
@@ -22,23 +22,18 @@ new class extends Component
 
     public function loadData()
     {
-        // Get assigned sections for this teacher
-        $this->assignedSections = $this->user->assignedSections()
+        $this->assignedSections = $this->user->assignedSections()->get();
 
-            ->get();
-
-        // Get all students from assigned sections
-        $studentIds = $this->assignedSections->map(function($section) {
+        $studentIds = $this->assignedSections->map(function ($section) {
             return $section->students()->pluck('id');
         })->flatten()->unique();
 
-        // Calculate progress for each student using actual course progress method
         $courseIds = $this->assignedSections->pluck('id');
         $studentProgressData = [];
 
         foreach ($studentIds as $studentId) {
             $totalProgress = 0;
-            $courseCount = 0;
+            $courseCount   = 0;
 
             foreach ($courseIds as $courseId) {
                 $course = Course::find($courseId);
@@ -50,38 +45,35 @@ new class extends Component
 
             if ($courseCount > 0) {
                 $student = User::find($studentId);
-                $studentProgressData[] = (object)[
-                    'user_id' => $studentId,
+                $studentProgressData[] = (object) [
+                    'user_id'      => $studentId,
                     'avg_progress' => round($totalProgress / $courseCount, 1),
-                    'student' => $student
+                    'student'      => $student,
                 ];
             }
         }
 
-        // Sort by progress descending and take top 5
         $this->mostProductiveStudents = collect($studentProgressData)
             ->sortByDesc('avg_progress')
             ->take(5)
             ->values();
 
-        // Calculate stats
         $this->calculateStats();
     }
 
     protected function calculateStats()
     {
         $totalStudents = $this->assignedSections->sum('students_count');
-        $totalLessons = $this->assignedSections->sum('lessons_count');
+        $totalLessons  = $this->assignedSections->sum('lessons_count');
 
-        // Calculate average completion across all students
         $avgCompletion = $this->mostProductiveStudents->count() > 0
             ? round($this->mostProductiveStudents->avg('avg_progress'), 1)
             : 0;
 
         $this->stats = [
-            'sections' => $this->assignedSections->count(),
-            'students' => $totalStudents,
-            'lessons' => $totalLessons,
+            'sections'       => $this->assignedSections->count(),
+            'students'       => $totalStudents,
+            'lessons'        => $totalLessons,
             'avg_completion' => $avgCompletion,
         ];
     }
@@ -93,178 +85,318 @@ new class extends Component
     }
 };
 ?>
+
 <div>
     <style>
-        .teacher-stats-mini {
+        /* ── Stats row ───────────────────────────────────────── */
+        .td-stats {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
         }
 
-        .stat-mini {
+        .td-stat {
             background: var(--bg-subtle);
-            border-radius: 6px;
-            padding: 10px;
-            text-align: center;
+            border-radius: 7px;
+            padding: 10px 12px;
         }
 
-        .stat-mini-val {
-            font-size: 18px;
-            font-weight: 600;
+        .td-stat.is-highlight {
+            background: #EEEDFE;
+        }
+
+        .td-stat-val {
+            font-size: 20px;
+            font-weight: 500;
             color: var(--text);
+            line-height: 1.2;
         }
 
-        .stat-mini-label {
+        .td-stat.is-highlight .td-stat-val { color: #3C3489; }
+
+        .td-stat-lbl {
             font-size: 10px;
             color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: .05em;
             margin-top: 2px;
         }
 
-        .sections-grid {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 16px;
-            max-height: 120px;
-            overflow-y: auto;
+        .td-stat.is-highlight .td-stat-lbl { color: #534AB7; }
+
+        /* ── Section label ───────────────────────────────────── */
+        .td-eyebrow {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 7px;
         }
 
-        .section-item {
+        /* ── Sections list ───────────────────────────────────── */
+        .td-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 136px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        .td-section-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
             background: var(--bg-subtle);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px 10px;
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
+            border-radius: 7px;
+            padding: 7px 10px;
+            text-decoration: none;
             transition: background .13s, border-color .13s;
         }
 
-        .section-item:hover {
+        .td-section-row:hover {
             background: var(--bg-hover);
-            border-color: var(--accent, #3C3489);
+            border-color: #3C3489;
         }
 
-        .section-name { font-weight: 500; color: var(--text); }
-        .section-count { font-size: 11px; color: var(--text-muted); }
-
-        .productivity-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 8px;
-        }
-
-        .productive-list { display: flex; flex-direction: column; gap: 8px; }
-
-        .productive-item {
+        .td-section-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            background: #EEEDFE;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            background: var(--bg-subtle);
-            border-radius: 5px;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+
+        .td-section-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .td-section-pill {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #EEEDFE;
+            color: #3C3489;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .td-section-chevron {
+            font-size: 13px;
+            color: var(--text-faint);
+            flex-shrink: 0;
+        }
+
+        /* ── Divider ─────────────────────────────────────────── */
+        .td-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 14px 0;
+        }
+
+        /* ── Leaderboard ─────────────────────────────────────── */
+        .td-leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .td-prod-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .td-prod-rank {
             font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            min-width: 16px;
+            text-align: right;
+            flex-shrink: 0;
         }
 
-        .prod-rank {
-            font-weight: 600;
-            color: var(--accent, #3C3489);
-            min-width: 18px;
+        /* medal colours */
+        .td-medal-1 { color: #B87D0A; }
+        .td-medal-2 { color: #6B7280; }
+        .td-medal-3 { color: #993C1D; }
+
+        .td-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #EEEDFE;
+            color: #3C3489;
+            font-size: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            text-transform: uppercase;
         }
 
-        .prod-name { color: var(--text); font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .prod-progress { color: var(--text-muted); font-size: 10px; }
+        .td-prod-info { flex: 1; min-width: 0; }
 
-        .completion-bar {
-            width: 100%;
-            height: 4px;
+        .td-prod-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .td-prog-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+
+        .td-prog-track {
+            flex: 1;
+            height: 3px;
             background: var(--border);
             border-radius: 2px;
-            margin-top: 4px;
             overflow: hidden;
         }
 
-        .completion-fill {
+        .td-prog-fill {
             height: 100%;
-            background: linear-gradient(90deg, #10B981, #6366F1);
+            background: #3C3489;
             border-radius: 2px;
         }
 
-        .empty-state {
+        .td-prog-pct {
+            font-size: 10px;
+            color: var(--text-muted);
+            min-width: 28px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* ── Empty state ─────────────────────────────────────── */
+        .td-empty {
             text-align: center;
-            padding: 16px 8px;
+            padding: 20px 8px;
             color: var(--text-muted);
             font-size: 12px;
         }
 
-        .empty-state-icon { font-size: 24px; margin-bottom: 8px; }
+        .td-empty-icon {
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
     </style>
 
-    <div class="teacher-stats-mini">
-        <div class="stat-mini">
-            <div class="stat-mini-val">{{ $this->stats['sections'] }}</div>
-            <div class="stat-mini-label">Sections</div>
+    {{-- Stats row --}}
+    <div class="td-stats">
+        <div class="td-stat">
+            <div class="td-stat-val">{{ $this->stats['sections'] }}</div>
+            <div class="td-stat-lbl">Sections</div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-val">{{ $this->stats['students'] }}</div>
-            <div class="stat-mini-label">Students</div>
+        <div class="td-stat">
+            <div class="td-stat-val">{{ $this->stats['students'] }}</div>
+            <div class="td-stat-lbl">Students</div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-val">{{ $this->stats['lessons'] }}</div>
-            <div class="stat-mini-label">Lessons</div>
+        <div class="td-stat">
+            <div class="td-stat-val">{{ $this->stats['lessons'] }}</div>
+            <div class="td-stat-lbl">Lessons</div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-val">{{ $this->stats['avg_completion'] }}%</div>
-            <div class="stat-mini-label">Avg Progress</div>
+        <div class="td-stat is-highlight">
+            <div class="td-stat-val">{{ $this->stats['avg_completion'] }}%</div>
+            <div class="td-stat-lbl">Avg progress</div>
         </div>
     </div>
 
     @if($this->assignedSections->count() > 0)
-        <div>
-            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
-                Your sections
-            </div>
 
-            <div class="sections-grid">
-                @foreach($this->assignedSections as $section)
-
-                    <a href="#" class="section-item">
-                        <div>
-                            <div class="section-name">{{ $section->section_number }}</div>
-                            <div class="section-count">{{ $section->students->count() }}</div>
-                        </div>
-                        <span style="color: var(--text-faint); font-size: 13px;">›</span>
-                    </a>
-                @endforeach
-            </div>
+        {{-- Sections list --}}
+        <div class="td-eyebrow">Your sections</div>
+        <div class="td-sections">
+            @foreach($this->assignedSections as $section)
+                <a href="#" class="td-section-row">
+                    <div class="td-section-icon">📚</div>
+                    <span class="td-section-name">Section {{ $section->section_number }}</span>
+                    <span class="td-section-pill">{{ $section->students->count() }} students</span>
+                    <span class="td-section-chevron">›</span>
+                </a>
+            @endforeach
         </div>
 
+        {{-- Leaderboard --}}
         @if($this->mostProductiveStudents->count() > 0)
-            <div style="margin-top: 16px;">
-                <div class="productivity-title">Most Productive Students</div>
-                <div class="productive-list">
-                    @foreach($this->mostProductiveStudents as $index => $record)
-                        <div class="productive-item">
-                            <div class="prod-rank">#{{ $index + 1 }}</div>
-                            <div style="flex: 1; min-width: 0;">
-                                <div class="prod-name">{{ $record->student->name ?? 'Unknown' }}</div>
-                                <div class="prod-progress">{{ $record->avg_progress }}% progress</div>
-                                <div class="completion-bar">
-                                    <div class="completion-fill" style="width: {{ $record->avg_progress }}%"></div>
+            <div class="td-divider"></div>
+            <div class="td-eyebrow">Most productive students</div>
+            <div class="td-leaderboard">
+                @foreach($this->mostProductiveStudents as $index => $record)
+                    @php
+                        $initials = collect(explode(' ', $record->student->name ?? 'U'))
+                            ->map(fn($w) => strtoupper(substr($w, 0, 1)))
+                            ->take(2)
+                            ->implode('');
+
+                        $avatarPalette = [
+                            ['bg' => '#EEEDFE', 'color' => '#3C3489'],
+                            ['bg' => '#E6F1FB', 'color' => '#0C447C'],
+                            ['bg' => '#FAECE7', 'color' => '#993C1D'],
+                            ['bg' => '#EAF3DE', 'color' => '#3B6D11'],
+                            ['bg' => '#FAEEDA', 'color' => '#854F0B'],
+                        ];
+                        $palette = $avatarPalette[$index % count($avatarPalette)];
+                    @endphp
+
+                    <div class="td-prod-row">
+                        {{-- Rank / medal --}}
+                        <div class="td-prod-rank">
+                            @if($index === 0)
+                                <span class="td-medal-1" title="1st">🥇</span>
+                            @elseif($index === 1)
+                                <span class="td-medal-2" title="2nd">🥈</span>
+                            @elseif($index === 2)
+                                <span class="td-medal-3" title="3rd">🥉</span>
+                            @else
+                                {{ $index + 1 }}
+                            @endif
+                        </div>
+
+                        {{-- Avatar --}}
+                        <div class="td-avatar"
+                             style="background: {{ $palette['bg'] }}; color: {{ $palette['color'] }};">
+                            {{ $initials }}
+                        </div>
+
+                        {{-- Name + progress bar --}}
+                        <div class="td-prod-info">
+                            <div class="td-prod-name">{{ $record->student->name ?? 'Unknown' }}</div>
+                            <div class="td-prog-wrap">
+                                <div class="td-prog-track">
+                                    <div class="td-prog-fill"
+                                         style="width: {{ $record->avg_progress }}%">
+                                    </div>
                                 </div>
+                                <span class="td-prog-pct">{{ $record->avg_progress }}%</span>
                             </div>
                         </div>
-                    @endforeach
-                </div>
+                    </div>
+                @endforeach
             </div>
         @endif
+
     @else
-        <div class="empty-state">
-            <div class="empty-state-icon">📚</div>
+        <div class="td-empty">
+            <div class="td-empty-icon">📚</div>
             <div>No sections assigned yet</div>
         </div>
     @endif

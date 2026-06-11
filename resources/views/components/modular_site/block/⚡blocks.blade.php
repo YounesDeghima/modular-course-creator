@@ -115,48 +115,59 @@ new class extends Component {
                     'data'   => array_values(array_filter(array_map('trim', explode(',', $blockData['graph_data']   ?? '')))),
                 ]);
             }
+
             if ($blockData['type'] === 'list') {
-                $items = array_values(array_filter(array_map('trim', explode("
-                ", $blockData['list_items'] ?? ''))));
+                $items = array_values(array_filter(array_map('trim', explode("\n", $blockData['list_items'] ?? ''))));
                 $content = json_encode([
                     'style' => $blockData['list_style'] ?? 'bullet',
                     'items' => $items,
                 ]);
             }
+
             if ($blockData['type'] === 'separator') {
                 $content = json_encode(['type' => $blockData['separator_type'] ?? 'divider']);
             }
+
             if ($blockData['type'] === 'table') {
                 $content = $blockData['table_json'] ?? $blockData['content'];
             }
+
             if ($blockData['type'] === 'function') {
                 $content = json_encode([
                     'function' => $blockData['func_expression'] ?? 'y = x',
-                    'x_min' => $blockData['x_min'] ?? -10,
-                    'x_max' => $blockData['x_max'] ?? 10,
-                    'y_min' => $blockData['y_min'] ?? -5,
-                    'y_max' => $blockData['y_max'] ?? 5,
-                    'color' => $blockData['color'] ?? '#4f46e5',
-                    'step' => $blockData['step'] ?? 0.1,
+                    'x_min'    => $blockData['x_min']  ?? -10,
+                    'x_max'    => $blockData['x_max']  ??  10,
+                    'y_min'    => $blockData['y_min']  ??  -5,
+                    'y_max'    => $blockData['y_max']  ??   5,
+                    'color'    => $blockData['color']  ?? '#4f46e5',
+                    'step'     => $blockData['step']   ??  0.1,
                 ]);
             }
 
+            // Save the block itself
             block::where('id', $blockData['id'])->update([
-                'content' => $content,
-                'type' => $blockData['type'],
+                'content'      => $content,
+                'type'         => $blockData['type'],
                 'block_number' => $blockData['block_number'],
             ]);
 
+            // ── Save exercise solutions ───────────────────────────────────
             if ($blockData['type'] === 'exercise') {
                 foreach ($blockData['solutions'] ?? [] as $solution) {
-                    if (!empty($solution['id']) && is_numeric($solution['id'])) {
-                        exercisesolution::where('id', $solution['id'])
+                    // BUG FIX: cast to int — Livewire's JSON round-trip can return
+                    // the id as a string or even drop it during morphs.
+                    $solutionId = (int) ($solution['id'] ?? 0);
+
+                    if ($solutionId > 0) {
+                        exercisesolution::where('id', $solutionId)
                             ->update(['content' => $solution['content'] ?? '']);
                     }
+                    // If id is missing/0 we skip rather than upsert, because we
+                    // never want to accidentally create duplicate solution rows.
+                    // The id should always be present since mount() calls toArray()
+                    // on DB rows. If it IS missing, it means Livewire dropped the
+                    // hidden field — add wire:model for the id field (see blade fix below).
                 }
-            }
-            if (in_array($blockData['type'], ['photo', 'video'])) {
-                $blockData['file_name'] = $blockData['content'] ? basename($blockData['content']) : 'No file selected';
             }
         }
 
@@ -597,24 +608,28 @@ new class extends Component {
                                     Question
                                 </div>
                                 <div class="be-md-wrap" data-bid="{{ $block['id'] }}">
-                                    <textarea
-                                        class="be-input be-input-body be-md-src"
-                                        name="blocks[{{ $block['id'] }}][content]"
-                                        placeholder="Enter the question... (markdown supported)"
-                                        wire:model="blocks.{{ $loop->index }}.content"
-                                        oninput="autoResize(this);beMdLive(this)"
-                                        rows="2"
-                                    ></textarea>
+            <textarea
+                class="be-input be-input-body be-md-src"
+                placeholder="Enter the question... (markdown supported)"
+                wire:model="blocks.{{ $loop->index }}.content"
+                oninput="autoResize(this);beMdLive(this)"
+                rows="2"
+            ></textarea>
                                     <div class="be-md-preview" style="display:none"></div>
                                     <button type="button" class="be-md-toggle" onclick="beMdToggle(this)" title="Toggle markdown preview">👁</button>
                                 </div>
+
                                 @foreach($block['solutions'] ?? [] as $sIndex => $solution)
                                     <div class="be-solution-wrap">
                                         <div class="be-solution-label">Solution {{ $sIndex + 1 }}</div>
+
+                                        {{-- THIS IS THE FIX: track solution id so saveAll() can find the DB row --}}
+                                        <input type="hidden"
+                                               wire:model="blocks.{{ $loop->parent->index }}.solutions.{{ $sIndex }}.id">
+
                                         <textarea
                                             class="be-input be-input-body"
-                                            name="blocks[{{ $block['id'] }}][solutions][{{ $solution['id'] }}]"
-                                            wire:model="blocks.{{ $loop->index }}.solutions.{{ $sIndex }}.content"
+                                            wire:model="blocks.{{ $loop->parent->index }}.solutions.{{ $sIndex }}.content"
                                             oninput="autoResize(this)"
                                             rows="2"
                                             placeholder="Enter solution..."
