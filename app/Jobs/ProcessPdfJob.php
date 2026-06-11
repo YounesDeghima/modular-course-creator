@@ -157,11 +157,17 @@ class ProcessPdfJob implements ShouldQueue
         for ($try = 1; $try <= $maxRetries; $try++) {
             try {
                 $aiJob->log("STEP 2 — attempt {$try}/{$maxRetries}…", 'info');
-                $splitData = $this->splitWithOllama($aiJob, $snapshot, $model);
+                $structure = $this->splitWithOllama($aiJob, $snapshot, $model);
 
-                if (empty($splitData['chapters'])) {
+                if (empty($structure['chapters'])) {
                     throw new \RuntimeException('Ollama returned no chapters.');
                 }
+
+                // Slice actual markdown content from the original snapshot text
+                $splitData = $this->sliceMarkdownByBoundaries($snapshot->markdown ?? '', $structure);
+
+                // PHP safety net: merge any lesson that is suspiciously short
+                $splitData = $this->mergeShortLessons($aiJob, $splitData);
 
                 $ch = count($splitData['chapters']);
                 $ls = array_sum(array_map(fn($c) => count($c['lessons'] ?? []), $splitData['chapters']));
@@ -201,7 +207,7 @@ class ProcessPdfJob implements ShouldQueue
         ]);
 
         // STEP 3: explode blocks for each lesson
-        $this->explodeAllLessons($aiJob, $splitData, $snapshot->image_urls ?? [], $startTime);
+        $this->explodeAllLessons($aiJob, $splitData, $snapshot->image_urls ?? [], $startTime, $model);
     }
 
     // ── STEP 3: Build course/chapters/lessons/blocks from split data ───────────
@@ -209,7 +215,8 @@ class ProcessPdfJob implements ShouldQueue
         AiJob  $aiJob,
         array  $splitData,
         array  $imageUrls,
-        float  $startTime
+        float  $startTime,
+        string $model = 'phi4'
     ): void {
         $aiJob->log("STEP 3 — Creating course structure and exploding lesson blocks…", 'info');
 
@@ -277,6 +284,27 @@ class ProcessPdfJob implements ShouldQueue
                                 }
                             }
                             $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\": " . count($segments) . " blocks created.", 'ok');
+
+                            // Generate exercises for this lesson
+                            $nextBlockNum = count($segments) + 1;
+                            try {
+                                $exercises = $this->generateExercises($aiJob, $lessonTitle, $lessonMd, $model);
+                                foreach ($exercises as $ex) {
+                                    $blk = block::create([
+                                        'lesson_id'    => $lessonRecord->id,
+                                        'type'         => 'exercise',
+                                        'content'      => $ex['question'],
+                                        'block_number' => $nextBlockNum++,
+                                    ]);
+                                    $blk->solutions()->create([
+                                        'solution_number' => 1,
+                                        'content'         => $ex['answer'],
+                                    ]);
+                                }
+                                $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\": " . count($exercises) . " exercise(s) appended.", 'ok');
+                            } catch (\Throwable $e) {
+                                $aiJob->log("STEP 3 — Lesson \"{$lessonTitle}\" exercise generation failed: " . $e->getMessage() . " — skipping exercises.", 'warn');
+                            }
                         }
 
                     } catch (\Throwable $e) {
@@ -313,7 +341,79 @@ class ProcessPdfJob implements ShouldQueue
         ]);
     }
 
-    // ── Ollama: split only — much lighter prompt ───────────────────────────────
+    // ── Generate 2-3 exercises for a lesson via a focused Ollama call ─────────
+    private function generateExercises(AiJob $aiJob, string $lessonTitle, string $lessonMd, string $model): array
+    {
+        // Cap what we send — exercises don't need the full markdown
+        $maxChars  = 6000;
+        $content   = mb_strlen($lessonMd) > $maxChars
+            ? mb_substr($lessonMd, 0, $maxChars) . "\n[...truncated...]"
+            : $lessonMd;
+
+        $prompt = <<<PROMPT
+You are a teacher creating exercises for a lesson titled "{$lessonTitle}".
+
+Read the lesson content below and write exactly 3 exercises that test understanding of the key concepts.
+Each exercise should be a clear question or task. Include a concise model answer for each.
+
+OUTPUT FORMAT (pure JSON, no markdown fences, no extra text):
+{
+  "exercises": [
+    { "question": "...", "answer": "..." },
+    { "question": "...", "answer": "..." },
+    { "question": "...", "answer": "..." }
+  ]
+}
+
+RULES:
+- Base exercises strictly on the lesson content — do not invent topics not covered.
+- Mix question types: comprehension, application, and reflection.
+- Questions should be specific, not vague ("What is X?" is fine; "Explain everything" is not).
+- Answers should be concise model answers a student can compare against.
+
+--- LESSON CONTENT ---
+{$content}
+--- END ---
+PROMPT;
+
+        $response = Http::timeout(120)
+            ->withOptions(['connect_timeout' => 10])
+            ->post('http://localhost:11434/api/generate', [
+                'model'   => $model,
+                'prompt'  => $prompt,
+                'stream'  => false,
+                'format'  => 'json',
+                'options' => [
+                    'temperature' => 0.3,
+                    'num_predict' => 1024,
+                    'num_ctx'     => 8192,
+                ],
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException("Ollama HTTP error on exercise generation: " . $response->status());
+        }
+
+        $jsonString = $response->json('response') ?? '';
+        if (empty($jsonString)) {
+            throw new \RuntimeException('Ollama returned empty response for exercises.');
+        }
+
+        // Strip accidental markdown fences
+        $jsonString = preg_replace('/^```json\s*/i', '', trim($jsonString));
+        $jsonString = preg_replace('/^```\s*/i',     '', $jsonString);
+        $jsonString = preg_replace('/```\s*$/',       '', $jsonString);
+
+        $decoded = json_decode($jsonString, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || empty($decoded['exercises'])) {
+            throw new \RuntimeException('Exercise JSON invalid or empty: ' . json_last_error_msg());
+        }
+
+        return array_slice($decoded['exercises'], 0, 3); // max 3
+    }
+
+    // ── Ollama: boundaries only — model returns heading markers, NOT content ──
     private function splitWithOllama(AiJob $aiJob, AiJobSnapshot $snapshot, string $model): array
     {
         $markdown  = $snapshot->markdown ?? '';
@@ -330,39 +430,44 @@ class ProcessPdfJob implements ShouldQueue
         $branch = $aiJob->branch;
 
         $prompt = <<<PROMPT
-You are a course content organizer. Read the markdown document below and split it into chapters and lessons based on context and headings.
+You are a course structure analyzer. Read the markdown document below and identify where chapters and lessons begin.
 
-YOUR ONLY JOB: decide where chapter and lesson boundaries are, and copy the raw markdown for each lesson verbatim.
-Do NOT rewrite content. Do NOT create blocks. Do NOT summarize. Copy lesson content exactly as-is.
+YOUR ONLY JOB: return a lightweight JSON structure with chapter/lesson metadata and the EXACT first line of text that starts each lesson (so it can be located in the original document).
+Do NOT copy or reproduce any lesson content. Do NOT paraphrase content. Only titles, descriptions, and boundary markers.
 
-OUTPUT FORMAT (pure JSON, no markdown fences):
+OUTPUT FORMAT (pure JSON, no markdown fences, no extra text):
 {
-  "title": "<course title from first heading or filename>",
+  "title": "<course title from first heading>",
   "year": $year,
   "branch": "$branch",
-  "description": "<one sentence summary>",
+  "description": "<one sentence summary of the whole document>",
   "chapters": [
     {
       "title": "Chapter title",
-      "description": "One sentence.",
+      "description": "One sentence about this chapter.",
       "chapter_number": 1,
       "lessons": [
         {
           "title": "Lesson title",
-          "description": "One sentence.",
+          "description": "One sentence about this lesson.",
           "lesson_number": 1,
-          "markdown": "<raw markdown content of this lesson, copied verbatim>"
+          "start_marker": "<copy the EXACT first line or heading that opens this lesson, verbatim from the document>"
         }
       ]
     }
   ]
 }
 
-SPLITTING RULES:
-- A new CHAPTER starts when you see a major section change (e.g. # heading or clear topic shift).
-- A new LESSON starts at ## headings or clear sub-topic shifts within a chapter.
-- If the document has no clear structure, put everything in 1 chapter and 1 lesson.
-- Copy the full lesson content into "markdown" verbatim — do not skip anything.
+LESSON SIZING RULES — very important:
+- A lesson must be a substantial, self-contained learning unit. It should cover a full topic, not just a single heading.
+- Do NOT create a new lesson for every ## heading. Group related headings together if they form one coherent topic.
+- A lesson that would contain fewer than 4 paragraphs of content is too short — merge it with the next lesson instead.
+- Prefer fewer, richer lessons over many thin ones. Aim for lessons a student could spend 10–15 minutes reading.
+- If the whole document has little structure, use 1 chapter and 1–2 lessons max.
+
+CHAPTER RULES:
+- A new chapter only when there is a clear major topic shift (typically a # heading or equivalent).
+- Do not create chapters for minor sub-sections.
 
 --- MARKDOWN DOCUMENT ---
 $truncated
@@ -380,7 +485,7 @@ PROMPT;
                 'format'  => 'json',
                 'options' => [
                     'temperature' => 0,
-                    'num_predict' => -1,
+                    'num_predict' => 4096,   // boundaries JSON is tiny — cap it
                     'num_ctx'     => 16384,
                 ],
             ]);
@@ -417,6 +522,120 @@ PROMPT;
 
         $aiJob->log('JSON parsed OK.', 'ok');
         return $decoded;
+    }
+
+    // ── Slice the original markdown into lessons using start_marker boundaries ─
+    private function sliceMarkdownByBoundaries(string $fullMarkdown, array $structure): array
+    {
+        $lines = explode("\n", $fullMarkdown);
+
+        // Collect all lessons in order with their markers
+        $allLessons = [];
+        foreach ($structure['chapters'] as $chIdx => $chapter) {
+            foreach ($chapter['lessons'] ?? [] as $lIdx => $lesson) {
+                $allLessons[] = [
+                    'chIdx'  => $chIdx,
+                    'lIdx'   => $lIdx,
+                    'marker' => trim($lesson['start_marker'] ?? ''),
+                    'title'  => $lesson['title'] ?? '',
+                    'desc'   => $lesson['description'] ?? '',
+                    'num'    => $lesson['lesson_number'] ?? ($lIdx + 1),
+                ];
+            }
+        }
+
+        if (empty($allLessons)) {
+            // Fallback: whole doc is one lesson in one chapter
+            $structure['chapters'][0]['lessons'][0]['markdown'] = $fullMarkdown;
+            return $structure;
+        }
+
+        // Find the line index of each marker in the original document
+        foreach ($allLessons as &$ls) {
+            $ls['line'] = null;
+            if ($ls['marker'] === '') continue;
+            foreach ($lines as $lineIdx => $line) {
+                if (trim($line) === $ls['marker'] || str_contains($line, $ls['marker'])) {
+                    $ls['line'] = $lineIdx;
+                    break;
+                }
+            }
+        }
+        unset($ls);
+
+        // Sort by found line position; lessons whose marker wasn't found go to end
+        usort($allLessons, fn($a, $b) => ($a['line'] ?? PHP_INT_MAX) <=> ($b['line'] ?? PHP_INT_MAX));
+
+        // If first lesson marker not found at line 0, start it from line 0
+        if ($allLessons[0]['line'] === null || $allLessons[0]['line'] > 0) {
+            $allLessons[0]['line'] = 0;
+        }
+
+        // Slice content between consecutive start lines
+        $total = count($lines);
+        foreach ($allLessons as $i => &$ls) {
+            $start = $ls['line'] ?? 0;
+            $end   = $allLessons[$i + 1]['line'] ?? $total;
+            $ls['markdown'] = implode("\n", array_slice($lines, $start, $end - $start));
+        }
+        unset($ls);
+
+        // Rebuild the structure with actual markdown content
+        $result = $structure;
+        foreach ($result['chapters'] as &$chapter) {
+            foreach ($chapter['lessons'] as &$lesson) {
+                // Find matching lesson in allLessons by title
+                foreach ($allLessons as $ls) {
+                    if ($ls['title'] === $lesson['title']) {
+                        $lesson['markdown'] = $ls['markdown'];
+                        break;
+                    }
+                }
+                $lesson['markdown'] ??= '';
+            }
+            unset($lesson);
+        }
+        unset($chapter);
+
+        return $result;
+    }
+
+    // ── PHP safety net: merge lessons that are suspiciously short ─────────────
+    private function mergeShortLessons(AiJob $aiJob, array $structure, int $minChars = 500): array
+    {
+        foreach ($structure['chapters'] as &$chapter) {
+            $lessons = $chapter['lessons'] ?? [];
+            $merged  = [];
+
+            foreach ($lessons as $lesson) {
+                $len = mb_strlen($lesson['markdown'] ?? '');
+
+                if (!empty($merged) && $len < $minChars) {
+                    // Absorb into the previous lesson
+                    $prev = array_pop($merged);
+                    $aiJob->log(
+                        "Safety net — merged short lesson \"{$lesson['title']}\" ({$len} chars) into \"{$prev['title']}\".",
+                        'warn'
+                    );
+                    $prev['markdown'] .= "\n\n" . ($lesson['markdown'] ?? '');
+                    $prev['description'] .= ' ' . ($lesson['description'] ?? '');
+                    $merged[] = $prev;
+                } else {
+                    $merged[] = $lesson;
+                }
+            }
+
+            // Re-number
+            foreach ($merged as $i => &$l) {
+                $l['lesson_number'] = $i + 1;
+            }
+            unset($l);
+
+            $chapter['lessons'] = $merged;
+        }
+        unset($chapter);
+
+        return $structure;
     }
 
     // ── Inject image URLs as markdown references so the parser finds them ──────
