@@ -161,8 +161,13 @@
                     </div>
                     <span class="qlink-arrow">›</span>
                 </a>
+                @if($user->role == 'teacher')
+{{--                    placeholder for assigned section view for the teachers--}}
+                    <a class="qlink" href="#">
+                @else
+                    <a class="qlink" href="{{ route('admin.dashboard') }}">
+                @endif
 
-                <a class="qlink" href="{{ route('admin.dashboard') }}">
                     <div class="qlink-icon" style="background:#E6F1FB;">👥</div>
                     <div>
                         @if($user->role == 'admin')
@@ -206,7 +211,7 @@
                 </div>
             @elseif($user->role =='teacher')
                 <div class="dash-card-title">Assigned sections & insights</div>
-                <livewire:ai-assistant/>
+                <livewire:teacher.teacherDashboard :user="$user"/>
             @endif
 
         </div>

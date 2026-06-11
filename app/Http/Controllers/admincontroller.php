@@ -26,7 +26,7 @@ class admincontroller extends Controller
     public function main()
     {
         $user = Auth::user();
-        if ($user->role !== 'admin') return redirect()->back();
+        if ($user->role !== 'admin' && $user->role !=='teacher') return redirect()->back();
 
         $courses = Course::all();
 
