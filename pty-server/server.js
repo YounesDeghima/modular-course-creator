@@ -231,9 +231,15 @@ wss.on('connection', (ws) => {
                 send(ws, 'system', { data: `[Sandboxed - ${langKey} | mem:${CFG.MEMORY} cpu:${CFG.CPUS} timeout:${CFG.RUN_TIMEOUT_MS/1000}s]\r\n` });
 
                 const fullPodmanArgs = buildPodmanArgs(containerName, lang, srcFile);
+
+                // Scrub conflicting Docker variables so Podman doesn't crash on Windows
+                const cleanEnv = { ...process.env };
+                delete cleanEnv.DOCKER_HOST;
+                delete cleanEnv.CONTAINER_HOST;
+
                 containerProc = spawn(CFG.CONTAINER_BIN, fullPodmanArgs, {
                     stdio: ['pipe', 'pipe', 'pipe'],
-                    env: { ...process.env }
+                    env: cleanEnv
                 });
 
                 containerProc.stdout.on('data', (chunk) => {
