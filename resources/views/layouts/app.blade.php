@@ -60,9 +60,14 @@
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
                     </button>
+                    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
                     <form action="" method="post">
                         <input type="submit" value="Delete user" name="delete-user" id="delete-user">
                     </form>
+                    <a href="{{route('admin.userProfile',['userid'=>$id])}}" class="logout-btn" style="color: black">view profile</a>
                     <a href="{{route('login_page')}}" class="logout-btn">Logout</a>
                 </div>
             </div>
@@ -70,21 +75,23 @@
     </nav>
 </header>
 <div class="middle">
-    <div class="side-bar">
+    @unless(View::hasSection('hideSidebar'))
+        <div class="side-bar">
 
-        <button class="sidebar-toggle" id="sidebarToggle">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-            </svg>
-        </button>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
 
-        <div class="sidebar-content">
-            @yield('sidebar-elements')
+            <div class="sidebar-content">
+                @yield('sidebar-elements')
+            </div>
+
         </div>
-
-    </div>
+    @endunless
     <main>
         @yield('navigation')
         @yield('main')

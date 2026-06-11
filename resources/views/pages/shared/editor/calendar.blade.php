@@ -15,6 +15,8 @@
 {{--@section('sidebar-elements')
     <livewire:calendar.eventcreate/>
 @endsection--}}
+@section('hideSidebar',true)
+
 
 @section('main')
 <livewire:calendar.calendar/>

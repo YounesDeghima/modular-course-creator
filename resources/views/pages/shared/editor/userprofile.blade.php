@@ -877,21 +877,31 @@
         @endphp
 
         <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">Overall progress</span>
-                <span class="stat-value">{{ $avgProgress }}<span style="font-size:14px;font-weight:400;color:var(--text-faint)">%</span></span>
-                <span class="stat-sub">across all courses</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Completed</span>
-                <span class="stat-value">{{ $completedCount }}</span>
-                <span class="stat-sub">of {{ $totalCourses }} courses</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">In progress</span>
-                <span class="stat-value">{{ $inProgressCount }}</span>
-                <span class="stat-sub">course{{ $inProgressCount === 1 ? '' : 's' }} started</span>
-            </div>
+            @if($actualUserRole == 'user'|| $role == 'user')
+                <div class="stat-card">
+                    <span class="stat-label">Overall progress</span>
+                    <span class="stat-value">{{ $avgProgress }}<span style="font-size:14px;font-weight:400;color:var(--text-faint)">%</span></span>
+                    <span class="stat-sub">across all courses</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Completed</span>
+                    <span class="stat-value">{{ $completedCount }}</span>
+                    <span class="stat-sub">of {{ $totalCourses }} courses</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">In progress</span>
+                    <span class="stat-value">{{ $inProgressCount }}</span>
+                    <span class="stat-sub">course{{ $inProgressCount === 1 ? '' : 's' }} started</span>
+                </div>
+            @endif
+            @if($actualUserRole == 'teacher' || $role == 'teacher')
+                    <div class="stat-card">
+                        <span class="stat-label">assigned sections</span>
+                        <span class="stat-value">{{ $user->assignedsections()->count() }}</span>
+
+                    </div>
+            @endif
+
             <div class="stat-card">
                 <span class="stat-label">User ID</span>
                 <span class="stat-value" style="font-size:18px;font-family:var(--profile-mono)">#{{ $user->id }}</span>
@@ -917,6 +927,13 @@
                     <span class="info-key">Email</span>
                     <span class="info-val">{{ $user->email }}</span>
                 </div>
+
+                @if($actualUserRole == 'user' || $role == 'user')
+                    <div class="info-row">
+                        <span class="info-key">Section</span>
+                        <span class="info-val">{{ $user->section_number()}}</span>
+                    </div>
+                @endif
                 <div class="info-row">
                     <span class="info-key">Joined</span>
                     <span class="info-val">{{ $user->created_at ? $user->created_at->format('d M Y, H:i') : '—' }}</span>
@@ -943,7 +960,8 @@
                     $isTeacher = false;
                 }
             @endphp
-            @if($isTeacher)
+
+            @if($user->role == 'teacher' && $actualUserRole == 'admin')
                 <livewire:user_info.assignedsections
                     :user="$user"
                     :teacherId="$teacherId"
@@ -956,66 +974,69 @@
 
 
         {{-- ── Enrolled Courses ── --}}
-        <div>
-            <div class="section-header">
-                <span class="section-title">Enrolled Courses</span>
-                <a href="{{ route('admin.users.courses.browse', $user->id) }}" class="btn btn-primary" style="font-size:12px;padding:6px 12px;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Add Course
-                </a>
-            </div>
+            @if($actualUserRole == 'user'||$user->role == 'user')
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Enrolled Courses</span>
+                        <a href="{{ route('admin.users.courses.browse', $user->id) }}" class="btn btn-primary" style="font-size:12px;padding:6px 12px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Course
+                        </a>
+                    </div>
 
-            @if($totalCourses === 0)
-                <div class="empty-state">This user is not enrolled in any courses.</div>
-            @else
-                <div class="courses-grid">
-                    @foreach($courses as $course)
-                        @php $pct = $course->progressForUser($user->id); $forced = $course->pivot->forced ?? false; @endphp
-                        <div class="course-card" id="course-card-{{ $course->id }}">
-                            <div class="course-top">
-                                <div>
-                                    <div class="course-name">{{ $course->title }}</div>
-                                    <div class="course-meta">Y{{ $course->year }} · {{ strtoupper($course->branch) }}
-                                        @if($forced)
-                                            &nbsp;·&nbsp;<span style="color:var(--accent);font-weight:600;">Assigned</span>
-                                        @else
-                                            &nbsp;·&nbsp;<span style="color:#16a34a;font-weight:600;">Self-enrolled</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <span class="pct-badge {{ $pct >= 100 ? 'done' : ($pct === 0 ? 'zero' : '') }}" id="pct-{{ $course->id }}">
+                    @if($totalCourses === 0)
+                        <div class="empty-state">This user is not enrolled in any courses.</div>
+                    @else
+                        <div class="courses-grid">
+                            @foreach($courses as $course)
+                                @php $pct = $course->progressForUser($user->id); $forced = $course->pivot->forced ?? false; @endphp
+                                <div class="course-card" id="course-card-{{ $course->id }}">
+                                    <div class="course-top">
+                                        <div>
+                                            <div class="course-name">{{ $course->title }}</div>
+                                            <div class="course-meta">Y{{ $course->year }} · {{ strtoupper($course->branch) }}
+                                                @if($forced)
+                                                    &nbsp;·&nbsp;<span style="color:var(--accent);font-weight:600;">Assigned</span>
+                                                @else
+                                                    &nbsp;·&nbsp;<span style="color:#16a34a;font-weight:600;">Self-enrolled</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <span class="pct-badge {{ $pct >= 100 ? 'done' : ($pct === 0 ? 'zero' : '') }}" id="pct-{{ $course->id }}">
                                     {{ $pct }}%
                                 </span>
-                            </div>
-                            <div class="prog-track">
-                                <div class="prog-fill {{ $pct >= 100 ? 'done' : '' }}"
-                                     style="width: {{ $pct }}%"
-                                     id="fill-{{ $course->id }}">
-                                </div>
-                            </div>
-                            <div class="course-footer">
+                                    </div>
+                                    <div class="prog-track">
+                                        <div class="prog-fill {{ $pct >= 100 ? 'done' : '' }}"
+                                             style="width: {{ $pct }}%"
+                                             id="fill-{{ $course->id }}">
+                                        </div>
+                                    </div>
+                                    <div class="course-footer">
                                 <span class="chapters-count">
                                     {{ $course->chapters()->where('status','published')->count() }}
                                     chapter{{ $course->chapters()->where('status','published')->count() === 1 ? '' : 's' }}
                                 </span>
-                                <div style="display:flex;gap:6px;">
-                                    @if($pct > 0)
-                                        <button class="reset-btn" onclick="resetCourse({{ $course->id }}, '{{ addslashes($course->title) }}')">
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
-                                            Reset
-                                        </button>
-                                    @endif
-                                    <button class="reset-btn" style="color:#e53e3e;border-color:#fee2e2;" onclick="removeEnrollment({{ $course->id }}, '{{ addslashes($course->title) }}')">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                        Remove
-                                    </button>
+                                        <div style="display:flex;gap:6px;">
+                                            @if($pct > 0)
+                                                <button class="reset-btn" onclick="resetCourse({{ $course->id }}, '{{ addslashes($course->title) }}')">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.85-5.02"/></svg>
+                                                    Reset
+                                                </button>
+                                            @endif
+                                            <button class="reset-btn" style="color:#e53e3e;border-color:#fee2e2;" onclick="removeEnrollment({{ $course->id }}, '{{ addslashes($course->title) }}')">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                    @endif
                 </div>
             @endif
-        </div>
+
 
         {{-- ── Danger zone ── --}}
         <div>

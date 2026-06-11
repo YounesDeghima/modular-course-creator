@@ -28,12 +28,15 @@ class usercontroller extends Controller
 
             return redirect()->route('user.home');
         }else{
-            if($user->role=='admin'){
+
+            if($user->role=='admin'||$user->role == 'teacher'){
             $id = $user->id;
             $name = $user->name;
             $email = $user->email;
+            $role = $user->role;
 
-            return view('pages.shared.editor.home', compact('name', 'email', 'id'));}
+
+            return view('pages.shared.editor.home', compact('name', 'email', 'id','role','user'));}
             else{
                 return redirect()->back();
             }

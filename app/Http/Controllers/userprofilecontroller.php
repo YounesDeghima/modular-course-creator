@@ -19,8 +19,9 @@ class userprofilecontroller extends Controller
         if($user->role == 'teacher'){
             $teacherId = $user->id;
         }
+        $role = $user ->role;
+        $actualUserRole = $actualuser->role;
 
-
-        return view('pages.admin.users.userprofile',compact('teacherId','actualuser','user','name','email','id'));
+        return view('pages.shared.editor.userprofile',compact('teacherId','actualuser','user','name','email','id','role','actualUserRole'));
     }
 }

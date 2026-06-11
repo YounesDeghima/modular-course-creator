@@ -19,7 +19,8 @@ class user extends Authenticatable
         'password',
         'role',
         'last_seen',
-        'section'
+        'section',
+
     ];
 
     /**
@@ -65,5 +66,12 @@ class user extends Authenticatable
     public function isEnrolledIn($courseId): bool
     {
         return $this->enrolledCourses()->where('course_id', $courseId)->exists();
+    }
+
+    public function section(){
+        return $this->belongsTo(section::class);
+    }
+    public function section_number(){
+        return $this->section?->section_number;
     }
 }

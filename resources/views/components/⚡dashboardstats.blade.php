@@ -17,6 +17,9 @@ new class extends Component {
     public $inProgress;
     public $completed;
 
+    public $assignedSections;
+    public $myCourses;
+
 
     public function mount($user)
     {
@@ -31,7 +34,7 @@ new class extends Component {
     public function loadstats()
     {
         $this->totalCourses = course::count();
-        if($this->user->role=='admin')
+        if($this->user->role=='admin'||$this->user->role == 'teacher')
         {
             $this->totalUsers = user::count();
 
@@ -39,7 +42,11 @@ new class extends Component {
             $this->draftCourses = course::where('status', '=', 'draft')->count();
             $this->pubLessons = lesson::where('status', '=', 'published')->count();
             $this->draftLessons = lesson::where('status', '=', 'draft')->count();
+            $this->assignedSections= $this->user->assignedsections()->count();
+
         }
+
+
         else{
             $this->inProgress = 0;
             $this->completed  = 0;
@@ -61,7 +68,8 @@ new class extends Component {
             draftLessons: $this->draftLessons,
             inProgress: $this->inProgress,
             completed: $this->completed,
-            totalUsers: $this->totalUsers
+            totalUsers: $this->totalUsers,
+            assignedSections:$this->assignedSections
 
         );
 
@@ -71,11 +79,18 @@ new class extends Component {
 ?>
 
 <div class="dash-stats" wire:poll.5s="loadstats">
-    @if($user->role=='admin')
+    @if($user->role=='admin'||$user->role == 'teacher')
         <div class="stat-card">
-            <div class="stat-label">Total users</div>
-            <div class="stat-val">{{ $totalUsers }}</div>
-            <div class="stat-sub">registered accounts</div>
+            @if($user->role == 'admin')
+                <div class="stat-label">Total users</div>
+                <div class="stat-val">{{ $totalUsers }}</div>
+                <div class="stat-sub">registered accounts</div>
+            @else
+                <div class="stat-label">Assigned Sections</div>
+                <div class="stat-val">{{ $assignedSections }}</div>
+                <div class="stat-sub">registered sections</div>
+            @endif
+
         </div>
         <div class="stat-card">
             <div class="stat-label">Courses</div>
@@ -92,6 +107,7 @@ new class extends Component {
             <div class="stat-val">{{ $draftLessons }}</div>
             <div class="stat-sub">awaiting publish</div>
         </div>
+
     @else
 
         <div class="stat-card">

@@ -144,8 +144,10 @@
         <h1>Good morning, {{ $name }}</h1>
         <p>Here's what's happening on your platform.</p>
     </div>
+    @if($user->role == 'admin'||$user->role == 'teacher')
+        <livewire:dashboardstats :user="$user"/>
+    @endif
 
-    <livewire:dashboardstats :user="$user"/>
 
     <div class="dash-grid">
         <div class="dash-card">
@@ -159,11 +161,18 @@
                     </div>
                     <span class="qlink-arrow">›</span>
                 </a>
+
                 <a class="qlink" href="{{ route('admin.dashboard') }}">
                     <div class="qlink-icon" style="background:#E6F1FB;">👥</div>
                     <div>
-                        <div class="qlink-title">Manage users</div>
-                        <div class="qlink-desc">View and delete accounts</div>
+                        @if($user->role == 'admin')
+                            <div class="qlink-title">Manage users</div>
+                            <div class="qlink-desc">View and delete accounts</div>
+                        @elseif($user->role == 'teacher')
+                            <div class="qlink-title">Manage Assigned Sections</div>
+                            <div class="qlink-desc">View students and their progress</div>
+                        @endif
+
                     </div>
                     <span class="qlink-arrow">›</span>
                 </a>
@@ -179,21 +188,27 @@
         </div>
 
         <div class="dash-card">
-            <div class="dash-card-title">Recent users</div>
-            <div class="user-list">
-                @foreach($recentUsers as $user)
-                    <div class="user-row">
-                        <div class="user-avatar">
-                            {{ strtoupper(substr($user->name, 0, 1)) }}
+            @if($user->role == 'admin')
+                <div class="dash-card-title">Recent users</div>
+                <div class="user-list">
+                    @foreach($recentUsers as $user)
+                        <div class="user-row">
+                            <div class="user-avatar">
+                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="user-name">{{ $user->name }}</div>
+                                <div class="user-email">{{ $user->email }}</div>
+                            </div>
+                            <span class="role-badge">{{ ucfirst($user->role ?? 'student') }}</span>
                         </div>
-                        <div style="flex:1;min-width:0;">
-                            <div class="user-name">{{ $user->name }}</div>
-                            <div class="user-email">{{ $user->email }}</div>
-                        </div>
-                        <span class="role-badge">{{ ucfirst($user->role ?? 'student') }}</span>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @elseif($user->role =='teacher')
+                <div class="dash-card-title">Assigned sections & insights</div>
+                <livewire:ai-assistant/>
+            @endif
+
         </div>
     </div>
 @endsection
