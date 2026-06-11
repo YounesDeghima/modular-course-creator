@@ -60,9 +60,7 @@
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
                     </button>
-                    <form action="" method="post">
-                        <input type="submit" value="Delete user" name="delete-user" id="delete-user">
-                    </form>
+
                     <a href="{{route('login_page')}}" class="logout-btn">Logout</a>
                 </div>
             </div>
