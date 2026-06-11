@@ -921,12 +921,6 @@
         });
 
         // Reset scroll tracking on Livewire lesson navigation
-        document.addEventListener('livewire:navigated', () => {
-            maxProgress  = 0;
-            progressSent = document.querySelector('.completed_checkbox')?.checked ?? false;
-            const bar = document.getElementById('scroll-progress');
-            if (bar) bar.style.width = '0%';
-        });
 
         // ═══════════════════════════════════════════════════════════════════
         // Bootstrap everything on DOMContentLoaded
