@@ -527,75 +527,83 @@ PROMPT;
     // ── Slice the original markdown into lessons using start_marker boundaries ─
     private function sliceMarkdownByBoundaries(string $fullMarkdown, array $structure): array
     {
-        $lines = explode("\n", $fullMarkdown);
+        $lines      = explode("\n", $fullMarkdown);
+        $totalLines = count($lines);
 
-        // Collect all lessons in order with their markers
-        $allLessons = [];
+        // ── 1. Flatten all lessons in declaration order, keyed by [chIdx][lIdx] ─
+        $flat = []; // [ ['chIdx'=>, 'lIdx'=>, 'marker'=>, 'line'=>null], ... ]
         foreach ($structure['chapters'] as $chIdx => $chapter) {
             foreach ($chapter['lessons'] ?? [] as $lIdx => $lesson) {
-                $allLessons[] = [
+                $flat[] = [
                     'chIdx'  => $chIdx,
                     'lIdx'   => $lIdx,
                     'marker' => trim($lesson['start_marker'] ?? ''),
-                    'title'  => $lesson['title'] ?? '',
-                    'desc'   => $lesson['description'] ?? '',
-                    'num'    => $lesson['lesson_number'] ?? ($lIdx + 1),
+                    'line'   => null,
                 ];
             }
         }
 
-        if (empty($allLessons)) {
-            // Fallback: whole doc is one lesson in one chapter
+        if (empty($flat)) {
             $structure['chapters'][0]['lessons'][0]['markdown'] = $fullMarkdown;
             return $structure;
         }
 
-        // Find the line index of each marker in the original document
-        foreach ($allLessons as &$ls) {
-            $ls['line'] = null;
-            if ($ls['marker'] === '') continue;
-            foreach ($lines as $lineIdx => $line) {
-                if (trim($line) === $ls['marker'] || str_contains($line, $ls['marker'])) {
-                    $ls['line'] = $lineIdx;
+        // ── 2. Find the line index of each marker (accent-tolerant) ───────────
+        // Normalise a string for fuzzy matching: lowercase, collapse whitespace,
+        // strip common accent variations so "Résolution" matches "Resolution".
+        $norm = function (string $s): string {
+            $s = mb_strtolower($s);
+            $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
+            return preg_replace('/\s+/', ' ', trim($s));
+        };
+
+        // Pre-normalise all lines for fast comparison
+        $normLines = array_map($norm, $lines);
+
+        foreach ($flat as &$entry) {
+            if ($entry['marker'] === '') continue;
+            $normMarker = $norm($entry['marker']);
+
+            foreach ($normLines as $lineIdx => $normLine) {
+                // Exact normalised match OR marker is contained in the line
+                if ($normLine === $normMarker || str_contains($normLine, $normMarker)) {
+                    $entry['line'] = $lineIdx;
                     break;
                 }
             }
         }
-        unset($ls);
+        unset($entry);
 
-        // Sort by found line position; lessons whose marker wasn't found go to end
-        usort($allLessons, fn($a, $b) => ($a['line'] ?? PHP_INT_MAX) <=> ($b['line'] ?? PHP_INT_MAX));
-
-        // If first lesson marker not found at line 0, start it from line 0
-        if ($allLessons[0]['line'] === null || $allLessons[0]['line'] > 0) {
-            $allLessons[0]['line'] = 0;
-        }
-
-        // Slice content between consecutive start lines
-        $total = count($lines);
-        foreach ($allLessons as $i => &$ls) {
-            $start = $ls['line'] ?? 0;
-            $end   = $allLessons[$i + 1]['line'] ?? $total;
-            $ls['markdown'] = implode("\n", array_slice($lines, $start, $end - $start));
-        }
-        unset($ls);
-
-        // Rebuild the structure with actual markdown content
-        $result = $structure;
-        foreach ($result['chapters'] as &$chapter) {
-            foreach ($chapter['lessons'] as &$lesson) {
-                // Find matching lesson in allLessons by title
-                foreach ($allLessons as $ls) {
-                    if ($ls['title'] === $lesson['title']) {
-                        $lesson['markdown'] = $ls['markdown'];
-                        break;
-                    }
-                }
-                $lesson['markdown'] ??= '';
+        // ── 3. Keep original declaration order; assign unfound markers sequentially
+        // Any lesson whose marker wasn't found gets the line AFTER its predecessor.
+        // This prevents re-ordering and avoids everyone collapsing to line 0.
+        $lastFound = 0;
+        foreach ($flat as &$entry) {
+            if ($entry['line'] === null) {
+                $entry['line'] = $lastFound; // same start as previous = empty slice (safety net will merge)
+            } else {
+                $lastFound = $entry['line'];
             }
-            unset($lesson);
         }
-        unset($chapter);
+        unset($entry);
+
+        // First lesson always starts at line 0
+        $flat[0]['line'] = 0;
+
+        // ── 4. Slice markdown between consecutive start lines ─────────────────
+        foreach ($flat as $i => &$entry) {
+            $start          = $entry['line'];
+            $end            = $flat[$i + 1]['line'] ?? $totalLines;
+            $entry['markdown'] = implode("\n", array_slice($lines, $start, max(0, $end - $start)));
+        }
+        unset($entry);
+
+        // ── 5. Write markdown back by [chIdx][lIdx] — NO title matching ───────
+        $result = $structure;
+        foreach ($flat as $entry) {
+            $result['chapters'][$entry['chIdx']]['lessons'][$entry['lIdx']]['markdown']
+                = $entry['markdown'];
+        }
 
         return $result;
     }
@@ -638,19 +646,48 @@ PROMPT;
         return $structure;
     }
 
-    // ── Inject image URLs as markdown references so the parser finds them ──────
+    // ── Inject image URLs: replace inline relative refs with real public URLs ───
+    // Only processes images already referenced inline by MinerU.
+    // Orphaned images (not referenced anywhere) are silently discarded.
     private function injectImageUrls(string $markdown, array $imageUrls): string
     {
         if (empty($imageUrls)) return $markdown;
 
-        // Only inject images that aren't already referenced
-        $appendix = '';
+        // Build a map: bare_filename (no dir, no ext) → full public URL
+        // e.g. "abc123def456" => "http://localhost/storage/ai_images/5/1/abc123def456.jpg"
+        $urlByBasename = [];
         foreach ($imageUrls as $url) {
-            if (!str_contains($markdown, $url)) {
-                $appendix .= "\n![image]({$url})";
+            // Extract just the filename without extension as the key
+            $basename = pathinfo(basename(parse_url($url, PHP_URL_PATH)), PATHINFO_FILENAME);
+            if ($basename !== '') {
+                $urlByBasename[$basename] = $url;
             }
         }
-        return $markdown . $appendix;
+
+        if (empty($urlByBasename)) return $markdown;
+
+        // Replace every inline image reference MinerU wrote:
+        // ![...](images/abc123.jpg)  OR  ![...](abc123.jpg)  → full public URL
+        return preg_replace_callback(
+            '/!\[([^\]]*)\]\(([^)]+)\)/',
+            function (array $m) use ($urlByBasename): string {
+                $alt         = $m[1];
+                $originalSrc = $m[2];
+
+                // Bare filename (no dir, no ext) of whatever MinerU wrote
+                $basename = pathinfo(basename($originalSrc), PATHINFO_FILENAME);
+
+                if (isset($urlByBasename[$basename])) {
+                    return "![{$alt}]({$urlByBasename[$basename]})";
+                }
+
+                // No match found — keep the original reference as-is
+                // (parseMarkdownToSegments will still create a photo block;
+                //  the broken path is better than silently dropping the image)
+                return $m[0];
+            },
+            $markdown
+        );
     }
 
     // ── Markdown → typed segments (copied from blockcontroller, standalone) ─────
