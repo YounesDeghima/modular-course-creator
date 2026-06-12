@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\section;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 class userFactory extends Factory
@@ -15,8 +16,8 @@ class userFactory extends Factory
             'last_name' => $this->faker->lastName(),
             'email' => $this->faker->unique()->safeEmail(),
             'password' => $this->faker->password(),
-            'role' => $this->faker->randomElement(['admin','user']),
-            'section_id' => 1,
+            'role' => $this->faker->randomElement(['user']),
+            'section_id'        => section::inRandomOrder()->first()?->id,
         ];
     }
 }

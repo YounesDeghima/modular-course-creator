@@ -53,7 +53,7 @@ class EnrollmentController extends Controller
 
     public function adminStore(user $user, course $course)
     {
-        $this->requireAdmin();
+
 
         $existing = CourseEnrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)
@@ -78,7 +78,6 @@ class EnrollmentController extends Controller
 
     public function adminDestroy(user $user, course $course)
     {
-        $this->requireAdmin();
 
         CourseEnrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)
@@ -91,7 +90,7 @@ class EnrollmentController extends Controller
 
     public function adminBrowser(user $user)
     {
-        $this->requireAdmin();
+
 
         $authUser = Auth::user();
         $courses  = course::where('status', 'published')->get();

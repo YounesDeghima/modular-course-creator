@@ -37,8 +37,9 @@ new class extends Component {
             ->toArray();
 
         $this->f_sections = section::wherein('id',$this->f_sectionids)
-                                    ->pluck('section_number')
-                                    ->toArray();
+            ->pluck('section_number')
+            ->map(fn($v) => (string) $v)
+            ->toArray();
 
 
 
@@ -100,208 +101,401 @@ new class extends Component {
 
 <div class="assigned-sections">
     @if($this->isTeacher)
-        <div class="cal-form-group">
-            <div class="section-header">
-                <span class="section-title">Assigned sections</span>
+        <div class="as-card">
+
+            {{-- Header --}}
+            <div class="as-header">
+                <div class="as-header-left">
+                    <div class="as-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <span class="as-title">Assigned Sections</span>
+                </div>
+                <span class="as-count-badge">{{ count($f_sections) }} section{{ count($f_sections) !== 1 ? 's' : '' }}</span>
             </div>
 
+            {{-- Success toast --}}
             @if(session('success'))
-                <p style="color:#16a34a;font-size:12px;margin:0 0 6px;">{{ session('success') }}</p>
+                <div class="as-success">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ session('success') }}
+                </div>
             @endif
 
+            <div class="as-body">
 
-            <div class="section-picker">
-                <div class="section-input-wrap">
+                {{-- Search input --}}
+                <div class="as-field-label">Add a section</div>
+                <div class="as-input-wrap">
+                    <svg class="as-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input
                         type="text"
-                        class="section-input"
+                        class="as-input"
                         wire:model.live="f_sectionInput"
-                        placeholder="Type a section number (e.g. 12)…"
+                        placeholder="Search by section number…"
                         autocomplete="off"
                     >
+                    @if($f_sectionInput !== '')
+                        <button type="button" class="as-clear-btn" wire:click="$set('f_sectionInput', '')">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    @endif
+
+                    {{-- Suggestions dropdown --}}
                     @if(count($this->sectionSuggestions))
-                        <div class="section-suggestions">
+                        <div class="as-suggestions">
+                            <div class="as-sug-label">Suggestions</div>
                             @foreach($this->sectionSuggestions as $sug)
                                 <button type="button"
-                                        class="section-sug-btn"
+                                        class="as-sug-item"
                                         wire:click="addSection('{{ $sug }}')">
-                                    {{ $sug }}
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Section {{ $sug }}
                                 </button>
                             @endforeach
                         </div>
                     @endif
                 </div>
 
-                {{-- Tags of added sections --}}
-                @if(count($f_sections))
-                    <div class="section-tags">
-                        @foreach($f_sections as $sec)
-                            <span class="section-tag">
-                                                    {{ $sec }}
-                                                    <button type="button"
-                                                            class="section-tag-remove"
-                                                            wire:click="removeSection('{{ $sec }}')">×</button>
-                                                </span>
-                        @endforeach
-                    </div>
-                @else
-                    <p class="section-empty">No sections added yet.</p>
-                @endif
-                <button class="cal-btn-submit"
-                        wire:click="save">save
+                {{-- Tags area --}}
+                <div class="as-tags-area">
+                    @if(count($f_sections))
+                        <div class="as-tags">
+                            @foreach($f_sections as $sec)
+                                <span class="as-tag" wire:key="tag-{{ $sec }}">
+                                    <span class="as-tag-dot"></span>
+                                    Section {{ $sec }}
+                                    <button type="button"
+                                            class="as-tag-remove"
+                                            wire:click="removeSection('{{ $sec }}')"
+                                            title="Remove section {{ $sec }}">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="as-empty">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            <span>No sections assigned yet</span>
+                            <span class="as-empty-sub">Search above to add sections to this teacher.</span>
+                        </div>
+                    @endif
+                </div>
+
+            </div>
+
+            {{-- Footer --}}
+            <div class="as-footer">
+                <button class="as-save-btn" wire:click="save" wire:loading.attr="disabled" wire:loading.class="as-saving">
+                    <span wire:loading.remove>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Save changes
+                    </span>
+                    <span wire:loading>Saving…</span>
                 </button>
             </div>
+
         </div>
     @endif
     <style>
-        .cw {
-            display: flex;
-            height: calc(100vh - 60px);
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg, #f1f5f9);
-            color: var(--text, #0f172a);
+        /* ── Assigned Sections Card ── */
+        .as-card {
+            background: var(--bg, #fff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
             overflow: hidden;
+            font-family: 'DM Sans', sans-serif;
         }
 
-        /* sidebar */
-        .cw-side {
-            width: 100%;
-            height: 100%;
-            flex-shrink: 0;
-            background: var(--surface, #fff);
-            border-right: 1px solid var(--border, #e2e8f0);
+        .as-header {
             display: flex;
-            flex-direction: column;
-            gap: 18px;
-            padding: 16px 12px;
-            overflow-y: auto;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px 16px;
+            border-bottom: 1px solid var(--border, #e2e8f0);
         }
 
-        .cw-add {
+        .as-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .as-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            flex-shrink: 0;
+        }
+
+        .as-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text, #0f172a);
+            letter-spacing: -0.01em;
+        }
+
+        .as-count-badge {
+            font-size: 11px;
+            font-weight: 600;
+            color: #2563eb;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 20px;
+            padding: 2px 10px;
+        }
+
+        .as-success {
             display: flex;
             align-items: center;
             gap: 7px;
+            margin: 14px 24px 0;
+            padding: 9px 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #15803d;
+        }
+
+        .as-body {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .as-field-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-faint, #94a3b8);
+        }
+
+        .as-input-wrap {
+            position: relative;
+        }
+
+        .as-search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .as-input {
             width: 100%;
-            padding: 9px 14px;
-            background: #2563eb;
+            padding: 9px 36px 9px 32px;
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 9px;
+            font-size: 13px;
+            color: var(--text, #0f172a);
+            background: var(--bg-subtle, #f8fafc);
+            outline: none;
+            transition: border-color .15s, background .15s, box-shadow .15s;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .as-input:focus {
+            border-color: #2563eb;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+        }
+
+        .as-clear-btn {
+            position: absolute;
+            right: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e2e8f0;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #64748b;
+            transition: background .1s;
+            padding: 0;
+        }
+
+        .as-clear-btn:hover {
+            background: #cbd5e1;
+        }
+
+        .as-suggestions {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+            z-index: 50;
+            overflow: hidden;
+        }
+
+        .as-sug-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #94a3b8;
+            padding: 8px 12px 4px;
+        }
+
+        .as-sug-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text, #0f172a);
+            cursor: pointer;
+            text-align: left;
+            transition: background .1s;
+            font-family: inherit;
+        }
+
+        .as-sug-item svg {
+            color: #2563eb;
+            flex-shrink: 0;
+        }
+
+        .as-sug-item:hover {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .as-tags-area {
+            min-height: 52px;
+        }
+
+        .as-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .as-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px 5px 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1d4ed8;
+            transition: border-color .15s;
+        }
+
+        .as-tag:hover {
+            border-color: #93c5fd;
+        }
+
+        .as-tag-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #60a5fa;
+            flex-shrink: 0;
+        }
+
+        .as-tag-remove {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            border-radius: 4px;
+            transition: color .1s, background .1s;
+            line-height: 1;
+        }
+
+        .as-tag-remove:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .as-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 24px 0 8px;
+            color: #cbd5e1;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .as-empty-sub {
+            font-size: 12px;
+            font-weight: 400;
+            color: #cbd5e1;
+        }
+
+        .as-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border, #e2e8f0);
+            background: var(--bg-subtle, #f8fafc);
+        }
+
+        .as-save-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 18px;
+            background: var(--accent, #2563eb);
             color: #fff;
             border: none;
             border-radius: 8px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: background .15s;
+            font-family: inherit;
+            transition: background .15s, opacity .15s;
         }
 
-        .cw-add:hover {
+        .as-save-btn:hover {
             background: #1d4ed8;
         }
 
-        /* mini cal */
-        .mini-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .mini-arr {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            color: #64748b;
-            padding: 2px 5px;
-            border-radius: 4px;
-        }
-
-        .mini-arr:hover {
-            background: #f1f5f9;
-        }
-
-        .mini-lbl {
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .mini-grid {
-            display: grid;
-            grid-template-columns:repeat(7, 1fr);
-            gap: 1px;
-        }
-
-        .mini-dow {
-            font-size: 9px;
-            text-align: center;
-            color: #94a3b8;
-            font-weight: 700;
-            padding: 2px 0;
-        }
-
-        .mini-day {
-            position: relative;
-            font-size: 10px;
-            text-align: center;
-            padding: 3px 0;
-            border: none;
-            background: none;
-            cursor: pointer;
-            border-radius: 50%;
-            color: var(--text, #0f172a);
-            line-height: 1.7;
-            transition: background .1s;
-        }
-
-        .mini-day:hover {
-            background: #f1f5f9;
-        }
-
-        .mini-dim {
-            color: #cbd5e1;
-        }
-
-        .mini-td {
-            background: #2563eb !important;
-            color: #fff !important;
-            font-weight: 700;
-        }
-
-        .mini-dot {
-            position: absolute;
-            bottom: 1px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: #2563eb;
-        }
-
-        .mini-dot-w {
-            background: #fff;
-        }
-
-        /* sb sections */
-        .sb-sec {
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
-        }
-
-        .sb-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: #94a3b8;
-            margin: 0 0 5px;
-        }
-
-        .sb-empty {
-            font-size: 11px;
-            color: #cbd5e1;
-            padding: 2px 6px;
-            margin: 0;
+        .as-save-btn.as-saving {
+            opacity: .7;
+            cursor: not-allowed;
         }
 
         .flt-row {
@@ -974,124 +1168,6 @@ new class extends Component {
         .mbtn-save:hover {
             background: #1d4ed8;
         }
-
-        /* section picker */
-        .section-picker {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .section-input-wrap {
-            position: relative;
-        }
-
-        .section-input {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid var(--border, #e2e8f0);
-            border-radius: 7px;
-            font-size: 13px;
-            color: var(--text, #0f172a);
-            background: var(--bg, #f8fafc);
-            outline: none;
-            transition: border .15s;
-            box-sizing: border-box;
-            font-family: inherit;
-        }
-
-        .section-input:focus {
-            border-color: #2563eb;
-            background: #fff;
-        }
-
-        .section-suggestions {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid var(--border, #e2e8f0);
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 8px;
-            z-index: 50;
-        }
-
-        .section-sug-btn {
-            padding: 4px 12px;
-            border: 1.5px solid #2563eb;
-            border-radius: 20px;
-            background: none;
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .section-sug-btn:hover {
-            background: #2563eb;
-            color: #fff;
-        }
-
-        .section-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .section-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #1d4ed8;
-        }
-
-        .section-tag-remove {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            color: #60a5fa;
-            line-height: 1;
-            padding: 0 1px;
-            transition: color .1s;
-        }
-
-        .section-tag-remove:hover {
-            color: #ef4444;
-        }
-
-        .section-empty {
-            font-size: 11px;
-            color: #94a3b8;
-            margin: 0;
-        }
-
-        .cal-btn-submit {
-            padding: 8px 20px;
-            border-radius: 7px;
-            border: none;
-            background: var(--accent);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background .15s;
-        }
-
 
     </style>
 </div>

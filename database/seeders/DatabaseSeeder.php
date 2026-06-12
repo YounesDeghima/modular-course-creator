@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             sectionSeeder::class,
             userSeeder::class,
             adminSeeder::class,
+            lessonProgressSeeder::class,
 //            blockSeeder::class,
 //            exercisesolutionSeeder::class,
         ]);
