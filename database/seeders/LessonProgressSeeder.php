@@ -31,7 +31,7 @@ class lessonProgressSeeder extends Seeder
                 $rows[] = [
                     'user_id'   => $user->id,
                     'lesson_id' => $lesson->id,
-                    'progress'  => fake()->numberBetween(0, 100),
+                    'progress'  => fake()->numberBetween(80, 100),
                 ];
             }
 
