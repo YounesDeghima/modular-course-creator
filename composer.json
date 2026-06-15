@@ -25,7 +25,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "pestphp/pest": "^4.3",
-        "pestphp/pest-plugin-laravel": "^4.0"
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "stefanzweifel/laravel-stats-phploc": "^8.0",
+        "tomasvotruba/lines": "^1.2"
     },
     "autoload": {
         "psr-4": {

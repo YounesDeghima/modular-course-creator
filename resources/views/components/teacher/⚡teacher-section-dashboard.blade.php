@@ -457,7 +457,7 @@ new class extends Component
                                     <div class="progress-bar-wrap">
                                         <div
                                             class="progress-bar-fill"
-                                            style="width:{{ $avg }}%;background:{{ $avg >= 100 ? 'var(--accent-green)' : ($avg < 30 ? 'var(--accent-red)' : '#3C3489') }}"
+                                            style="width:{{ $avg }}%;background:{{ $avg >= 100 ? '#059669' : ($avg < 30 ? '#DC2626' : '#3C3489') }}"
                                         ></div>
                                     </div>
                                     <span class="progress-pct">{{ $avg }}%</span>

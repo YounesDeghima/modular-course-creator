@@ -27,10 +27,10 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { python } from '@codemirror/lang-python';
 import { javascript } from '@codemirror/lang-javascript';
 import { cpp } from '@codemirror/lang-cpp';
-import { java } from '@codemirror/lang-java';
-import { rust } from '@codemirror/lang-rust';
-import { go } from '@codemirror/lang-go';
-import { php } from '@codemirror/lang-php';
+// import { java } from '@codemirror/lang-java';
+// import { rust } from '@codemirror/lang-rust';
+// import { go } from '@codemirror/lang-go';
+// import { php } from '@codemirror/lang-php';
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -81,10 +81,10 @@ const CM_LANG = {
     cpp:        cpp(),
     'c++':      cpp(),
     c:          cpp(),
-    java:       java(),
-    rust:       rust(),
-    go:         go(),
-    php:        php(),
+    // java:       java(),
+    // rust:       rust(),
+    // go:         go(),
+    // php:        php(),
 };
 
 const STARTERS = {
