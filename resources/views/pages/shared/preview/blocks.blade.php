@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 {{-- ── KaTeX (single load, before body) ────────────────────────── --}}
@@ -514,13 +513,13 @@
                                 @if(count($block->solutions) === 0)
                                     <div class="solution-block" data-solution-for="{{ $block->id }}">
 
-                                    No solution added yet.
+                                        No solution added yet.
                                     </div>
                                 @else
                                     @foreach($block->solutions as $solution)
                                         <div class="solution-block" data-solution-for="{{ $block->id }}">
 
-                                        {{-- FIX #9: solutions may contain markdown --}}
+                                            {{-- FIX #9: solutions may contain markdown --}}
                                             <div class="block-markdown-view" data-md="{{ e($solution->content) }}"></div>
                                         </div>
                                     @endforeach
@@ -640,7 +639,7 @@
                             @if(!empty($graphData))
                                 <div class="block-graph">
                                     <canvas id="chart-{{ $block->id }}"
-                                            data-chart-config="{{ htmlspecialchars(json_encode($chartConfig), ENT_QUOTES, 'UTF-8') }}"
+                                            data-chart-config="{{ json_encode($chartConfig) }}"
                                             width="400" height="200" style="max-width:100%;"></canvas>
                                 </div>
                             @endif
@@ -652,14 +651,14 @@
                             @if($funcData)
                                 <div class="block-function">
                                     <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);margin-bottom:10px;padding:6px 12px;background:var(--bg-subtle);border-radius:5px;display:inline-block;border:1px solid var(--border);">
-                                        <span class="katex-eq" data-eq="{{ htmlspecialchars($funcData['function'] ?? '') }}">
+                                        <span class="katex-eq" data-eq="{{ $funcData['function'] ?? '' }}">
                                             {{ $funcData['function'] ?? '' }}
                                         </span>
                                     </div>
                                     <div id="func-error-{{ $block->id }}" style="display:none;color:#ef4444;font-size:12px;margin-bottom:6px;"></div>
                                     <canvas id="preview-func-{{ $block->id }}"
                                             style="width:100%;height:320px;display:block;border-radius:6px;background:var(--bg);"
-                                            data-func="{{ htmlspecialchars(json_encode($funcData), ENT_QUOTES, 'UTF-8') }}">
+                                            data-func="{{ json_encode($funcData) }}">
                                     </canvas>
                                 </div>
                             @endif
@@ -724,7 +723,7 @@
 
     <livewire:preview.progress-form :lesson="$lesson" :lesson_progress="$lesson_progress"/>
 
-   <div id="ai-inline-anchor"></div>
+    <div id="ai-inline-anchor"></div>
 @endsection
 
 @section('js')
