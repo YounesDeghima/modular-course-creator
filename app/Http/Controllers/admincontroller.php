@@ -15,7 +15,7 @@ class admincontroller extends Controller
 //        $user = Auth::user();
 //        $users = User::all();
 //
-//        return view('pages.admin.dashboard', [
+//        return view('pages.admin.users.index', [
 //            'users' => $users,
 //            'name'  => $user->name,
 //            'email' => $user->email,
@@ -26,11 +26,11 @@ class admincontroller extends Controller
     public function main()
     {
         $user = Auth::user();
-        if ($user->role !== 'admin') return redirect()->back();
+        if ($user->role !== 'admin' && $user->role !=='teacher') return redirect()->back();
 
         $courses = Course::all();
 
-        return view('pages.admin.main', [
+        return view('pages.shared.editor.home', [
             'user'=>$user,
             'name'         => $user->name,
             'email'        => $user->email,
@@ -49,7 +49,7 @@ class admincontroller extends Controller
         $user = Auth::user();
         $users = User::orderBy('created_at', 'desc')->get();
 
-        return view('pages.admin.dashboard', [
+        return view('pages.admin.users.index', [
             'user'=>$user,
             'users'      => $users,
             'name'       => $user->name,
@@ -69,7 +69,7 @@ class admincontroller extends Controller
             'last_name' => 'required|string',
             'email'     => 'required|email|unique:users',
             'password'  => 'required|min:6',
-            'role'      => 'required|in:admin,user',
+            'role'      => 'required|in:admin,user,teacher',
         ]);
 
         $user = User::create([
@@ -89,7 +89,7 @@ class admincontroller extends Controller
             'name'      => 'required|string',
             'last_name' => 'required|string',
             'email'     => 'required|email|unique:users,email,' . $user->id,
-            'role'      => 'required|in:admin,user',
+            'role'      => 'required|in:admin,user,teacher',
         ]);
 
         $user->update($request->only('name', 'last_name', 'email', 'role'));

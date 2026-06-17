@@ -28,7 +28,8 @@ class logincontroller extends Controller
             {
                 return(redirect()->route('admin.main'));
             }
-            else if($user->role == 'user'){
+
+            else if($user->role == 'user'||$user->role == 'teacher'){
                 return(redirect()->route('user.main'));
             }
 

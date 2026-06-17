@@ -1,0 +1,11 @@
+export { EditorState, Compartment } from '@codemirror/state';
+export { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
+export { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+export { indentOnInput, bracketMatching, foldGutter } from '@codemirror/language';
+export { autocompletion } from '@codemirror/autocomplete';
+export { python } from '@codemirror/lang-python';
+export { javascript } from '@codemirror/lang-javascript';
+export { cpp } from '@codemirror/lang-cpp';
+export { java } from '@codemirror/lang-java';
+export { rust } from '@codemirror/lang-rust';
+export { oneDark } from '@codemirror/theme-one-dark';

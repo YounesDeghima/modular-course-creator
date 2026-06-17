@@ -18,7 +18,9 @@ class user extends Authenticatable
         'email',
         'password',
         'role',
-        'last_seen'
+        'last_seen',
+        'section',
+
     ];
 
     /**
@@ -49,5 +51,27 @@ class user extends Authenticatable
         dd($users);           // dump & die to see results
     }
 
+    public function assignedsections()
+    {
+        return $this->belongsToMany(Section::class, 'assignedsections', 'user_id', 'section_id');
+    }
 
+    public function enrolledCourses()
+    {
+        return $this->belongsToMany(course::class, 'course_enrollments', 'user_id', 'course_id')
+                    ->withPivot('forced')
+                    ->withTimestamps();
+    }
+
+    public function isEnrolledIn($courseId): bool
+    {
+        return $this->enrolledCourses()->where('course_id', $courseId)->exists();
+    }
+
+    public function section(){
+        return $this->belongsTo(section::class);
+    }
+    public function section_number(){
+        return $this->section?->section_number;
+    }
 }

@@ -28,12 +28,15 @@ class usercontroller extends Controller
 
             return redirect()->route('user.home');
         }else{
-            if($user->role=='admin'){
+
+            if($user->role=='admin'||$user->role == 'teacher'){
             $id = $user->id;
             $name = $user->name;
             $email = $user->email;
+            $role = $user->role;
 
-            return view('pages.admin.main',compact( 'name', 'email','id'));}
+
+            return view('pages.shared.editor.home', compact('name', 'email', 'id','role','user'));}
             else{
                 return redirect()->back();
             }
@@ -47,7 +50,7 @@ class usercontroller extends Controller
     public function home()
     {
         $user   = Auth::user();
-        $courses = Course::where('status', 'published')->get();
+        $courses = $user->enrolledCourses()->where('status', 'published')->get();
 
         // Count courses with any progress
         $inProgress = 0;
@@ -93,7 +96,7 @@ class usercontroller extends Controller
 
 //        return view('homepage', compact('currentEvents', 'upcomingEvents'));
 
-        return view('pages.user.homepage', [
+        return view('pages.student.home', [
             'name'           => $user->name,
             'last_name'      => $user->last_name,
             'email'          => $user->email,

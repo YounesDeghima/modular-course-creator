@@ -15,6 +15,13 @@ class userprofilecontroller extends Controller
         $id=$actualuser->id;
 
         $user = user::findOrFail($userid);
-        return view('pages.admin.userprofile',compact('user','name','email','id'));
+        $teacherId = 0;
+        if($user->role == 'teacher'){
+            $teacherId = $user->id;
+        }
+        $role = $user ->role;
+        $actualUserRole = $actualuser->role;
+
+        return view('pages.shared.editor.userprofile',compact('teacherId','actualuser','user','name','email','id','role','actualUserRole'));
     }
 }

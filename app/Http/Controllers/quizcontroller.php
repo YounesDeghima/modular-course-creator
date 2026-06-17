@@ -21,7 +21,7 @@ class quizcontroller extends Controller
             $email = $admin->email;
         $questions = coursequestion::where('course_id','=', $course->id)->get();
 
-            return view('pages.admin.coursequiz',compact('admin','id','name','email','course','questions' ));
+            return view('pages.shared.editor.coursequiz',compact('admin','id','name','email','course','questions' ));
         }
         return redirect()->back();
 

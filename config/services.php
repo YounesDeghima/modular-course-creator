@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'pty' => [
+        'secret' => env('PTY_SECRET'),
+        'url'    => env('PTY_URL', 'ws://127.0.0.1:4000'),
+    ],
 
 ];

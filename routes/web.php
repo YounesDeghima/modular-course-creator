@@ -12,13 +12,17 @@ use App\Http\Controllers\logincontroller;
 use App\Http\Controllers\previewcontroller;
 use App\Http\Controllers\quizcontroller;
 use App\Http\Controllers\signupcontroller;
+use App\Http\Controllers\Teacher\TeacherController;
+
 use App\Http\Controllers\user\usercontroller;
 use App\Http\Controllers\lessonprogresscontroller;
 use App\Http\Controllers\userprofilecontroller;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\eventcontroller;
 use App\Http\Middleware\updateLastSeen;
+use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AIController;
+use App\Http\Controllers\CodeEditorController;
 
 
 Route::get('/', function () {
@@ -38,6 +42,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/events', [EventController::class, 'store'])->name('events.store');
     Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+    Route::prefix('api/code')->name('code.')->middleware(['auth', 'throttle:60,1'])->group(function () {
+        Route::get('runtimes', [CodeEditorController::class, 'runtimes'])->name('runtimes');
+        Route::post('execute', [CodeEditorController::class, 'execute'])->name('execute');
+        Route::post('judge',   [CodeEditorController::class, 'judge'])->name('judge');
+    });
+
+    Route::get('/admin/code-editor', [CodeEditorController::class, 'adminEditor'])->name('admin.code.editor');
+    Route::get('/api/code/runtimes', [CodeEditorController::class, 'runtimes']);
+    Route::post('/api/code/execute', [CodeEditorController::class, 'execute']);
+    Route::post('/api/code/judge', [CodeEditorController::class, 'judge']);
 });
 
 
@@ -45,65 +59,69 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+            Route::get('/editor', [CodeEditorController::class, 'adminEditor'])->name('editor');
 
+            Route::post('ai/course/{course}/assist', [AIController::class, 'courseAssistChat'])
+                ->name('ai.course.assist');
 
+            // ── AI Panel ──────────────────────────────────────────────────────────────
+            Route::get('ai',                    [AIController::class, 'panel'])->name('ai.panel');
 
-                // ── AI Panel ──────────────────────────────────────────────────────────────
-                Route::get('ai',                    [AIController::class, 'panel'])->name('ai.panel');
+            // Model detection
+            Route::get('ai/models',             [AIController::class, 'models'])->name('ai.models');
 
-                // Model detection
-                Route::get('ai/models',             [AIController::class, 'models'])->name('ai.models');
+            // Connection tests
+            Route::post('ai/test',              [AIController::class, 'test'])->name('ai.test');
+            Route::post('ai/test-mineru',       [AIController::class, 'testMinerU'])->name('ai.test-mineru');
 
-                // Connection tests
-                Route::post('ai/test',              [AIController::class, 'test'])->name('ai.test');
-                Route::post('ai/test-mineru',       [AIController::class, 'testMinerU'])->name('ai.test-mineru');
+            // Chat with Ollama (test tab)
+            Route::post('ai/chat',              [AIController::class, 'chat'])->name('ai.chat');
 
-                // Chat with Ollama (test tab)
-                Route::post('ai/chat',              [AIController::class, 'chat'])->name('ai.chat');
+            // Upload & queue
+            Route::post('ai/jsonify',           [AIController::class, 'jsonify'])->name('ai.jsonify');
 
-                // Upload & queue
-                Route::post('ai/jsonify',           [AIController::class, 'jsonify'])->name('ai.jsonify');
+            // Job list & stats
+            Route::get('ai/jobs',               [AIController::class, 'jobsList'])->name('ai.jobs.list');
+            Route::get('ai/stats',              [AIController::class, 'stats'])->name('ai.stats');
+            Route::get('ai/status/{id}',        [AIController::class, 'status'])->name('ai.status');
+            Route::get('ai/logs/{id}',          [AIController::class, 'logs'])->name('ai.logs');
 
-                // Job list & stats
-                Route::get('ai/jobs',               [AIController::class, 'jobsList'])->name('ai.jobs.list');
-                Route::get('ai/stats',              [AIController::class, 'stats'])->name('ai.stats');
-                Route::get('ai/status/{id}',        [AIController::class, 'status'])->name('ai.status');
-                Route::get('ai/logs/{id}',          [AIController::class, 'logs'])->name('ai.logs');
+            // Job detail & management
+            Route::get('ai/jobs/{id}',          [AIController::class, 'jobDetail'])->name('ai.jobs.detail');
+            Route::patch('ai/jobs/{id}',        [AIController::class, 'updateJob'])->name('ai.jobs.update');
+            Route::delete('ai/jobs/{id}',       [AIController::class, 'deleteJob'])->name('ai.jobs.delete');
+            Route::delete('ai/jobs/{id}/logs',  [AIController::class, 'clearLogs'])->name('ai.jobs.clear-logs');
 
-                // Job detail & management
-                Route::get('ai/jobs/{id}',          [AIController::class, 'jobDetail'])->name('ai.jobs.detail');
-                Route::patch('ai/jobs/{id}',        [AIController::class, 'updateJob'])->name('ai.jobs.update');
-                Route::delete('ai/jobs/{id}',       [AIController::class, 'deleteJob'])->name('ai.jobs.delete');
-                Route::delete('ai/jobs/{id}/logs',  [AIController::class, 'clearLogs'])->name('ai.jobs.clear-logs');
+            // Retry variants
+            Route::post('ai/jobs/{id}/retry',   [AIController::class, 'retry'])->name('ai.jobs.retry');       // full retry (new MinerU + Ollama)
+            Route::post('ai/jobs/{id}/retry-md',[AIController::class, 'retryMd'])->name('ai.jobs.retry-md'); // new MinerU snapshot only
+            Route::post('ai/jobs/{id}/cancel',  [AIController::class, 'cancel'])->name('ai.jobs.cancel');
 
-                // Retry variants
-                Route::post('ai/jobs/{id}/retry',   [AIController::class, 'retry'])->name('ai.jobs.retry');       // full retry (new MinerU + Ollama)
-                Route::post('ai/jobs/{id}/retry-md',[AIController::class, 'retryMd'])->name('ai.jobs.retry-md'); // new MinerU snapshot only
-                Route::post('ai/jobs/{id}/cancel',  [AIController::class, 'cancel'])->name('ai.jobs.cancel');
+            // Snapshots
+            Route::get('ai/jobs/{id}/snapshots',                                        [AIController::class, 'snapshots'])->name('ai.jobs.snapshots');
+            Route::get('ai/jobs/{id}/snapshots/{snapId}/markdown',                      [AIController::class, 'snapshotMarkdown'])->name('ai.jobs.snapshots.markdown');
+            Route::get('ai/jobs/{id}/snapshots/{snapId}/result/{resultIndex}',          [AIController::class, 'snapshotResult'])->name('ai.jobs.snapshots.result');
+            Route::post('ai/jobs/{jobId}/snapshots/{snapshotId}/recut',                 [AIController::class, 'recutSnapshot'])->name('ai.jobs.snapshots.recut');
 
-                // Snapshots
-                Route::get('ai/jobs/{id}/snapshots',                              [AIController::class, 'snapshots'])->name('ai.jobs.snapshots');
-                Route::post('ai/jobs/{jobId}/snapshots/{snapshotId}/recut',       [AIController::class, 'recutSnapshot'])->name('ai.jobs.snapshots.recut');
+            // Save result as course
+            Route::post('ai/store',             [AIController::class, 'store'])->name('ai.store');
 
-                // Save result as course
-                Route::post('ai/store',             [AIController::class, 'store'])->name('ai.store');
+            // Block converter
+            Route::post('ai/convert-block',     [AIController::class, 'convertBlock'])->name('ai.convert-block');
 
-                // Block converter
-                Route::post('ai/convert-block',     [AIController::class, 'convertBlock'])->name('ai.convert-block');
+            // Bulk actions
+            Route::post('ai/bulk',              [AIController::class, 'bulkAction'])->name('ai.bulk');
 
-                // Bulk actions
-                Route::post('ai/bulk',              [AIController::class, 'bulkAction'])->name('ai.bulk');
-
-                // Debug
-                Route::get('ai/debug-python', function () {
-                    $python = base_path('scripts/.venv/Scripts/python.exe');
-                    $env    = array_merge($_SERVER, $_ENV);
-                    $env['PYTHONHASHSEED'] = '0'; $env['PYTHONUNBUFFERED'] = '1'; $env['SystemRoot'] = 'C:\\Windows';
-                    foreach (array_keys($env) as $k) { if (str_starts_with($k, 'HTTP_')) unset($env[$k]); }
-                    $p = new \Symfony\Component\Process\Process([$python, '-c', 'import sys; print(sys.executable); import mineru; print("OK")'], null, $env, null, 30);
-                    $p->run();
-                    return response()->json(['python_exists' => file_exists($python), 'exit_code' => $p->getExitCode(), 'stdout' => $p->getOutput(), 'stderr' => $p->getErrorOutput()]);
-                })->name('ai.debug');
+            // Debug
+            Route::get('ai/debug-python', function () {
+                $python = base_path('scripts/.venv/Scripts/python.exe');
+                $env    = array_merge($_SERVER, $_ENV);
+                $env['PYTHONHASHSEED'] = '0'; $env['PYTHONUNBUFFERED'] = '1'; $env['SystemRoot'] = 'C:\\Windows';
+                foreach (array_keys($env) as $k) { if (str_starts_with($k, 'HTTP_')) unset($env[$k]); }
+                $p = new \Symfony\Component\Process\Process([$python, '-c', 'import sys; print(sys.executable); import mineru; print("OK")'], null, $env, null, 30);
+                $p->run();
+                return response()->json(['python_exists' => file_exists($python), 'exit_code' => $p->getExitCode(), 'stdout' => $p->getOutput(), 'stderr' => $p->getErrorOutput()]);
+            })->name('ai.debug');
 
 
 
@@ -114,6 +132,9 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
             Route::get('/calendar', [EventController::class, 'adminIndex'])->name('calendar');
             Route::get('/dashboard', [admincontroller::class, 'dashboard'])->name('dashboard');
             Route::get('/userprofile/{userid}',[userprofilecontroller::class, 'userprofile'])->name('userProfile');
+            Route::get('/users/{user}/courses/browse', [EnrollmentController::class, 'adminBrowser'])->name('users.courses.browse');
+            Route::post('/users/{user}/courses/{course}/enroll', [EnrollmentController::class, 'adminStore'])->name('users.courses.enroll');
+            Route::delete('/users/{user}/courses/{course}/enroll', [EnrollmentController::class, 'adminDestroy'])->name('users.courses.unenroll');
             Route::get('/main', [admincontroller::class, 'main'])->name('main');
 
             Route::post('/users',          [admincontroller::class, 'storeUser'])->name('users.store');
@@ -146,6 +167,10 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
                 Route::put('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/update-all', [blockcontroller::class, 'updateAll'])
                     ->name('courses.chapters.lessons.blocks.update-all');
 
+                // Markdown → typed blocks exploder
+                Route::post('courses/{course}/chapters/{chapter}/lessons/{lesson}/blocks/{block}/explode-markdown', [blockcontroller::class, 'explodeMarkdown'])
+                    ->name('courses.chapters.lessons.blocks.explode-markdown');
+
                 Route::resource('courses.chapters.lessons.blocks', blockcontroller::class);
             });
 
@@ -174,10 +199,15 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
     Route::prefix('user')
         ->name('user.')
         ->group(function () {
+            Route::get('/editor', [CodeEditorController::class, 'userEditor'])->name('editor');
 
             Route::get('/calendar', [EventController::class, 'userIndex'])->name('calendar');
 
             Route::get('/home', [usercontroller::class, 'home'])->name('home');
+
+            Route::get('/courses/browse', [EnrollmentController::class, 'browser'])->name('courses.browse');
+            Route::post('/courses/{course}/enroll', [EnrollmentController::class, 'store'])->name('courses.enroll');
+            Route::delete('/courses/{course}/enroll', [EnrollmentController::class, 'destroy'])->name('courses.unenroll');
 
             Route::get('/main',[usercontroller::class,'main'])->name('main');
 
@@ -194,7 +224,7 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 
             });
 
-            Route::get('/lessons/{id}/pdf', [LessonPdfController::class, 'download'])->name('lessons.pdf');
+            Route::get('/lessons/{id}/pdf', [LessonPdfController::class, 'showPdf'])->name('lessons.pdf');
 
             Route:: Resource('lesson.progress', lessonprogresscontroller::class);
             Route:: Resource('chapter.progress', chapterprogresscontroller::class);
@@ -203,3 +233,9 @@ Route::middleware(['auth', updateLastSeen::class])->group(function () {
 
         });});
 
+
+Route::middleware(['auth', 'verified']) // add your teacher middleware if you have one
+->group(function () {
+    Route::get('/teacher/section/{section}', [teachercontroller::class, 'section'])
+        ->name('teacher.section');
+});

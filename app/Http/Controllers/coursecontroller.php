@@ -19,7 +19,7 @@ class coursecontroller extends Controller
         $email = $admin->email;
 
         $courses= Course::all();
-        return view('pages.admin.courses',compact('courses','name','email','id'));
+        return view('pages.shared.editor.courses',compact('courses','name','email','id'));
     }
 
     /**

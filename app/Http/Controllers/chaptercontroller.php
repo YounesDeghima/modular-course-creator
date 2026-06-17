@@ -23,13 +23,9 @@ class chaptercontroller extends Controller
             ->orderBy('chapter_number', 'asc')
             ->get();
 
-        // 2. Logic to prevent the "Undefined Variable" crash:
-        // We grab the first chapter and its first lesson so the main part has something to show.
-        $chapter = chapter::where('course_id', $course->id)
-            ->orderBy('chapter_number', 'asc')
-            ->first();
-
-        $lesson = null;
+        // 2. Grab the first chapter and first lesson for the editor pane.
+        $chapter = $chapters->first();
+        $lesson  = null;
 
         if ($chapter) {
             $lesson = $chapter->lessons()
@@ -37,41 +33,43 @@ class chaptercontroller extends Controller
                 ->first();
         }
 
-
+        // 3. Load blocks for that lesson (empty collection when no lesson yet).
         $blocks = $lesson
             ? $lesson->blocks()->orderBy('block_number', 'asc')->get()
             : collect();
 
-        $chapter = Chapter::where('course_id', $course->id)
-            ->orderBy('chapter_number', 'asc')
-            ->first();
-
-        if (!$chapter) {
-            $chapter = Chapter::create([
+        // 4. Guard: Create placeholder chapter and lesson if none exist
+        /*if (!$chapter) {
+            $placeholder_chapter = chapter::create([
                 'course_id' => $course->id,
-                'title' => 'Enter chapter title here',
-                'chapter_number' => 1
+                'title' => 'Chapter 1',
+                'chapter_number' => 1,
+                'description' => 'Add your chapter description here',
+                'status' => 'draft'
             ]);
-        }
-        if (!$lesson) {
-            $lesson = Lesson::create([
-                'chapter_id' => $chapter->id,
-                'title' => 'Enter lesson title here',
-                'content' => '',
-                'lesson_number' => 1,
-            ]);
-        }
 
-        // 4. Other data you need
+            $placeholder_chapter->lessons()->create([
+                'title' => 'Lesson 1',
+                'lesson_number' => 1,
+                'content' => 'Add your lesson content here',
+                'status' => 'draft'
+            ]);
+
+            $chapter = $placeholder_chapter;
+            $lesson = $placeholder_chapter->lessons()->first();
+            $blocks = $lesson->blocks()->orderBy('block_number', 'asc')->get();
+        }*/
+
+        // 5. Other data needed by the view
         $chapter_count = $chapters->count();
-        $id = $admin->id;
-        $name = $admin->name;
+        $id    = $admin->id;
+        $name  = $admin->name;
         $email = $admin->email;
 
 
 
 
-        return view('pages.admin.chapters', compact(
+        return view('pages.shared.editor.chapters', compact(
             'chapters',
             'course',
             'chapter', // Fixed: Added singular $chapter
@@ -108,8 +106,17 @@ class chaptercontroller extends Controller
         $validated['course_id'] = $course->id;
         $chapter = chapter::create($validated);
 
+        // Auto-create a placeholder lesson for the new chapter
+        $lesson = $chapter->lessons()->create([
+            'title' => 'Lesson 1',
+            'lesson_number' => 1,
+            'content' => 'Add your lesson content here',
+            'status' => $validated['status']
+        ]);
+
         return response()->json([
-            'chapter' => $chapter
+            'chapter' => $chapter,
+            'lesson' => $lesson
         ]);
     }
 

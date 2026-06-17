@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\section;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 class userFactory extends Factory
@@ -9,12 +10,14 @@ class userFactory extends Factory
 
     public function definition(): array
     {
+
         return [
             'name' => $this->faker->name(),
             'last_name' => $this->faker->lastName(),
             'email' => $this->faker->unique()->safeEmail(),
             'password' => $this->faker->password(),
-            'role' => $this->faker->randomElement(['admin','user']),
+            'role' => $this->faker->randomElement(['user']),
+            'section_id'        => section::inRandomOrder()->first()?->id,
         ];
     }
 }

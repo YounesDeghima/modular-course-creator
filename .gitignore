@@ -47,3 +47,7 @@ pip-delete-this-directory.txt
 **/models/
 **/output/
 /storage/app/private/ai_uploads/*
+
+#pty-server for compiler
+/pty-server/node_modules/
+/pty-server/package-lock.json

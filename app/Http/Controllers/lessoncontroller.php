@@ -26,7 +26,7 @@ class lessoncontroller extends Controller
             ->get();
         $lesson_count = $chapter->lessons->count();
 
-        return view('pages.admin.lessons',compact('lessons','course','chapter','lesson_count','id','name','email'));
+        return view('pages.shared.editor.lessons',compact('lessons','course','chapter','lesson_count','id','name','email'));
 
     }
 

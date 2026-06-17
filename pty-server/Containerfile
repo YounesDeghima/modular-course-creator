@@ -1,0 +1,100 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  pty-server/Containerfile
+#  Builds the isolated code-runner image used by server.js
+#
+#  Build:
+#    cd pty-server
+#    podman build -t localhost/code-runner:latest -f Containerfile .
+#
+#  Verify:
+#    podman images | grep code-runner
+#    podman run --rm localhost/code-runner:latest python3 --version
+#
+#  To add a language:
+#    1. Add the apt install / curl step in the relevant section below
+#    2. Re-run:  podman build -t localhost/code-runner:latest -f Containerfile .
+#    3. Add the language to LANGUAGES in server.js
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM debian:bookworm-slim
+
+# ── Prevent any interactive apt prompts ──────────────────────────────────────
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# ── System base + interpreted languages ──────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Core utils (needed for sh -c compile chains) \
+    ca-certificates \
+    curl \
+    bash \
+    # Python
+    python3 \
+    python3-pip \
+    # Node.js (LTS via NodeSource)
+    nodejs \
+    npm \
+    # Ruby
+    ruby \
+    # PHP CLI
+    php-cli \
+    # Lua
+    lua5.4 \
+    # Perl
+    perl \
+    # C / C++
+    gcc \
+    g++ \
+    # Java (JDK for both javac and java)
+    default-jdk \
+    # Go
+    golang-go \
+    # Kotlin (needs Java above)
+    kotlin \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Rust (rustup — apt version is too old) ───────────────────────────────────
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    && chmod -R a+w /usr/local/rustup /usr/local/cargo
+
+# ── TypeScript (ts-node via npm) ─────────────────────────────────────────────
+RUN npm install -g ts-node typescript --silent
+
+# ── Swift (optional — large download, comment out if not needed) ─────────────
+# RUN apt-get update && apt-get install -y --no-install-recommends swift \
+#     && rm -rf /var/lib/apt/lists/*
+
+# ── Create a locked-down non-root user ───────────────────────────────────────
+# All student code runs as this user inside the container.
+# --no-create-home keeps the image smaller and removes a writable home dir.
+RUN useradd --uid 1001 --no-create-home --shell /usr/sbin/nologin runner
+
+# ── /code is where the source file gets mounted (read-only bind) ──────────────
+# /tmp is a writable tmpfs (injected at runtime via --tmpfs flag in server.js).
+# We just make sure the dir exists in the image layer.
+RUN mkdir -p /code
+
+# ── Drop to non-root for all executions ──────────────────────────────────────
+USER runner
+
+# ── Smoke-test: make sure the most critical runtimes are present ─────────────
+RUN python3  --version \
+ && node     --version \
+ && ruby     --version \
+ && php      --version \
+ && lua5.4   -v        \
+ && perl     --version \
+ && gcc      --version \
+ && g++      --version \
+ && java     --version \
+ && go       version   \
+ && rustc    --version \
+ && ts-node  --version
+
+# Default entrypoint — overridden by server.js per run
+CMD ["/bin/bash"]

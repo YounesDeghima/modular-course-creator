@@ -22,7 +22,7 @@ class eventcontroller extends Controller
         $user   = Auth::user();
         $events = $this->getEvents($user->id);
 
-        return view('pages.user.calendar', [
+        return view('pages.student.calendar', [
             'name'   => $user->name,
             'email'  => $user->email,
             'id'     => $user->id,
@@ -36,7 +36,7 @@ class eventcontroller extends Controller
         $admin  = Auth::user();
         $events = event::orderBy('start_date')->get();
 
-        return view('pages.admin.calendar', [
+        return view('pages.shared.editor.calendar', [
             'name'   => $admin->name,
             'email'  => $admin->email,
             'id'     => $admin->id,

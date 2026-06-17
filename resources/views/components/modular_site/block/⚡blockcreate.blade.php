@@ -25,6 +25,21 @@ new class extends Component {
     }
 
     /**
+     * Keep in sync when the user switches lessons in the sidebar.
+     * LessonChanged is dispatched as { id, chapterId } — we only need id.
+     */
+    public function updateLesson(int $id, $chapterId = null): void
+    {
+        $this->lesson_id = $id;
+        $this->lesson    = \App\Models\lesson::findOrFail($id);
+    }
+
+    public function getListeners(): array
+    {
+        return ['LessonChanged' => 'updateLesson'];
+    }
+
+    /**
      * Entry-point called by the toolbar window event: add-block { type }
      * Type list and content defaults mirror blockcontroller@store exactly.
      */
@@ -33,7 +48,7 @@ new class extends Component {
         $allowed = [
             'header','description','note','exercise','code',
             'photo','video','math','graph','table','ext',
-            'function','list','separator',
+            'function','list','separator','markdown',
         ];
 
         if (! in_array($type, $allowed, true)) {
@@ -77,7 +92,7 @@ new class extends Component {
             ]),
 
             'function' => json_encode([
-                'function' => 'sin(x)',
+                'function' => 'y=x',
                 'x_min'    => -10,
                 'x_max'    => 10,
                 'y_min'    => -5,
@@ -102,7 +117,14 @@ new class extends Component {
             'header'      => 'New Heading',
             'description' => 'New paragraph text.',
             'note'        => 'Add your note here.',
-            'code'        => '// code here',
+            'code' => json_encode([
+                'mode'       => 'free',
+                'language'   => 'python',
+                'version'    => '',
+                'code'       => '# write your code here\n',
+                'problem'    => '',
+                'test_cases' => [],
+            ]),
             'math'        => '\text{expression}',
             'exercise'    => 'Solve the following...',
             'ext'         => '<p></p>',
