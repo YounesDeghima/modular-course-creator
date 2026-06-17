@@ -32,7 +32,7 @@ new class extends Component
     <td style="color:var(--text-muted);">{{ $user->email }}</td>
     <td>
                     <span class="role-badge {{ $user->role === 'admin' ? 'role-admin' : 'role-user' }}">
-                        {{ $user->role === 'admin' ? 'Admin' : 'Student' }}
+                       {{ match($user->role) { 'admin' => 'Admin', 'teacher' => 'Teacher', default => 'Student' } }}
                     </span>
     </td>
     <td style="color:var(--text-muted);font-size:12px;">

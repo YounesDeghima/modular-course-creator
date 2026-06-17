@@ -253,10 +253,8 @@ You are a strict course content parser. Convert the Markdown document below into
 ═══════════════════════════════════════════════════════════════
 CHAPTER / LESSON SPLITTING RULES
 ═══════════════════════════════════════════════════════════════
-- Lines starting with `# ` → new CHAPTER
-- Lines starting with `## ` → new LESSON inside the current chapter
-- If no `# ` exists → one chapter for the whole document
-- If no `## ` exists → one lesson for the whole chapter
+- based on context  → new CHAPTER
+- based on context → new LESSON inside the current chapter
 
 ═══════════════════════════════════════════════════════════════
 BLOCK SPLITTING RULES  (most important part)

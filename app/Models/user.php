@@ -18,7 +18,8 @@ class user extends Authenticatable
         'email',
         'password',
         'role',
-        'last_seen'
+        'last_seen',
+        'section'
     ];
 
     /**
@@ -47,6 +48,11 @@ class user extends Authenticatable
     {
         $users = user::all(); // fetch all rows from users table
         dd($users);           // dump & die to see results
+    }
+
+    public function assignedsections()
+    {
+        return $this->hasMany(assignedsection::class,'user_id', 'section_id');
     }
 
 

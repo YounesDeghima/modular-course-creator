@@ -287,11 +287,6 @@ nav {
 .side-bar.collapsed .sidebar-content {
     display: none;
 }
-.blocks {
-    padding: 0 24px;
-    max-width: 1200px;
-    margin: 0 auto; /* center the content */
-}
 /* ── Main ── */
 main {
     flex: 1;

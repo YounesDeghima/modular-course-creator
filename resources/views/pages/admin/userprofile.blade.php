@@ -926,12 +926,34 @@
                     <span class="info-key">Role</span>
                     <span class="info-val">
                     <span class="badge {{ $user->is_admin ?? false ? 'badge-active' : 'badge-inactive' }}">
-                        {{ ($user->is_admin ?? false) ? 'Admin' : 'Student' }}
+                        {{ ($user->role =='admin' ?? false) ? 'admin' : (($user->role == 'teacher' ?? false) ? 'teacher' : 'student') }}
                     </span>
                 </span>
                 </div>
             </div>
         </div>
+
+
+
+            @php
+                if($user->role == 'teacher'){
+                    $isTeacher = true;
+                }
+                else{
+                    $isTeacher = false;
+                }
+            @endphp
+            @if($isTeacher)
+                <livewire:user_info.assignedsections
+                    :user="$user"
+                    :teacherId="$teacherId"
+                    :isTeacher="$isTeacher"
+
+                />
+            @endif
+
+
+
 
         {{-- ── Course progress ── --}}
         <div>
